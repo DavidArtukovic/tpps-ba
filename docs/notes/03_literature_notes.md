@@ -1,4 +1,4 @@
-# Literature Notes – TPPS Bachelor Thesis
+# 03 - Literature Notes – TPPS Bachelor Thesis
 
 This document contains concise summaries of all relevant papers and theses.
 For each source, the following aspects are listed:

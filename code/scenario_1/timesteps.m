@@ -3,7 +3,7 @@
 % PURPOSE:
 %   Generates hydraulic and thermal load profiles for hourly and
 %   15-minute resolution simulations of the thermo-hydraulic system.
-%   The profile spans over 20 days.
+%   The profile spans over 20 days
 %   The resulting profiles are stored in 'SzenarioComsol.mat' and
 %   used as boundary conditions for subsequent COMSOL or MATLAB-based
 %   simulation workflows.
@@ -37,11 +37,20 @@
 clc
 clear
 
+%%%------------------------------------------%%%
+% 01 Create 20 days charge/discharge scenario
+%%%------------------------------------------%%%
+
+% t_900(1,i) = 1 -> thermal charge
+% t_900(1,i) = -1 -> thermal discharge
+% t_900(1,i) = 0 -> halting
 
 %%% Untersuchungszeitraum %%
 filenameSIM = 'SzenarioComsol.mat';
-t_hour = ones(2,480); % Zeitschritte pro Stunde
-t_900 = ones(2,480*4); % Zeitschritte pro 900s (15min)
+t_hour = ones(2,480); % Zeitschritte in Stunde
+t_900 = ones(2,480*4); % Zeitschritte in 900s (15min)
+
+% Note first 10 days is halting phase
 
 % Potentielles Entladen Stunden
 for i = 259:259+15

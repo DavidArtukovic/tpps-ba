@@ -109,21 +109,21 @@ SW(3,5) = SW(3,1)/(SW(3,2)*SW(3,3)); % Lambda/(CP*Rho) Dämmmaterial in 'm²/s'
 
 
 %%%------------------------------------------%%%
-% Diskretisierung
+% Discretization
 %%%------------------------------------------%%%
 
-dz = 0.005;
-d(1) = d_ST; %Zylinderdurchmesser
-d(2) = round(0.005,3); %Ortsdiskretisierung in radialer Richtung
+dz = 0.005; % verical grid spacing
+d(1) = d_ST; % cylinder diameter
+d(2) = round(0.005,3); % Ortsdiskretisierung in radialer Richtung
 d(3) = d_ps_1D; % Durchmesser Penstock
 d(4) = round(0.005,3); % Ortsdiskretisierung in veritkaler Richtung
-H(3) = h_pist; % Kolbenhöhe
-H(11) = h_lift; % maximale Hubhöhe
-H(7) = dz*round(h_1D_tot/dz); % Totzone inc. Kuppel
+H(3) = h_pist; % piston height
+H(11) = h_lift; % maximal lifting height
+H(7) = dz*round(h_1D_tot/dz); % upper dead-zone incl. dome
 
-A(1) = d(1)^2*pi/4;%Fläche des Zylinders
-A(2) = r_pist^2*pi; % Fläche des Kolbens 
-A(3) = A(1)-A(2); % Fläche des Ringspaltes 
+A(1) = d(1)^2*pi/4;% cylinder surface
+A(2) = r_pist^2*pi; % surface piston
+A(3) = A(1)-A(2); % surface ringspalt
 
 % Horizontale Geometrie
                                                                             % Ortsdiskretisierung in 'm'
@@ -177,7 +177,6 @@ z_RE(1,1) = d(1)/2;                                                         % Ra
 % end
 z_RE(1,:)= [d(1)/2 , d(1)/2+0.005 , d(1)/2+0.015 , d(1)/2+0.035 , d(1)/2+0.075 , d(1)/2+0.15 , d(1)/2+0.3 , d(1)/2+0.6 , d(1)/2+1.2 , d(1)/2+2.4 , d(1)/2+4.6 , d(1)/2+6.8 , d(1)/2+9];
 
-% TODISCUSS - Flächeninhalte der Kreisringsegmente, also eines Rings ums Erdreich auf einer Höhe?
 % Flächeninhalte der einzelnen Kreisringsegmente
 z_RE(2,1)=round(pi*(z_RE(1,2)-z_RE(1,1))*(((z_RE(1,2)-z_RE(1,1))/4+z_RE(1,1))),10); % Flächeninhalt des ersten Kreisringsegmentes in 'm²'
 z_RE(2,end) = round(-pi*(z_RE(1,end-1)-z_RE(1,end))*((z_RE(1,end-1)-z_RE(1,end))/4+z_RE(1,end)),10); % Flächeninhalt des letzten Kreisringsegmentes in 'm²'
@@ -225,7 +224,7 @@ IC_Sys(Nz(3)+Nz(8)+Nz(2)+Nz(5)+Nz(4)+Nz(9)-3:end) = T0init(5);              % St
 
 T_V = zeros(1,Nz(10));                                                      % Berechnungsmatrix für vertikales System
 T_W = zeros(1,Nz(6));                                                       % Berechnungsmatrix für Wasservolumen
-T_REf = T0init(5)*ones(Nz(13),Nz(12));                                      % Matrix für Tensor raidales Erdreich
+T_REf = T0init(5)*ones(Nz(13),Nz(12));                                      % Matrix für Tensor raidales Erdreich radiale Gitterpunkte x vertikale Gitterpunkte.
 
 filenameSIM = ['Init_d' num2str(d_ST) '_h' num2str(h_pist) '_g' num2str(r_gap) '.mat'];
 o=1;

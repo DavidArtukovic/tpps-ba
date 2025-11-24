@@ -1,3 +1,32 @@
+%% HEATSOLID.m
+%  SUMMARY:
+%   Computes the time derivatives of all temperature states in the TPPS
+%   model during the purely conductive initialization phase (no forced
+%   water flow through the storage).
+%
+% DESCRIPTION:
+%   - Assembles 1D heat conduction in piston, water, air, insulation and
+%     vertical soil.
+%   - Solves radial heat conduction in the surrounding ground and couples
+%     it to the vertical insulation / soil nodes.
+%   - Applies the prescribed boundary conditions at piston top and bottom,
+%     at the vertical soil boundaries and at the outer radial boundary.
+%   - Returns dTdt in a format compatible with ode45 for time integration.
+%
+% INPUT:
+%   t      - current simulation time (s), required by ode45
+%   T      - current temperature state vector of the whole system
+%   Nz     - number of grid cells per 1D / 2D region
+%   dz     - vertical grid spacing (m)
+%   flow   - flow flag (kept for interface consistency, no convection here)
+%   T0init - boundary / ambient temperatures and reference values
+%   SW     - material property matrix (density, heat capacity, etc.)
+%   A      - cross-sectional areas of the different regions
+%   z_RE   - geometry information for the radial soil discretization
+%
+% OUTPUT:
+%   dTdt   - time derivative of the temperature state vector (K/s)
+
 function dTdt = HeatSolid(t,T,Nz,dz,flow,T0init,SW,A,z_RE) % STABILER Geschwindigkeitsbereich keine Korrekturwerte
 dTdt = zeros(Nz(10)+Nz(12)*Nz(13),1); % Temperaturgradientenvektor 
 Tf = zeros(Nz(13),Nz(12)); % Initalisierung des Temperaturfeldes radiales Erdreich

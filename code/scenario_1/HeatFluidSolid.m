@@ -139,7 +139,9 @@ for i = Nz(3)+Nz(8)+Nz(2)+Nz(5)+Nz(4)-2:Nz(3)+Nz(8)+Nz(2)+Nz(5)+Nz(4)+Nz(9)-5
     dTdt(i) = SW(3,5)*(T(i+1)-2*T(i)+T(i-1))/(dz^2) + SW(4,1)*DT(i-Nz(8)-Nz(5)-1); % Dämmung inc. Radialer verlustterm
 end
 
-%Wasser
+% Zeile 145 -150 Integration der Verlustterme, bisher SW(4,3)*DT Eintrag aus dem Erdreich. Hier kommt die Konvektion hinzu. 
+% Vegleich Gerle und Micha.
+% Wasser
 for i = Nz(3)+Nz(8)+1:Nz(3)+Nz(8)+Nz(2)+Nz(5)+Nz(4)-4
     if i <= Nz(3)+Nz(8)+Nz(2)-1 % Wasser unterhalb des Kolbens
         dTdt(i) = SW(1,5)*(T(i+1)-2*T(i)+T(i-1))/(dz^2)-flow*(T(i+1)-T(i-1))/(2*dz) + SW(4,3)*DT(i-(Nz(3)+Nz(8)-1));
