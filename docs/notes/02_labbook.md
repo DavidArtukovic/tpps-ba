@@ -3,6 +3,7 @@ Hier werden To Do's, Erkentnisse, Fragen sowie Protokolle zu den Treffen mit den
 
 # Open Tasks
 - [ ] Derive algebraic expressions for the inclusion of the convection term.
+- [ ] Go through all scripts, update indexing and comments.
 - [ ] Integrate the free convection into the existing Matlab code.
 
 ---

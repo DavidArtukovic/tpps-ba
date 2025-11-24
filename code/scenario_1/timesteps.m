@@ -30,7 +30,6 @@
 %
 % NOTES:
 %   All profile ramps (charging/discharging) are linear.
-
 %
 % ---------------------------------------------------------------
 
