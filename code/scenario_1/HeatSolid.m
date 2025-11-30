@@ -2,8 +2,7 @@
 % ---------------------------------------------------------------
 %  SUMMARY:
 %   Computes the time derivatives of all temperature states in the TPPS
-%   model during the purely conductive initialization phase (no forced
-%   water flow through the storage).
+%   model during the purely conductive initialization phase.
 %
 % DESCRIPTION:
 %   - Assembles 1D heat conduction in piston, water, air, insulation and
@@ -52,9 +51,8 @@ DTd = zeros(Nz(9),3); % temperature isolation
 
 % airtemperature top
 T(Nz(3)+Nz(8)+Nz(2)+Nz(5)+Nz(4)+Nz(9)-4) = T0init(4);
-% Temperatur Wasser/Dämmung LADETEMPERATUR
 
-% Kontakttemperatur Wasser Dämmung
+% contact temperature water - isolation
 T(Nz(3)+Nz(8)+Nz(2)+Nz(5)+Nz(4)-3) = T0init(6);
 
 %%%------------------------------------------%%%
@@ -85,7 +83,7 @@ T(1) = T0init(6);
 
 % discretized temperature gradient in the piston
 for i = 2:Nz(3)-1
-    % Discretized one dimensional heat equation (see eq.1 Häuslein 2024)   
+    % Discretized one dimensional heat equation (see eq.1 Häuslein, 2024)   
     dTdt(i) =  SW(2,5)*(T(i+1)-2*T(i)+T(i-1))/(dz^2); 
 end
 

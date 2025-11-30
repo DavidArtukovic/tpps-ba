@@ -19,3 +19,6 @@
 
 # CSV Debug/Exports
 *.csv
+
+# zip files
+*.zip
