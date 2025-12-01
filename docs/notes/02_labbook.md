@@ -2,7 +2,7 @@
 Hier werden To Do's, Erkentnisse, Fragen sowie Protokolle zu den Treffen mit den Betreuern gesammelt. Oben stehen immer die anstehenden To Do's.
 
 # Open Tasks
-- [ ] Derive algebraic expressions for the inclusion of the convection term.
+- [x] Derive algebraic expressions for the inclusion of the convection term.
 - [ ] Go through all scripts, update indexing and comments.
 - [ ] Integrate the free convection into the existing Matlab code.
 
