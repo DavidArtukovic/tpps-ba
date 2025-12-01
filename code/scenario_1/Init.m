@@ -1,3 +1,40 @@
+%% INIT.m
+% -------------------------------------------------------------------------
+%  SUMMARY:
+%   Initializes geometry, material properties and temperature fields for the
+%   TPPS model and performs the purely conductive pre-initialization phase.
+%
+%  DESCRIPTION:
+%   - Generates long-term synthetic ground temperature boundary conditions
+%     (short-term linear ramp + long-term sinusoidal/exponential trend).
+%   - Defines full storage geometry: cylinder, dome, piston, ring gap,
+%     membrane, replacement volumes, soil and insulation.
+%   - Computes stored potential and thermal energy for reference conditions.
+%   - Sets material properties (water, soil, insulation) incl. thermal
+%     conductivity, density, heat capacity and derived thermal diffusivities.
+%   - Constructs vertical 1D discretization (piston, pressure zones, water
+%     inventory, insulation, soil) and radial discretization of the soil
+%     domain using predefined ring segments.
+%   - Computes radial heat-loss factors from an analytical cylindrical model.
+%   - Initializes all temperature fields for piston, water, insulation,
+%     soil and air; assembles the global 1D system state vector.
+%   - Calls HeattransferInit.m in a time loop to compute transient heat
+%     conduction during the initialization phase (no forced mass flow).
+%   - Saves intermediate states to MAT files for later TPPS simulations.
+%
+%
+%  OUTPUT:
+%   Workspace variables:
+%       Geometry: H, d, A, Nz, dz, z_SSys, z_Sys, z_UD, z_OD, z_W, z_Pist,
+%                 z_ZE, z_RE
+%       Material properties: SW
+%       Temperature fields: IC_Sys, T_V, T_W, T_REf, T_Sys, T
+%       Time discretization: dt, t2, time_short, time_long
+%
+% -------------------------------------------------------------------------
+
+
+
 clc 
 clear
 

@@ -43,3 +43,11 @@ Includes natural convection through an effective mixing term.
 
 **Relevance:**  
 Alternative approach for representing free convection in low-velocity water domains.
+
+
+## VDI-Wärmeatlas (2019) – Free Convection
+**Key idea:**  
+Includes natural convection through an effective mixing term.
+
+**Relevance:**  
+Alternative approach for representing free convection in low-velocity water domains.
