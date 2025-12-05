@@ -51,8 +51,8 @@ dTdt = zeros(Nz(10)+Nz(12)*Nz(13),1);
 % Initialize radial soil temperature field (2D) and its time derivative.
 % rows    -> vertical direction
 % columns -> radial direction
-Tf = zeros(Nz(13),Nz(12)); 
-dTdtf = zeros(Nz(13),Nz(12)); 
+Tf = zeros(Nz(13),Nz(12)); % temperature field
+dTdtf = zeros(Nz(13),Nz(12)); % temperature time derivative field
 
 % Temperature difference vectors used for coupling terms
 DT = zeros(Nz(13),1); % soil - water temperature difference (radial)
@@ -118,7 +118,9 @@ end
 % 03 Piston (1D) including coupling to water
 %%%------------------------------------------%%%
 
-% --- Piston top contact (to upper water region) ---
+%--------------------------------------------------------------
+% 3.1 Piston top contact (to upper water region)
+%--------------------------------------------------------------
 
 % Water/piston contact temperature at the piston top (water side)
 if flow >= 0
@@ -134,7 +136,9 @@ TK_KWO = T(Nz(3)-1);
 % Mixed contact temperature at piston top
 T(Nz(3)) = (SW(1,4)*TK_WKO+SW(2,4)*TK_KWO)/((SW(1,4)+SW(2,4)));
 
-% --- Piston bottom contact (to lower water region) ---
+%--------------------------------------------------------------
+% 3.2 Piston bottom contact (to lower water region) 
+%--------------------------------------------------------------
 
 % Water/piston contact temperature at piston bottom (water side)
 if flow <= 0
@@ -177,18 +181,20 @@ Tf(end,:) = T0init(4); % top soil equals air temperature
 % Outer radial boundary of the soil
 Tf(:,end) = T0init(5);
 
-% --- Coupling 1D insulation with 2D radial insulation ---
+%--------------------------------------------------------------
+% 5.1 Coupling 1D insulation with 2D radial insulation
+%--------------------------------------------------------------
 
 % Extract vertical temperature profile in 1D insulation at system top
 sys_top_no_ins_idx = Nz(3)+Nz(8)+Nz(2)+Nz(5)+Nz(4)-3;
-DTd(:,1) = T(Nz(3)+Nz(8)+Nz(2)+Nz(5)+Nz(4)-3:Nz(3)+Nz(8)+Nz(2)+Nz(5)+Nz(4)+Nz(9)-4);
+DTd(:,1) = T(sys_top_no_ins_idx :sys_top_idx);
 
 % Indices for the top of the radial soil column (first radial ring)
 radial_soil_top_idx        = Nz(2)+Nz(3)+Nz(4)+Nz(9)-3;
 radial_soil_top_no_ins_idx = Nz(2)+Nz(3)+Nz(4)-2;
 
 % Vertical temperature profile in the second radial column (just inside insulation)
-DTd(:,2) = Tf(Nz(2)+Nz(3)+Nz(4)-2:Nz(2)+Nz(3)+Nz(4)+Nz(9)-3,2); 
+DTd(:,2) = Tf(radial_soil_top_no_ins_idx:radial_soil_top_idx,2); 
 
 % Average contact temperature between 1D insulation and 2D radial insulation
 DTd(:,3) = (DTd(:,1)+DTd(:,2))/2;
@@ -201,7 +207,10 @@ Tf(Nz(2)+Nz(3)+Nz(4)-2:Nz(2)+Nz(3)+Nz(4)+Nz(9)-3,1) = DTd(:,3);
 Tf(end-Nz(9)+1,:) = ...
     (SW(2,4)*Tf(end-Nz(9),:) + SW(3,4)*Tf(end-Nz(9)+2,:)) / (SW(2,4)+SW(3,4));
 
-% --- Coupling 1D water with 2D radial soil at the inner radius ---
+%--------------------------------------------------------------
+% 5.2 Coupling 1D water with 2D radial soil at the inner radius
+%--------------------------------------------------------------
+
 for e = Nz(2)+Nz(3)-1 : Nz(2)+Nz(3)+Nz(4)-2
     Tf(e,1) = ...
         (SW(1,4)*T(Nz(8)+Nz(5)+e-1) + SW(2,4)*Tf(e,2)) / (SW(1,4)+SW(2,4));
@@ -248,7 +257,7 @@ end
 DT(:,1) = Tf(:,2) - Tf(:,1);
 
 % Temperature gradient in the 1D system insulation including radial loss
-for i = Nz(3)+Nz(8)+Nz(2)+Nz(5)+Nz(4)-2 : sys_top_idx-1
+for i = sys_top_no_ins_idx+1 : sys_top_idx-1
     dTdt(i) = SW(3,5) * (T(i+1) - 2*T(i) + T(i-1)) / dz^2 + ...
               SW(4,1) * DT(i-Nz(8)-Nz(5)-1);
 end
@@ -257,7 +266,7 @@ end
 % 08 Water region (1D) with axial conduction, convection and radial losses
 %%%------------------------------------------%%%
 
-for i = Nz(3)+Nz(8)+1 : Nz(3)+Nz(8)+Nz(2)+Nz(5)+Nz(4)-4
+for i = Nz(3)+Nz(8)+1 : sys_top_no_ins_idx-1
     
     if i <= Nz(3)+Nz(8)+Nz(2)-1
         % Water segment below the piston
