@@ -53,34 +53,34 @@ t_900 = ones(2,480*4); % Zeitschritte in 900s (15min)
 
 % Potentielles Entladen Stunden
 for i = 259:259+15
-t_hour(2,i)=t_hour(2,i-1)-1/16;
+    t_hour(2,i)=t_hour(2,i-1)-1/16;
 end
 
-% Potenteiller Stillstand nach Entladen Stunden
+% Potentieller Stillstand nach Entladen Stunden
 t_hour(2,275:298) = 0;
 
-% Potenteilles Laden Viertelstunden
+% Potentielles Laden Viertelstunden
 for i = 283:283+15 
-t_hour(2,i)=t_hour(2,i-1)+1/16;
+    t_hour(2,i)=t_hour(2,i-1)+1/16;
 end
 
-% Potenteilles Entladen Viertelstunden
+% Potentielles Entladen Viertelstunden
 for i = 258*4+1:258*4+16*4
-t_900(2,i)=t_900(2,i-1)-1/(16*4);
+    t_900(2,i)=t_900(2,i-1)-1/(16*4);
 end
 
-% Potenteiller Stillstand nach Entladen Viertelstunden
+% Potentieller Stillstand nach Entladen Viertelstunden
 t_900(2,274*4:298*4) = 0;
  
-% Potenteilles Laden Viertelstunden
+% Potentielles Laden Viertelstunden
 for i = 282*4+1:283*4+15*4
-t_900(2,i)=t_900(2,i-1)+1/(16*4);
+    t_900(2,i)=t_900(2,i-1)+1/(16*4);
 end
 
 % thermisches Laden Stunden
 t_hour(1,:)=0;
 for i = 0:9
-t_hour(1,7+24*i:7+11+24*i) = 1;
+    t_hour(1,7+24*i:7+11+24*i) = 1;
 end
 % thermisches Entladen Stunden
 t_hour(1,323:end) = -1;
@@ -89,7 +89,7 @@ t_hour(1,323:end) = -1;
 t_900(1,:)=0;
 
 for i = 0:9
-t_900(1,1+6*4+24*4*i:1+6*4+12*4-1+24*4*i) = 1;
+    t_900(1,1+6*4+24*4*i:1+6*4+12*4-1+24*4*i) = 1;
 end
 
 % thermisches Entladen Viertelstunden

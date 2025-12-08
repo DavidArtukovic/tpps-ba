@@ -65,7 +65,6 @@ function [T_Sys,T_REf] = HeattransferInit(t2,IC_Sys,Nz,dz,flow,T0init,SW,A,z_RE,
     % Water / insulation temperature at system top (without insulation)
     sys_top_no_ins_idx = Nz(3)+Nz(8)+Nz(2)+Nz(5)+Nz(4)-3;
     T_Sys(:,sys_top_no_ins_idx) = T0init(6);
-    T_Sys(:,Nz(3)+Nz(8)+Nz(2)+Nz(5)+Nz(4)-3) = T0init(6);
 
     % Water temperature at interface to vertical soil
     water_soil_idx = Nz(3)+Nz(8);

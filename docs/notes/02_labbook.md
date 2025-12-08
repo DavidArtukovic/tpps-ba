@@ -10,6 +10,7 @@ Hier werden To Do's, Erkentnisse, Fragen sowie Protokolle zu den Treffen mit den
 - Erklärung der Übergangsbedingungen in Zeile 92 von HeattransferSzen.m. Handelt es sich hierbei um Start und Endpunkt vom Kolben? Das wird jeweils oben und unten mit dem oberen bzw. unteren Teil des Ersatzvolumens gekoppelt?
 - Warum in HeattransferSzen.m Zeile 110 die Temepratur von replacement_bottom_idx-1, analog Zeile 117 im Ladefall?
 - Fragen zu der ganz linken und zweiten von links grafik in TPPS.svg. Links einfach nochmal die Indizes ohne Erdreich und zur Visualisierung des realen Kolbens im Wasser?
+- Frage zu timestep.m - Bedeutet die 1 in Zeile 2 von t_hour potentielles Laden? Dann wird ja die ersten 10 Tage nur geladen? Oder beschreibt die 1 eine Kolbenposition? 
 ## 02.12.25 - Meeting Micha
 - Matlab Lizenz PC
 - Frage zur variablen Mischhöhe
