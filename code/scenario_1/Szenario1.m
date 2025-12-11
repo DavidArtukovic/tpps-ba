@@ -29,18 +29,18 @@ run(fullfile('..','..', 'configs', 'paths_local.m'));
 DATA_SCEN1 = fullfile(DATA_BASE, 'Matlab_d18_h18_Szenario1');
 %%
 % Load init and scenario files
-load(fullfile(DATA_SCEN1, 'Init_d18_h18_time8.mat')); % Load geometry, material values and initialvalues from intial simulation
+load(fullfile(DATA_SCEN1, 'Init_d18_h18_time8.mat')); % Load geometry, material values and initial values from initial simulation
 load(fullfile(DATA_SCEN1, 'SzenarioComsol.mat')); % Load the scenarion
 
 %%%------------------------------------------%%%
 % 02. Initialize Arrays
 %%%------------------------------------------%%%
-
+%%
 % Result arrays
 Res_900 = zeros(10,length(t_900)+1); % Values for quarter hours
 Res_hour = zeros(10,length(t_hour)+1); % Values for full hours
 
-% Temperature vector for whole system
+% 1D Temperature vector for whole system (soil zone)
 T_SSys = zeros(Nz(13),1);
 
 T_V_900 = zeros (Nz(13),length(t_900)); % Temperature array, consisting of grid(system) x time

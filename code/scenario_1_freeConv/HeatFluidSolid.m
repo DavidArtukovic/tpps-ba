@@ -48,6 +48,10 @@ function dTdt = HeatFluidSolid(t,T,Nz,dz,flow,T0init,SW,A,z_RE)
     %  - Nz(12)*Nz(13) = number of nodes in the 2D radial soil / insulation
     dTdt = zeros(Nz(10)+Nz(12)*Nz(13),1); 
 
+    
+    % Free Convection: additional source term vector (only water nodes used)
+    dTdt_free = zeros(size(dTdt));   % [K/s] contribution from free convection
+
     % Initialize radial soil temperature field (2D) and its time derivative.
     % rows    -> vertical direction
     % columns -> radial direction
@@ -60,6 +64,18 @@ function dTdt = HeatFluidSolid(t,T,Nz,dz,flow,T0init,SW,A,z_RE)
 
     % top of the 1D system (air node)
     sys_top_idx = Nz(3)+Nz(8)+Nz(2)+Nz(5)+Nz(4)+Nz(9)-4;
+
+    % top of water system
+    sys_top_no_ins_idx = Nz(3)+Nz(8)+Nz(2)+Nz(5)+Nz(4)+-3;
+
+    % define inlet for free convection calculation - random value below insulation
+    z_in = sys_top_no_ins_idx-200; % later flexible based on the top water node
+
+    rho_w = SW(1,2);      % water density [kg/m³]
+    c_w   = SW(1,3);      % water heat capacity [J/kgK]
+    A_hws = A(3);         % effective water cross-section (ring gap) [m²]
+    tau_mix = 3600;       % characteristic mixing time [s]
+
 
     %%%------------------------------------------%%%
     % 01 Vertical Insulation and Air (1D)
@@ -262,6 +278,73 @@ function dTdt = HeatFluidSolid(t,T,Nz,dz,flow,T0init,SW,A,z_RE)
                 SW(4,1) * DT(i-Nz(8)-Nz(5)-1);
     end
 
+
+
+    %----------------------------------------------------------
+    % 08a FREE CONVECTION IN UPPER WATER REGION (charging only)
+    %----------------------------------------------------------
+
+    if flow < 0 && A_hws > 0
+        % Inlet temperature for charging from scenario data
+        T_w_in = T0init(2);
+
+        % Indices of complete 1D water column
+        idx_w_bottom = Nz(3)+Nz(8)+1;
+        idx_w_top    = sys_top_no_ins_idx-1;
+
+        % Upper water region above the piston (replacement volume)
+        idx_upper_start = Nz(3)+Nz(8)+Nz(2)+Nz(5)-2;
+        idx_upper_end   = idx_w_top;
+
+        if idx_upper_end > idx_upper_start
+            ids_upper = (idx_upper_start:idx_upper_end).';
+            N_upper   = numel(ids_upper);
+
+            % Local temperatures in upper water region
+            T_upper = T(ids_upper);
+
+            % Vertical coordinate measured from the top of the water [m]
+            % z = 0 at top node, increasing downwards
+            z_upper = ((N_upper-1):-1:0).' * dz;
+
+            % Define mixing depth as the full upper region for now
+            z_in_coord  = 0.0;                 % top
+            z_mix_coord = z_upper(1);          % bottom of upper region
+            dz_mix      = z_mix_coord - z_in_coord;
+
+            if dz_mix > 0
+                % Integral I = ∫_{z_in}^{z_mix} (T_in - T(z)) dz
+                I_mix = sum( (T_w_in - T_upper) * dz );  % [K·m]
+
+                % Geometric factor 2(z - z_mix)/(z_mix - z_in)^2 for each cell
+                geom_factor = 2 * (z_upper - z_mix_coord) / (dz_mix^2);  % [1/m]
+
+                % Volume and mass flow rate based on "flow" velocity
+                v_flow = abs(flow);                   % [m/s]
+                Vdot   = v_flow * A_hws;              % [m³/s]
+                mdot   = rho_w * Vdot;                % [kg/s]
+
+                % Convective power of the inflow jet
+                %   Qdot_mix = mdot * c_w * (T_in - T_top)
+                dT_jet    = max(T_w_in - T_upper(1), 0);      % only positive driving
+                Qdot_mix  = mdot * c_w * dT_jet;              % [W]
+
+                % Contribution to dT/dt from mixing term (first part of q_conv)
+                term_mix = (1/tau_mix) * ( geom_factor * I_mix + (T_w_in - T_upper) );
+
+                % Contribution from jet power distribution (second part of q_conv)
+                if rho_w * c_w * A_hws > 0
+                    term_jet = - (Qdot_mix / (rho_w * c_w * A_hws)) * geom_factor;
+                else
+                    term_jet = zeros(size(T_upper));
+                end
+
+                % Total free-convection source for the water ODE (already dT/dt)
+                dTdt_free(ids_upper) = term_mix + term_jet;
+            end
+        end
+    end
+
     %%%------------------------------------------%%%
     % 08 Water region (1D) with axial conduction, convection and radial losses
     %%%------------------------------------------%%%
@@ -288,6 +371,8 @@ function dTdt = HeatFluidSolid(t,T,Nz,dz,flow,T0init,SW,A,z_RE)
                     - flow * (T(i+1) - T(i-1)) / (2*dz);
         end
     end
+
+
 
     %%%------------------------------------------%%%
     % 09 Additional piston loss terms into the water nodes

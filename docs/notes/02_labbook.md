@@ -3,14 +3,17 @@ Hier werden To Do's, Erkentnisse, Fragen sowie Protokolle zu den Treffen mit den
 
 # Open Tasks
 - [x] Derive algebraic expressions for the inclusion of the convection term.
-- [ ] Go through all scripts, update indexing and comments.
-- [ ] Integrate the free convection into the existing Matlab code.
+- [x] Go through all scripts, update indexing and comments.
+- [ ] Integrate the free convection into the existing Matlab code
+- [x] Extensive commenting in code_info of szenario1.m 
+- [x] Extensive commenting in code_info of HeatFluidSolid.m 
 
-## 05.12.25 - Fragen Dominic
-- Erklärung der Übergangsbedingungen in Zeile 92 von HeattransferSzen.m. Handelt es sich hierbei um Start und Endpunkt vom Kolben? Das wird jeweils oben und unten mit dem oberen bzw. unteren Teil des Ersatzvolumens gekoppelt?
+## 12.12.25 - Fragen Dominic
 - Warum in HeattransferSzen.m Zeile 110 die Temepratur von replacement_bottom_idx-1, analog Zeile 117 im Ladefall?
 - Fragen zu der ganz linken und zweiten von links grafik in TPPS.svg. Links einfach nochmal die Indizes ohne Erdreich und zur Visualisierung des realen Kolbens im Wasser?
-- Frage zu timestep.m - Bedeutet die 1 in Zeile 2 von t_hour potentielles Laden? Dann wird ja die ersten 10 Tage nur geladen? Oder beschreibt die 1 eine Kolbenposition? 
+- Frage zu timestep.m - Bedeutet die 1 in Zeile 2 von t_hour die Kolbenposition, also ganz oben? 
+- In scenario1 liegen unterschiedliche Lade- und Entlade Geschwindigkeiten fürs thermische Laden vor? Zeile 277 in Scenario1_ref. Liegt das daran dass angenommen wird dass in 20 Tagen thermisch komplett be- und entladen wird? Mit anderen Worten die vertikale Strömungsgeschwindigkeit wird auf die Hubhöhe bezogen?
+
 ## 02.12.25 - Meeting Micha
 - Matlab Lizenz PC
 - Frage zur variablen Mischhöhe
