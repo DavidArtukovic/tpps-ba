@@ -1,6 +1,18 @@
 #  01 - Code Info 
 This notebook collects specific information on code junks, calculations within the matlab files and related stuff.
 
+## scenario_1/Init.m
+
+### Translation of Dome Zone into Cylinder
+At the upper and lower end are dead zones (1m) and domes of height one meter. This volume is treated as it would be within a cylinder, thus effectively reducing the **vertical number of gridpoints** of the dome.
+```matlab
+h_tot = 1;                              % upper dead-zone
+V_Kupp = (2/3)*r_ST^2*h_kupp*pi;        % volume upper half dome in m³
+V_PP = h_in*d_in^2/4*pi;                % small volume (5cm height) of collision palte
+h_tot_2 = (V_Kupp - V_PP)/(d_ST^2*pi/4) % height of dome volume if treated as cylinder
+h_1D_tot = h_tot + h_tot_2;             % Total 1D height of dead-zone.
+```
+Thu, instead of two meters deadzone the model assumes 1.665m.
 
 ## scenario_1/Szenario1.m
 
@@ -113,5 +125,13 @@ Heat_Rinsu = SW(3,2) * SW(3,3) * sum(DTRE);
 ```
 
 
-## scenario_1/HeattransferSzen.m
+## scenario_1_freeConv/HeatFluidSolid.m
+
+### Position of Upper Bypass Inlet in Non-Moving Piston State.
+
+The upper bypass inlet is placed within the replacement volume. Within the first 10 days of scenario_1 there is no piston moving,  the position is fix. Thus the water transported via the bypass enters within the ring gap, for the upper water volume.
+
+
+
+
 

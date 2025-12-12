@@ -65,11 +65,22 @@ function dTdt = HeatFluidSolid(t,T,Nz,dz,flow,T0init,SW,A,z_RE)
     % top of the 1D system (air node)
     sys_top_idx = Nz(3)+Nz(8)+Nz(2)+Nz(5)+Nz(4)+Nz(9)-4;
 
-    % top of water system
-    sys_top_no_ins_idx = Nz(3)+Nz(8)+Nz(2)+Nz(5)+Nz(4)+-3;
+    % midpoint of replacement volume. 
+    replacement_top_idx = Nz(3)+Nz(8)+Nz(2)+Nz(5)-2  % index of replacement volume at top
+    replacement_bottom_idx = Nz(3)+Nz(8)+Nz(2)-1     % index of replacement volume at bottom
+    replacement_mid_idx = round((replacement_top_idx+replacement_bottom_idx)/2,0);
 
-    % define inlet for free convection calculation - random value below insulation
-    z_in = sys_top_no_ins_idx-200; % later flexible based on the top water node
+    %%% Free Convection %%%
+    % Assumption: The inlet/outlet for the heatsystem does not produce free convection
+    % since it is at the top of the upper water volume and the bottom of the lower water volume respectively.
+    % only inlet and outlet of bypass are relevant. 
+
+
+    % the upper bypass inlet is at height of the ring gap. Take mid-point of replacement volume as inlet position.
+    z_inlet_upper = replacement_mid_idx; % later flexible based on the top water node
+
+    % place inlet of lower water volume at 20 meter depth
+    z_inlet_lower = Nz(3)+Nz(8) + round(Nz(2)*2/3,0)
 
     rho_w = SW(1,2);      % water density [kg/m³]
     c_w   = SW(1,3);      % water heat capacity [J/kgK]
@@ -284,7 +295,7 @@ function dTdt = HeatFluidSolid(t,T,Nz,dz,flow,T0init,SW,A,z_RE)
     % 08a FREE CONVECTION IN UPPER WATER REGION (charging only)
     %----------------------------------------------------------
 
-    if flow < 0 && A_hws > 0
+    if flow < 0
         % Inlet temperature for charging from scenario data
         T_w_in = T0init(2);
 
