@@ -30,8 +30,7 @@ $$
 $$
 v_{discharge, avg} = \frac{H(6)}{DC \times 3600}, \text{ with DC as the counter for discharge intervals}
 $$
-<span style="color:blue"> It is thus assumed that the total water volume is once discharged and charged??????</span>.
-At the same time this is the current vertical velocity within the water storage, which is needed for the forced convection part within the PDE. 
+It is thus assumed that the total water volume is once discharged and charged! Thus the vertical velocity is reffering to the the height and volume of the storage. At the same time this is the current vertical velocity within the water storage, which is needed for the forced convection part within the PDE. 
 
 ---
 
@@ -131,7 +130,14 @@ Heat_Rinsu = SW(3,2) * SW(3,3) * sum(DTRE);
 
 The upper bypass inlet is placed within the replacement volume. Within the first 10 days of scenario_1 there is no piston moving,  the position is fix. Thus the water transported via the bypass enters within the ring gap, for the upper water volume.
 
+## scenario_1_freeConv/HeattransferSzen.m
 
+### Role of Time dt in the Wrapper
+
+The full ODE state acknowledges both domains: the 1D cylinder system and the 2D radial soil field, where the soil is stored as a flattened vector of length `Nz(12)*Nz(13)` because `ode45` operates on 1D state vectors.
+After integration, the “mapping” section reshapes the flattened soil part back to a 2D grid and synchronizes it with the 1D boundary/interface nodes to apply or enforce the 1D↔2D coupling consistently (e.g., mixed/Robin-type interface conditions and boundary bookkeeping).
+Using `t2 = [0, dt/2, dt]` (`Nt2=2`) produces intermediate output states (e.g., at 450 s) so that this reshaping/interface handling can be evaluated at sub-times within one 900 s procedure step.
+Note: `Nt2` mainly increases the temporal resolution of this mapping/interface handling at the stored output times; it does not directly prescribe the internal adaptive step size of `ode45`.
 
 
 

@@ -16,16 +16,17 @@ One dimensional heat transport equation **with** residual terms:
 $$
 \rho_w \, c_w \, \frac{\partial T_w(z; t)}{\partial t}
 = \lambda_w \, \frac{\partial^2 T_w(z; t)}{\partial z^2}
-- \rho_w \, v_{z} \, c_w \, \frac{\partial T(z; t)}{\partial z}
-+ q_{\text{conv, free}}
+- \rho_w \, v_{z} \, c_w \, \frac{\partial T_w(z; t)}{\partial z}
++ \dot{q}_{\text{conv, free}}
 + \sigma_{\text{piston}}
 + \sigma_{\text{wall}}
+\tag{1}
 $$
 
 Terms:
 - $-\rho_w \, v_{z} \, c_w \, \partial T / \partial z$ → forced convection (if present). Shifts temperature profile to in accordance with sign of vertical (axial) velocitcy $v_z$. Is active between inlet and outlet.
 - $\lambda_w \frac{\partial^2 T_w(z,t)}{\partial z^2}$ → diffusive heat transport 
-- $q_{\text{conv, free}}$ → natural convection term (to be developed in the thesis)  
+- $\dot{q}_{\text{conv, free}}$ → natural convection term (to be developed in the thesis)  
 - $\sigma_{\text{piston}}$, $\sigma_{\text{wall}}$ → coupling terms to piston and soil (see Häuslein, 2024)
 
 
@@ -34,6 +35,7 @@ One dimensional heat transport equation in **solid** systems:
 
 $$
 \rho_s \, c_s \frac{\partial T_s(z; t)}{\partial t} = \lambda_s \frac{\partial^2 T_s(z; t)}{\partial z^2}
+\tag{2}
 $$
 
 Two dimensional (axial=z and radial=r) heat transport equation
@@ -49,6 +51,7 @@ $$
 r\,\frac{\partial T_s(z, r; t)}{\partial r}
 \right)
 \right)
+\tag{3}
 $$
 
 ### 2.3 Coupling Terms (σ-terms)
@@ -66,8 +69,7 @@ $$
 \begin{aligned}
 & q_{\text{conv, free}} = \rho_w \, c_w \, T \\
 \iff & \frac{\partial}{\partial t} \,q = \frac{\partial}{\partial t} \,[\rho_w \, c_w T_w] \\
-\iff & \dot{q}_{\text{conv, free}} = \rho_w \, c_w \,
-\frac{\partial T_w}{\partial t}
+\iff & \dot{q}_{\text{conv, free}} = \rho_w \, c_w \, \frac{\partial T_w}{\partial t} \tag{4}
 \end{aligned}
 $$
 which corresponds to equation (3) in Schäfer (2021). 
@@ -80,7 +82,7 @@ is assumed to be linear:
 
 $$
 T_w^*(z) = a z + b
-\tag{1}
+\tag{5}
 $$
 Note as well that $T_w^* = T_w(z, t+dt)$ and is thus the temperature distribution after an infinitesimal timestep $dt$. 
 
@@ -91,38 +93,38 @@ The boundary condition at the top of the mixing zone is given by:
 
 $$
 T_w^*(z_{mix}) = T_{w,\text{in}}
-\tag{2}
+\tag{6}
 $$
 
-Using (1) in (2):
+Using (5) in (6):
 
 $$
 a z_{\text{mix}} + b = T_{w,\text{in}}
 \quad\Rightarrow\quad
 b = T_{w,\text{in}} - a z_{\text{mix}}
-\tag{3}
+\tag{7}
 $$
 
-Insert (3) into (1):
+Insert (7) into (5):
 
 $$
 T_w^*(z)
 = T_{w,\text{in}} + a (z - z_{\text{mix}})
-\tag{4}
+\tag{8}
 $$
 
 ---
 
 #### Integration of the New Temperature Profile
 
-We integrate (4) over the mixing zone:
+We integrate (8) over the mixing zone:
 
 $$
 \int_{z_{\text{in}}}^{z_{\text{mix}}} T_w^*(z)\,dz
 =
 \int_{z_{\text{in}}}^{z_{\text{mix}}}
 \left[ T_{w,\text{in}} + a(z - z_{\text{mix}}) \right] dz
-\tag{5}
+\tag{9}
 $$
 
 The integral of the linear term is:
@@ -131,7 +133,7 @@ $$
 \int_{z_{\text{in}}}^{z_{\text{mix}}} (z - z_{\text{mix}})\,dz
 =
 -\,\frac{(z_{\text{mix}} - z_{\text{in}})^2}{2}
-\tag{6}
+\tag{10}
 $$
 
 We define:
@@ -139,7 +141,7 @@ We define:
 $$
 I := \int_{z_{\text{in}}}^{z_{\text{mix}}}
 \left( T_{w,\text{in}} - T_w(z) \right) dz
-\tag{7}
+\tag{11}
 $$
 
 ---
@@ -162,11 +164,11 @@ $$
 \left( T_{w,\text{in}} + a (z - z_{\text{mix}}) - T_w(z) \right) dz
 =
 \dot Q_{\text{mix}} \, dt
-\tag{8}
+\tag{12}
 \end{aligned}
 $$
-where the last formulation was arrived by plugging in equation (4). 
-Now use (6)–(7) to solve the remaining integral:
+where the last formulation was arrived by plugging in equation (8). 
+Now use (10)–(11) to solve the remaining integral:
 
 $$
 \rho_w c_w A_{\text{hws}}
@@ -175,7 +177,7 @@ I - a\frac{(z_{\text{mix}} - z_{\text{in}})^2}{2}
 \right]
 =
 \dot Q_{\text{mix}}\, dt
-\tag{9}
+\tag{13}
 $$
 
 Solve for $a$:
@@ -188,9 +190,9 @@ a
 I - \frac{\dot Q_{\text{mix}}\, dt}
        {\rho_w c_w A_{\text{hws}}}
 \right]
-\tag{10}
+\tag{14}
 $$
-Now both constants $[a, b]$ are defined by the boundary condition and the energy equation, respectively.
+Now both constants $[a, b]$ are defined by the **boundary condition** and the **energy equation**, respectively.
 
 ---
 
@@ -201,7 +203,7 @@ $$
 T_w^*(z) = T_{w,\text{in}} + a(z - z_{\text{mix}}),
 $$
 
-we now insert the expression for $a$ and $b$ obtained in Equation (10) and (3):
+we now insert the expression for $a$ and $b$ obtained in Equation (14) and (7):
 $$
 T_w^*(z)
 =
@@ -211,7 +213,7 @@ T_{w,\text{in}}
 \left[
 I - \frac{1}{\rho_w c_w A_{\text{hws}}}\,\dot Q_{\text{mix}} \, dt
 \right].
-\tag{11}
+\tag{15}
 $$
 
 This expresses the updated temperature field after one infinitesimal mixing step in terms of the integral $I$, the inflow energy $\dot Q_{\text{mix}} dt$, and the geometric mixing factor.
@@ -231,42 +233,42 @@ $$
 I - \frac{1}{\rho_w c_w A_{\text{hws}}}\,\dot Q_{\text{mix}} \, dt
 \right]
 - T_w(z)
-\tag{12}
+\tag{16}
 \end{aligned}
 $$
 
-where equation (11) has been plugged in.
+where equation (15) has been plugged in.
 
 ---
 
 #### Final Mixing Source Term (Equation 8 in Schäfer 2021)
 
-Using Equation (3):
+Using Equation (4) in its discretized form:
 
 $$
-\sigma_{\text{mix}}(z) = \rho_w c_w \frac{\Delta T(z)}{dt}
-\tag{13}
+\dot{q}_{\text{conv, free}} = \rho_w c_w \frac{\Delta T(z)}{\Delta t}
+\tag{17}
 $$
 
-Insert (12) and (13) to obtain:
+Insert (16) into (17) to obtain:
 
 $$
 \boxed{
-q_{\text{conv, free}}(z) =
-\frac{\rho_w c_w}{dt}
+\dot{q}_{\text{conv, free}}(z) =
+\frac{\rho_w c_w}{\Delta t}
 \left(
-\int_{z_{\text{in}}}^{z_{\text{mix}}}
 \frac{2(z-z_{\text{mix}})}{(z_{\text{mix}}-z_{\text{in}})^2}
-\left(T_{w,\text{in}} - T_w(z)\right)\,dz
+\int_{z_{\text{in}}}^{z_{\text{mix}}}
+T_{w,\text{in}} - T_w(z)\,dz
 \right)
 +
-\frac{\rho_w c_w}{dt}(T_{w,\text{in}} - T_w)
+\frac{\rho_w c_w}{\Delta t}(T_{w,\text{in}} - T_w(z))
 -
 \dot Q_{\text{mix}}
 \frac{2(z - z_{\text{mix}})}
      {A_{\text{hws}}(z_{\text{mix}} - z_{\text{in}})^2}
 }
-\tag{15}
+\tag{18}
 $$
 
 which matches Equation (8) from Schäfer et al. (2021). Note, the unit of the convecitve term is given by: $[q_{\text{conv, free}}(z)] = \frac{W}{m^3}$. Thus, we speak of a power input per volume.

@@ -7,6 +7,7 @@ Hier werden To Do's, Erkentnisse, Fragen sowie Protokolle zu den Treffen mit den
 - [ ] Integrate the free convection into the existing Matlab code
 - [x] Extensive commenting in code_info of szenario1.m 
 - [x] Extensive commenting in code_info of HeatFluidSolid.m 
+- [ ] To-Do - Aufräumen des dt terms in heattransferSzen und HeatFluidSolid
 
 ## 12.12.25 - Fragen Dominic
 - Warum in HeattransferSzen.m Zeile 110 die Temepratur von replacement_bottom_idx-1, analog Zeile 117 im Ladefall?
