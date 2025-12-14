@@ -287,10 +287,190 @@ The mixed zone is in the present model of dynamic size, $[z_{in}, z_{mix}(t)]$. 
 Thus the number of cells, affected by natural convection is variable. 
 
 
-## 4. TODOs
+### 3.3 Exemplary Calculation of new Temperature Profile based on Convective Mixing Term
 
-- Derive the free convection term for TPPS geometry.  
-- Review Nusselt–Rayleigh correlations for low-velocity water in vertical storage.  
-- Add piston–water and wall–water σ-term details.  
-- Perform parameter sensitivity analysis once the extension is implemented.
+**Objective:**  
+Recalculation of the influence of the convective mixing term on the updated
+temperature profile $T_w^*(z)$.
 
+---
+
+#### Given temperature profile
+
+Initial temperature distribution:
+
+$$
+T_w(z) = 323.15~\mathrm{K} + \frac{2~\mathrm{K}}{\mathrm{m}} \, z,
+\qquad z \in [0, 10]~\mathrm{m}
+$$
+
+Inlet temperature:
+
+$$
+T_{w,\mathrm{in}} = 333.15~\mathrm{K}
+$$
+
+Mixing height and inlet position:
+
+$$
+z_{\mathrm{mix}} = 10~\mathrm{m},
+\qquad
+z_{\mathrm{in}} = 0~\mathrm{m}
+$$
+
+---
+
+#### Physical parameters
+
+
+$$
+\rho_w = 1000~\mathrm{kg\,m^{-3}};\, c_w = 4.18~\mathrm{kJ\,kg^{-1}\,K^{-1}}; \, A_{\mathrm{hws}} = 300~\mathrm{m^2}
+$$
+
+Time step:
+
+$$
+\Delta t = 1~\mathrm{s}
+$$
+
+---
+
+#### Mass flow rate
+
+ flow rate:
+
+$$
+\dot{v} = \frac{1}{21600}~\mathrm{m\,s^{-1}}
+$$
+
+Mass flow rate:
+
+$$
+\dot{m}_w
+=
+\rho_w \dot{v} A_{\mathrm{hws}}
+=
+1000 \cdot \frac{1}{21600} \cdot 300
+=
+13.8~\mathrm{kg\,s^{-1}}
+$$
+
+---
+
+#### Heat flow into the mixing zone
+
+$$
+\dot{Q}_{\mathrm{mix}}
+=
+\dot{m}_w c_w
+\left(
+T_{w,\mathrm{in}} - T_w(z_{\mathrm{in}})
+\right)
+$$
+
+Since
+
+$$
+T_w(0) = 323.15~\mathrm{K}
+$$
+
+follows:
+
+$$
+\dot{Q}_{\mathrm{mix}}
+=
+13.8 \mathrm{kg\,s^{-1}} \cdot 4.18 \mathrm{kJ\,kg^{-1} K^{-1}}\cdot 10 \mathrm{K}
+=
+577~\mathrm{kJ\,s^{-1}}
+$$
+
+---
+
+#### Integral term of the mixing formulation
+
+$$
+\int_{z_{\mathrm{in}}}^{z_{\mathrm{mix}}}
+\left(
+T_{w,\mathrm{in}} - T_w(z)
+\right)\,\mathrm{d}z
+=
+\int_0^{10}
+\left(
+333.15\mathrm{K} - 323.15\mathrm{K} - z\, \mathrm{K m^{-1}}
+\right)\,\mathrm{d}z
+$$
+
+$$
+=
+\int_0^{10}
+(10 \, \mathrm{K}- z\, \mathrm{K m^{-1}})\,\mathrm{d}z
+=
+\left[10\, \mathrm{K}\,z - 0.5\,z^2 \, \mathrm{K m^{-1}} \right]_0^{10m}
+=
+50~\mathrm{K\,m}
+$$
+
+---
+
+#### Updated temperature profile
+
+The new temperature distribution after convective mixing reads:
+
+$$
+T_w^*(z)
+=
+T_{w,\mathrm{in}}
++
+\frac{2(z - z_{\mathrm{mix}})}{(z_{\mathrm{mix}} - z_{\mathrm{in}})^2}
+\left[
+\int_{z_{\mathrm{in}}}^{z_{\mathrm{mix}}}
+(T_{w,\mathrm{in}} - T_w(z))\,\mathrm{d}z
+-
+\frac{\dot{Q}_{\mathrm{mix}}}{\rho_w c_w A_{\mathrm{hws}}}\,\Delta t
+\right]
+$$
+
+Insert numerical values:
+
+$$
+T_w^*(z)
+=
+333.15\, \mathrm{K}
++
+\frac{2(z - 10\mathrm{m})}{100 \mathrm{m^2}}
+\left[
+50 \mathrm{K\,m}
+-
+\frac{577 \Delta t}{4.18 \cdot 1000 \cdot 300} \frac{\mathrm{K\,m}}{s}
+\right]
+$$
+
+$$
+=
+333.15\, \mathrm{K}
++
+\frac{(z - 10\mathrm{m})}{m^2}
+\left[
+1 \, \mathrm{K\,m}
+-
+9.2 \cdot 10^{-6} \frac{\mathrm{K\,m}}{s}\, \Delta t
+\right]
+$$
+
+---
+
+#### Final result (z without dimension)
+
+$$
+\boxed{
+T_w^*(z)
+=
+333.15~\mathrm{K}
++
+(z - 10)
+\left(
+1 - 9.2 \cdot 10^{-6}\Delta t~\mathrm{s^{-1}}
+\right)~\mathrm{K}
+}
+$$
+![Description](../sketches/exemplary_temp_profile_freeConv.png "Optional title")
