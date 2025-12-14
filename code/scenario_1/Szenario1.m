@@ -22,18 +22,25 @@ clear
 % 01. Load Scenario and Initilization Simulation
 %%%------------------------------------------%%%
 
-load Init_d18_h18_time8.mat % Load geometry, material values and initialvalues from intial simulation
-load SzenarioComsol.mat % Load the scenarion
+% Load local paths (per-machine config)
+run(fullfile('..','..', 'configs', 'paths_local.m'));
+
+% Now build data subfolder for this configuration:
+DATA_SCEN1 = fullfile(DATA_BASE, 'Matlab_d18_h18_Szenario1');
+%%
+% Load init and scenario files
+load(fullfile(DATA_SCEN1, 'Init_d18_h18_time8.mat')); % Load geometry, material values and initial values from initial simulation
+load(fullfile(DATA_SCEN1, 'SzenarioComsol.mat')); % Load the scenarion
 
 %%%------------------------------------------%%%
 % 02. Initialize Arrays
 %%%------------------------------------------%%%
-
+%%
 % Result arrays
 Res_900 = zeros(10,length(t_900)+1); % Values for quarter hours
 Res_hour = zeros(10,length(t_hour)+1); % Values for full hours
 
-% Temperature vector for whole system
+% 1D Temperature vector for whole system (soil zone)
 T_SSys = zeros(Nz(13),1);
 
 T_V_900 = zeros (Nz(13),length(t_900)); % Temperature array, consisting of grid(system) x time
@@ -115,7 +122,7 @@ Heat_piston = SW(2,2)*SW(2,3)*dz*A(2)*(sum(T_Sys(end,2:Nz(3)-1))...
 % Thermal energy in vertical soil below the system [J]
 Heat_Vsoil = SW(2,2)*SW(2,3)*dz*A(1)...
 *(sum(T_V(1,Nz(3)+2:Nz(3)+Nz(8)-1))...
-+0.5*(T_V(1,Nz(3)+1)+T_V(1,Nz(3)+Nz(8))))
++0.5*(T_V(1,Nz(3)+1)+T_V(1,Nz(3)+Nz(8))));
 
 
 % Thermal energy in radial soil (before insulation layer)
@@ -167,9 +174,9 @@ T0init(5) = 11; % Erdtemperatur
 T0init(6) = T(3,1)-273.15; %Randtemperatur für Initalbetrachtung
 T0init(7) = 11; % Initialtemperatur Dämmung
 
-
+%%
 % t_900/2 für 10 Tage.
-for i = 1:length(t_900)
+for i = 1:length(t_900/2)
 tic
     %T0init(4) = ZR_900(k,6); % Umgebungstemperatur festlegen
     Nz(2) = Res_900(7,i+1); % Anzahl der Ortsschritte untere Druckzone
@@ -244,6 +251,7 @@ tic
                 Res_hour(11,1+i/4) = Res_900(11,1+i); % %Exergie im Wasservolumen
 
             end
+    disp(i*15/60);
 toc
 end
 
@@ -255,4 +263,5 @@ Res_System_d18_18 = T_V_900;
 
 filenameSIM = ['d' num2str(d_ST) '_h' num2str(H(3)) '_Res_Matlab_d18_18.mat'];    
 % Speichern des Simulationsergebnisses
-save(filenameSIM,"Res_900_d18_18","Res_hour_d18_18","Res_Wasser_d18_18","Res_System_d18_18")
+% save(filenameSIM,"Res_900_d18_18","Res_hour_d18_18","Res_Wasser_d18_18","Res_System_d18_18")
+

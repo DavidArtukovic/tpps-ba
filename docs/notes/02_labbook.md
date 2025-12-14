@@ -2,72 +2,24 @@
 Hier werden To Do's, Erkentnisse, Fragen sowie Protokolle zu den Treffen mit den Betreuern gesammelt. Oben stehen immer die anstehenden To Do's.
 
 # Open Tasks
-- [ ] Derive algebraic expressions for the inclusion of the convection term.
-- [ ] Integrate the free convection into the existing Matlab code.
+- [x] Derive algebraic expressions for the inclusion of the convection term.
+- [x] Go through all scripts, update indexing and comments.
+- [ ] Integrate the free convection into the existing Matlab code
+- [x] Extensive commenting in code_info of szenario1.m 
+- [x] Extensive commenting in code_info of HeatFluidSolid.m 
+- [ ] To-Do - Aufräumen des dt terms in heattransferSzen und HeatFluidSolid
 
----
-## 16.11.25 - Meeting Dominic / Micha
-### Festgelegte Ziele und Meilensteine
-**Mindestanforderungen**
-- Implementierung der freien Konvektion in das bestehende 1D Modell.
-    - Ansatz über energetische statt CFD Betrachtung.
-- Berücksichtigung des Ringspalts in das TPPS Modell.
-    - Ansatz über 1 HS, keine räumliche Auflösung!
+## 12.12.25 - Fragen Dominic
+- Warum in HeattransferSzen.m Zeile 110 die Temepratur von replacement_bottom_idx-1, analog Zeile 117 im Ladefall?
+- Fragen zu der ganz linken und zweiten von links grafik in TPPS.svg. Links einfach nochmal die Indizes ohne Erdreich und zur Visualisierung des realen Kolbens im Wasser?
+- Frage zu timestep.m - Bedeutet die 1 in Zeile 2 von t_hour die Kolbenposition, also ganz oben? 
+- In scenario1 liegen unterschiedliche Lade- und Entlade Geschwindigkeiten fürs thermische Laden vor? Zeile 277 in Scenario1_ref. Liegt das daran dass angenommen wird dass in 20 Tagen thermisch komplett be- und entladen wird? Mit anderen Worten die vertikale Strömungsgeschwindigkeit wird auf die Hubhöhe bezogen?
 
-**Optional wenn zeitlich Erreichbar**
-- Ortsfeste Ein- und Auslassstutzen. Bisher verschieben sie sich mit dem Kolben?
-    - Bisher 4 Ein/Auslass, ganz oben und ganz unten. 
+## 02.12.25 - Meeting Micha
+- Matlab Lizenz PC
+- Frage zur variablen Mischhöhe
+- Literatur (Probleme) zur Konvektionsmodellierung via energetischem Ansatz. Wärmeatlas VDI etc. immer fluiddynamischer Ansatz.
 
-**Grober Zeitplan**
-- Einarbeitung bis Ende November (Literatur, freie Konvektion + Matlab Code) *[bis Ende November]*
-- Formulierung eines freien Konvektionsmodells + Implementierung, sowie Integration fester Ein und Auslassventile *[bis Anfang/Mitte Januar]*
-    - Eventuelle Neuformulierung notwendig.
-- Implementierung Ringspalt *[Ende Februar]*
-- Schreiben *[März]*
-
-**Meilensteine**
- - Vor Weihnachten für ortsfesten Kolben soll die freie Konvektion implementiert werden.
- - Bis Mitte Januar mit beweglichem Kolben.
- - Bis Mitte Februar ist das thermische Modell für den Ringspalt implementiert.
-
-### Weiteres
-**Penstock - Druckrohrleitung**
-- Bisher Druckrohrleitung zur Hälfte dem oberen und zur Hälfte dem unteren Wasservolumen zugeordnet.
-
-**Literatur**
-
-→ Recherchieren welche Paper Abfallströmungen bei Behältern berücksichtigen bzw. ab wann diese relevant werden. In Literatur /Propadeaticum aufnehmen.
-
----
-## 21.11.25 - Project setup & literature management 
-
-### Tasks
-- Set up Git infrastructure.
-- Created OneDrive structure for BA_bigData.
-- Configured Zotero with linked attachments.
-- Installed BetterBibTeX.
-- Set up automatic export for `bibliography.bib`.
-
-### Insights
-- `.bib` is automatically updated only on Uni PC.
-- All PDFs must be stored in the OneDrive literature folder, same as big data files.
-- Zotero sync replicates collections and metadata across both PCs.
-
-### Next steps
-- Start writing structured literature notes.
-- Begin analysing the first TPPS equations.
-- Create the initial model structure draft.
-
----
-
-## 22.11.25 – Literature Review - Convective Term in PDE
-
-### Tasks
-- Get familiar with natural convection term in Gerle's paper.
-- Link it to the work of Häuslein (2024).
-- Inspect the source code for scenario 1, understand the .mat files.
-
----
 ## 24.11.25 - Meeting Dominic
 
 **Rückwirkend auf letzten Termin**
@@ -111,6 +63,71 @@ Integration der freien Konvektion ins Modell (rechnerisch) und in den bestehnden
 
 **Fragen an Micha**
 - Zugriff auf PC mit der Nummer 17? Zweck Comsol Betrachtung der Initialisierung.
+
+## 22.11.25 – Literature Review - Convective Term in PDE
+
+### Tasks
+- Get familiar with natural convection term in Gerle's paper.
+- Link it to the work of Häuslein (2024).
+- Inspect the source code for scenario 1, understand the .mat files.
+
+---
+
+## 21.11.25 - Project setup & literature management 
+
+### Tasks
+- Set up Git infrastructure.
+- Created OneDrive structure for BA_bigData.
+- Configured Zotero with linked attachments.
+- Installed BetterBibTeX.
+- Set up automatic export for `bibliography.bib`.
+
+### Insights
+- `.bib` is automatically updated only on Uni PC.
+- All PDFs must be stored in the OneDrive literature folder, same as big data files.
+- Zotero sync replicates collections and metadata across both PCs.
+
+### Next steps
+- Start writing structured literature notes.
+- Begin analysing the first TPPS equations.
+- Create the initial model structure draft.
+
+---
+---
+## 16.11.25 - Meeting Dominic / Micha
+### Festgelegte Ziele und Meilensteine
+**Mindestanforderungen**
+- Implementierung der freien Konvektion in das bestehende 1D Modell.
+    - Ansatz über energetische statt CFD Betrachtung.
+- Berücksichtigung des Ringspalts in das TPPS Modell.
+    - Ansatz über 1 HS, keine räumliche Auflösung!
+
+**Optional wenn zeitlich Erreichbar**
+- Ortsfeste Ein- und Auslassstutzen. Bisher verschieben sie sich mit dem Kolben?
+    - Bisher 4 Ein/Auslass, ganz oben und ganz unten. 
+
+**Grober Zeitplan**
+- Einarbeitung bis Ende November (Literatur, freie Konvektion + Matlab Code) *[bis Ende November]*
+- Formulierung eines freien Konvektionsmodells + Implementierung, sowie Integration fester Ein und Auslassventile *[bis Anfang/Mitte Januar]*
+    - Eventuelle Neuformulierung notwendig.
+- Implementierung Ringspalt *[Ende Februar]*
+- Schreiben *[März]*
+
+**Meilensteine**
+ - Vor Weihnachten für ortsfesten Kolben soll die freie Konvektion implementiert werden.
+ - Bis Mitte Januar mit beweglichem Kolben.
+ - Bis Mitte Februar ist das thermische Modell für den Ringspalt implementiert.
+
+### Weiteres
+**Penstock - Druckrohrleitung**
+- Bisher Druckrohrleitung zur Hälfte dem oberen und zur Hälfte dem unteren Wasservolumen zugeordnet.
+
+**Literatur**
+
+→ Recherchieren welche Paper Abfallströmungen bei Behältern berücksichtigen bzw. ab wann diese relevant werden. In Literatur /Propadeaticum aufnehmen.
+
+---
+
 
 
 

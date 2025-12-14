@@ -19,3 +19,9 @@
 
 # CSV Debug/Exports
 *.csv
+
+# zip files
+*.zip
+
+# Local path configuration (per machine)
+configs/paths_local.m

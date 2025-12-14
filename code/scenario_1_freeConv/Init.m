@@ -206,7 +206,7 @@ H(4) = H(1) - H(2) - H(3);                % Upper pressure zone height [m]
 Nz(4) = Nz(1) - Nz(2) - Nz(3) + 2;        % Grid points upper pressure zone
 z_OD = (H(2)+H(3):dz:H(1));               % Vertical vector upper pressure zone
 
-H(5) = round((A(3)*H(3))/A(1),2);         % Equivalent height of suction/pressure pipe (replacement volume) [m]
+H(5) = round((A(3)*H(3))/A(1),2);         % Equivalent height of ring gap (replacement volume) [m]
 Nz(5) = round(1 + H(5)/dz);               % Grid points in replacement volume
 
 H(6) = H(4) + H(5) + H(2);                % Total water inventory height [m]

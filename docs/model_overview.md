@@ -2,44 +2,40 @@
 
 This document provides an overview of the physical and mathematical TPPS model.
 
----
 
 ## 1. Domains
-- Water 
+- Water
 - Solid (piston, soil, insulation)
 - Penstock / inlet pipe
-
----
 
 ## 2. Governing Equations
 
 ### 2.1 Water Domain
-
 One dimensional heat transport equation **with** residual terms: 
 
 $$
-\rho_w \, c_w \frac{\partial T_w(z; t)}{\partial t}
-= \lambda_w \frac{\partial^2 T_w(z; t)}{\partial z^2}
-- \dot{m} c_w \frac{\partial T(z; t)}{\partial z}
-+ q_{\text{conv, free}}
+\rho_w \, c_w \, \frac{\partial T_w(z; t)}{\partial t}
+= \lambda_w \, \frac{\partial^2 T_w(z; t)}{\partial z^2}
+- \rho_w \, v_{z} \, c_w \, \frac{\partial T_w(z; t)}{\partial z}
++ \dot{q}_{\text{conv, free}}
 + \sigma_{\text{piston}}
 + \sigma_{\text{wall}}
+\tag{1}
 $$
 
 Terms:
-- $-\dot{m} c_w \, \partial T / \partial z$ → forced convection (if present)  
-- $\lambda_w \frac{\partial^2 T_w(z,t)}{\partial z^2}$ → fiffusive heat transport 
-- $q_{\text{conv, free}}$ → natural convection term (to be developed in the thesis)  
-- $\sigma_{\text{piston}}$, $\sigma_{\text{wall}}$ → coupling terms to piston and soil  
+- $-\rho_w \, v_{z} \, c_w \, \partial T / \partial z$ → forced convection (if present). Shifts temperature profile to in accordance with sign of vertical (axial) velocitcy $v_z$. Is active between inlet and outlet.
+- $\lambda_w \frac{\partial^2 T_w(z,t)}{\partial z^2}$ → diffusive heat transport 
+- $\dot{q}_{\text{conv, free}}$ → natural convection term (to be developed in the thesis)  
+- $\sigma_{\text{piston}}$, $\sigma_{\text{wall}}$ → coupling terms to piston and soil (see Häuslein, 2024)
 
----
 
 ### 2.2 Solid Domain
-
 One dimensional heat transport equation in **solid** systems:
 
 $$
 \rho_s \, c_s \frac{\partial T_s(z; t)}{\partial t} = \lambda_s \frac{\partial^2 T_s(z; t)}{\partial z^2}
+\tag{2}
 $$
 
 Two dimensional (axial=z and radial=r) heat transport equation
@@ -55,76 +51,426 @@ $$
 r\,\frac{\partial T_s(z, r; t)}{\partial r}
 \right)
 \right)
+\tag{3}
 $$
 
----
-
 ### 2.3 Coupling Terms (σ-terms)
-
 Coupling terms represent heat transfer between adjacent domains.
 They appear as source/sink terms in each energy balance equation.
 
-Typical form:
-
-$$
-\sigma = \frac{\lambda A}{V}\left( T_{\text{neighbor}} - T \right)
-$$
-
-Where:
-
-- $\lambda$ = thermal conductivity  
-- $A$ = contact area  
-- $V$ = control volume  
-- $(T_{\text{neighbor}} - T)$ = temperature difference  
-
----
 
 ## 3. Extension: Natural Convection (Thesis Objective)
-
 Natural convection will be introduced into the 1D water equation.
-Candidate modelling approaches:
+ Approach: No fluid transport via a flow but energy entrance per volume element, per incremental time unit.
 
-### 3.1 Rayleigh–Nusselt Correlation (buoyancy-based)
+### 3.1 Energy Balance Approach for Natural Convection (Gerle, Schäfer)
+Thermal energy per volume to arbitrary reference point, differentiated by time under the assumption of a an incompressible fluid:
+$$
+\begin{aligned}
+& q_{\text{conv, free}} = \rho_w \, c_w \, T \\
+\iff & \frac{\partial}{\partial t} \,q = \frac{\partial}{\partial t} \,[\rho_w \, c_w T_w] \\
+\iff & \dot{q}_{\text{conv, free}} = \rho_w \, c_w \, \frac{\partial T_w}{\partial t} \tag{4}
+\end{aligned}
+$$
+which corresponds to equation (3) in Schäfer (2021). 
 
-Estimate local effective mixing / enhanced heat transfer:
+#### Linear Approach for the Mixed Temperature
 
-- Compute Rayleigh number:
-  
-  $$
-  \mathrm{Ra} = \frac{g \beta (T - T_\text{ref}) (L)^3}{\nu \alpha}
-  $$
+During a mixing event (natural convection), the new temperature
+distribution in the mixing zone $ z \in [z_{\text{in}}, z_{\text{mix}}] $
+is assumed to be linear:
 
-- Use a suitable Nusselt correlation for vertical cylindrical domains:
-
-  $$
-  \mathrm{Nu} = C \, \mathrm{Ra}^n
-  $$
-
-- Convert to an effective convective term:
-
-  $$
-  q_{\text{conv, free}} = h A (T_\text{bulk} - T)
-  $$
+$$
+T_w^*(z) = a z + b
+\tag{5}
+$$
+Note as well that $T_w^* = T_w(z, t+dt)$ and is thus the temperature distribution after an infinitesimal timestep $dt$. 
 
 ---
 
-### 3.2 Mixing-Term Approach (Gerle, Schäfer)
-
-Alternatively, model buoyancy-driven recirculation as a mixing velocity:
+#### Determination of Intercept $b$ via Boundary Condition
+The boundary condition at the top of the mixing zone is given by:
 
 $$
-q_{\text{conv, free}} = \rho c_p \, v_{\text{mix}} \,
-\frac{\partial T}{\partial x}
+T_w^*(z_{mix}) = T_{w,\text{in}}
+\tag{6}
 $$
 
-Where $v_{\text{mix}}$ is computed from stratification or temperature gradients.
+Using (5) in (6):
+
+$$
+a z_{\text{mix}} + b = T_{w,\text{in}}
+\quad\Rightarrow\quad
+b = T_{w,\text{in}} - a z_{\text{mix}}
+\tag{7}
+$$
+
+Insert (7) into (5):
+
+$$
+T_w^*(z)
+= T_{w,\text{in}} + a (z - z_{\text{mix}})
+\tag{8}
+$$
 
 ---
 
-## 4. TODOs
+#### Integration of the New Temperature Profile
 
-- Derive the free convection term for TPPS geometry.  
-- Review Nusselt–Rayleigh correlations for low-velocity water in vertical storage.  
-- Add piston–water and wall–water σ-term details.  
-- Perform parameter sensitivity analysis once the extension is implemented.
+We integrate (8) over the mixing zone:
 
+$$
+\int_{z_{\text{in}}}^{z_{\text{mix}}} T_w^*(z)\,dz
+=
+\int_{z_{\text{in}}}^{z_{\text{mix}}}
+\left[ T_{w,\text{in}} + a(z - z_{\text{mix}}) \right] dz
+\tag{9}
+$$
+
+The integral of the linear term is:
+
+$$
+\int_{z_{\text{in}}}^{z_{\text{mix}}} (z - z_{\text{mix}})\,dz
+=
+-\,\frac{(z_{\text{mix}} - z_{\text{in}})^2}{2}
+\tag{10}
+$$
+
+We define:
+
+$$
+I := \int_{z_{\text{in}}}^{z_{\text{mix}}}
+\left( T_{w,\text{in}} - T_w(z) \right) dz
+\tag{11}
+$$
+
+---
+
+#### Energy Balance to Determine the Slope $a$
+
+The energy added by the inflowing hot water must equal the
+internal energy increase of the mixing region:
+
+$$
+\begin{aligned}
+\Delta U_{w,\text{mix}}
+=
+& \rho_w c_w A_{\text{hws}}
+\int_{z_{\text{in}}}^{z_{\text{mix}}}
+\left( T_w^*(z) - T_w(z) \right) dz \\
+\iff 
+& \rho_w c_w A_{\text{hws}}
+\int_{z_{\text{in}}}^{z_{\text{mix}}}
+\left( T_{w,\text{in}} + a (z - z_{\text{mix}}) - T_w(z) \right) dz
+=
+\dot Q_{\text{mix}} \, dt
+\tag{12}
+\end{aligned}
+$$
+where the last formulation was arrived by plugging in equation (8). 
+Now use (10)–(11) to solve the remaining integral:
+
+$$
+\rho_w c_w A_{\text{hws}}
+\left[
+I - a\frac{(z_{\text{mix}} - z_{\text{in}})^2}{2}
+\right]
+=
+\dot Q_{\text{mix}}\, dt
+\tag{13}
+$$
+
+Solve for $a$:
+
+$$
+a
+=
+\frac{2}{(z_{\text{mix}} - z_{\text{in}})^2}
+\left[
+I - \frac{\dot Q_{\text{mix}}\, dt}
+       {\rho_w c_w A_{\text{hws}}}
+\right]
+\tag{14}
+$$
+Now both constants $[a, b]$ are defined by the **boundary condition** and the **energy equation**, respectively.
+
+---
+
+
+#### Update of Linear Approach
+
+$$
+T_w^*(z) = T_{w,\text{in}} + a(z - z_{\text{mix}}),
+$$
+
+we now insert the expression for $a$ and $b$ obtained in Equation (14) and (7):
+$$
+T_w^*(z)
+=
+T_{w,\text{in}}
++
+\frac{2(z - z_{\text{mix}})}{(z_{\text{mix}} - z_{\text{in}})^2}
+\left[
+I - \frac{1}{\rho_w c_w A_{\text{hws}}}\,\dot Q_{\text{mix}} \, dt
+\right].
+\tag{15}
+$$
+
+This expresses the updated temperature field after one infinitesimal mixing step in terms of the integral $I$, the inflow energy $\dot Q_{\text{mix}} dt$, and the geometric mixing factor.
+
+---
+
+#### Temperature Increase and Definition of the Mixing Function
+
+The incremental temperature increase in the mixing zone is:
+
+$$
+\begin{aligned}
+\Delta T(z)
+&= T_w^*(z) - T_w(z) \\
+&=T_{w,\text{in}} + \frac{2(z - z_{\text{mix}})}{(z_{\text{mix}} - z_{\text{in}})^2}
+\left[
+I - \frac{1}{\rho_w c_w A_{\text{hws}}}\,\dot Q_{\text{mix}} \, dt
+\right]
+- T_w(z)
+\tag{16}
+\end{aligned}
+$$
+
+where equation (15) has been plugged in.
+
+---
+
+#### Final Mixing Source Term (Equation 8 in Schäfer 2021)
+
+Using Equation (4) in its discretized form:
+
+$$
+\dot{q}_{\text{conv, free}} = \rho_w c_w \frac{\Delta T(z)}{\Delta t}
+\tag{17}
+$$
+
+Insert (16) into (17) to obtain:
+
+$$
+\boxed{
+\dot{q}_{\text{conv, free}}(z) =
+\frac{\rho_w c_w}{\Delta t}
+\left(
+\frac{2(z-z_{\text{mix}})}{(z_{\text{mix}}-z_{\text{in}})^2}
+\int_{z_{\text{in}}}^{z_{\text{mix}}}
+T_{w,\text{in}} - T_w(z)\,dz
+\right)
++
+\frac{\rho_w c_w}{\Delta t}(T_{w,\text{in}} - T_w(z))
+-
+\dot Q_{\text{mix}}
+\frac{2(z - z_{\text{mix}})}
+     {A_{\text{hws}}(z_{\text{mix}} - z_{\text{in}})^2}
+}
+\tag{18}
+$$
+
+which matches Equation (8) from Schäfer et al. (2021). Note, the unit of the convecitve term is given by: $[q_{\text{conv, free}}(z)] = \frac{W}{m^3}$. Thus, we speak of a power input per volume.
+
+
+The heat flow is given by: 
+ $$
+ \dot{Q}_{mix} = \dot{M_w}\,c_w\,(T_{w,in}-T_{w}(z_{in}))
+ $$
+
+### 3.2. Variable Mixed Zone
+The mixed zone is in the present model of dynamic size, $[z_{in}, z_{mix}(t)]$. This means in practice, every iteration step, on has to find the z value for which the temperature is equal to the inlet temperature:
+ $$
+ T_{w}(z_{mix}(t), t) = T_{w, in}(t)
+ $$
+Thus the number of cells, affected by natural convection is variable. 
+
+
+### 3.3 Exemplary Calculation of new Temperature Profile based on Convective Mixing Term
+
+**Objective:**  
+Recalculation of the influence of the convective mixing term on the updated
+temperature profile $T_w^*(z)$.
+
+---
+
+#### Given temperature profile
+
+Initial temperature distribution:
+
+$$
+T_w(z) = 323.15~\mathrm{K} + \frac{2~\mathrm{K}}{\mathrm{m}} \, z,
+\qquad z \in [0, 10]~\mathrm{m}
+$$
+
+Inlet temperature:
+
+$$
+T_{w,\mathrm{in}} = 333.15~\mathrm{K}
+$$
+
+Mixing height and inlet position:
+
+$$
+z_{\mathrm{mix}} = 10~\mathrm{m},
+\qquad
+z_{\mathrm{in}} = 0~\mathrm{m}
+$$
+
+---
+
+#### Physical parameters
+
+
+$$
+\rho_w = 1000~\mathrm{kg\,m^{-3}};\, c_w = 4.18~\mathrm{kJ\,kg^{-1}\,K^{-1}}; \, A_{\mathrm{hws}} = 300~\mathrm{m^2}
+$$
+
+Time step:
+
+$$
+\Delta t = 1~\mathrm{s}
+$$
+
+---
+
+#### Mass flow rate
+
+ flow rate:
+
+$$
+\dot{v} = \frac{1}{21600}~\mathrm{m\,s^{-1}}
+$$
+
+Mass flow rate:
+
+$$
+\dot{m}_w
+=
+\rho_w \dot{v} A_{\mathrm{hws}}
+=
+1000 \cdot \frac{1}{21600} \cdot 300
+=
+13.8~\mathrm{kg\,s^{-1}}
+$$
+
+---
+
+#### Heat flow into the mixing zone
+
+$$
+\dot{Q}_{\mathrm{mix}}
+=
+\dot{m}_w c_w
+\left(
+T_{w,\mathrm{in}} - T_w(z_{\mathrm{in}})
+\right)
+$$
+
+Since
+
+$$
+T_w(0) = 323.15~\mathrm{K}
+$$
+
+follows:
+
+$$
+\dot{Q}_{\mathrm{mix}}
+=
+13.8 \mathrm{kg\,s^{-1}} \cdot 4.18 \mathrm{kJ\,kg^{-1} K^{-1}}\cdot 10 \mathrm{K}
+=
+577~\mathrm{kJ\,s^{-1}}
+$$
+
+---
+
+#### Integral term of the mixing formulation
+
+$$
+\int_{z_{\mathrm{in}}}^{z_{\mathrm{mix}}}
+\left(
+T_{w,\mathrm{in}} - T_w(z)
+\right)\,\mathrm{d}z
+=
+\int_0^{10}
+\left(
+333.15\mathrm{K} - 323.15\mathrm{K} - z\, \mathrm{K m^{-1}}
+\right)\,\mathrm{d}z
+$$
+
+$$
+=
+\int_0^{10}
+(10 \, \mathrm{K}- z\, \mathrm{K m^{-1}})\,\mathrm{d}z
+=
+\left[10\, \mathrm{K}\,z - 0.5\,z^2 \, \mathrm{K m^{-1}} \right]_0^{10m}
+=
+50~\mathrm{K\,m}
+$$
+
+---
+
+#### Updated temperature profile
+
+The new temperature distribution after convective mixing reads:
+
+$$
+T_w^*(z)
+=
+T_{w,\mathrm{in}}
++
+\frac{2(z - z_{\mathrm{mix}})}{(z_{\mathrm{mix}} - z_{\mathrm{in}})^2}
+\left[
+\int_{z_{\mathrm{in}}}^{z_{\mathrm{mix}}}
+(T_{w,\mathrm{in}} - T_w(z))\,\mathrm{d}z
+-
+\frac{\dot{Q}_{\mathrm{mix}}}{\rho_w c_w A_{\mathrm{hws}}}\,\Delta t
+\right]
+$$
+
+Insert numerical values:
+
+$$
+T_w^*(z)
+=
+333.15\, \mathrm{K}
++
+\frac{2(z - 10\mathrm{m})}{100 \mathrm{m^2}}
+\left[
+50 \mathrm{K\,m}
+-
+\frac{577 \Delta t}{4.18 \cdot 1000 \cdot 300} \frac{\mathrm{K\,m}}{s}
+\right]
+$$
+
+$$
+=
+333.15\, \mathrm{K}
++
+\frac{(z - 10\mathrm{m})}{m^2}
+\left[
+1 \, \mathrm{K\,m}
+-
+9.2 \cdot 10^{-6} \frac{\mathrm{K\,m}}{s}\, \Delta t
+\right]
+$$
+
+---
+
+#### Final result (z without dimension)
+
+$$
+\boxed{
+T_w^*(z)
+=
+333.15~\mathrm{K}
++
+(z - 10)
+\left(
+1 - 9.2 \cdot 10^{-6}\Delta t~\mathrm{s^{-1}}
+\right)~\mathrm{K}
+}
+$$
+![Description](../sketches/exemplary_temp_profile_freeConv.png "Optional title")

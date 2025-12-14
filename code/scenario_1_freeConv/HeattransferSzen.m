@@ -63,7 +63,7 @@ function [T_Sys,T_REf] = HeattransferSzen(t2,IC_Sys,Nz,dz,flow,T0init,SW,A,z_RE,
     % 01. Integrate transient 1D TPPS model with flow (fluid + solid)
     %%%------------------------------------------%%%
 
-    [~,T_Sys] = ode45(@HeatFluidSolid,t2,IC_Sys,[],Nz,dz,flow,T0init,SW,A,z_RE);
+    [t2,T_Sys] = ode45(@HeatFluidSolid,t2,IC_Sys,[],Nz,dz,flow,T0init,SW,A,z_RE);
 
     %%%------------------------------------------%%%
     % 02. Define frequently used indices
