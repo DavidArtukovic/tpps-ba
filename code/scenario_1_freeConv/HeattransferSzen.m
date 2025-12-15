@@ -68,9 +68,7 @@ function [T_Sys,T_REf] = HeattransferSzen(t2,IC_Sys,Nz,dz,flow,T0init,SW,A,z_RE,
     % 02: Free convection as DISCRETE mixing operator (post-ODE)
     %%%------------------------------------------%%%
 
-    dt_mix = diff(t2);
-    disp(dt_mix);
-    tol_t  = 1e-9;                % time tolerance for event detection
+    dt_mix = 450;
 
     % Indices 
     replacement_top_idx    = Nz(3)+Nz(8)+Nz(2)+Nz(5)-2;
@@ -97,11 +95,8 @@ function [T_Sys,T_REf] = HeattransferSzen(t2,IC_Sys,Nz,dz,flow,T0init,SW,A,z_RE,
     Vdot   = v_flow * A_hws;
     mdot   = rho_w * Vdot;
 
-    for tt = 2:size(T_Sys,1)
-
-        % Apply mixing sequentially along stored time points
-        t_next_mix = t2(1);
-
+    for tt = 3:size(T_Sys,1)
+        
         % Use the already-updated previous state as baseline (sequential operator)
         Tcur = T_Sys(tt,:).';
 
@@ -134,7 +129,7 @@ function [T_Sys,T_REf] = HeattransferSzen(t2,IC_Sys,Nz,dz,flow,T0init,SW,A,z_RE,
                 I_mix = sum((Tin - Tmix) * dz * (-1));   % [K*m] sign fix for reversed bounds
             end
 
-            Qdot = mdot * c_w * (T_w_in_upper - T_w_in_lower);  % [W]
+            Qdot = mdot * c_w * abs(T_w_in_upper - T_w_in_lower);  % [W]
 
         elseif flow > 0
             %----------------------------------------------------------
@@ -163,7 +158,7 @@ function [T_Sys,T_REf] = HeattransferSzen(t2,IC_Sys,Nz,dz,flow,T0init,SW,A,z_RE,
                 I_mix = sum((Tin - Tmix) * dz * (-1));   % [K*m]
             end
 
-            Qdot = mdot * c_w * (T_w_in_lower - T_w_in_upper);  % [W]
+            Qdot = mdot * c_w * abs(T_w_in_lower - T_w_in_upper);  % [W]
 
         else
             % No flow -> no free convection mixing
@@ -177,15 +172,23 @@ function [T_Sys,T_REf] = HeattransferSzen(t2,IC_Sys,Nz,dz,flow,T0init,SW,A,z_RE,
         dz_mix = max((numel(ids_mix)-1) * dz, eps);       % [m]
         z_dist = (ids_mix - z_mix_idx).' * dz;            % [m]
         geom_factor = 2 * z_dist / (dz_mix^2);            % [1/m]
-
+        % disp(['Tin        = ' num2str(Tin)])
+        % disp(['Tcur(z)    = ' num2str(Tcur(z_mix_idx))])
+        % disp(['Qdot       = ' num2str(Qdot)])
+        % disp(['mdot       = ' num2str(mdot)])
+        % disp(['ids_mix first = ' num2str(ids_mix(1))])
+        % disp(['ids_mix last  = '  num2str(ids_mix(end))])
+        % disp(['abs(T_w_in_lower - T_w_in_upper) = ' num2str(abs(T_w_in_lower - T_w_in_upper))])
         Tnew_mix = Tin + geom_factor .* ( I_mix - (Qdot * dt_mix)/(rho_w*c_w*A_hws) );
 
+        % disp(['Tnew_max        = ' num2str(max(Tnew_mix))])
+        % disp(['Tnew_min        = ' num2str(min(Tnew_mix))])
         Tcur(ids_mix) = Tnew_mix;
-
         T_Sys(tt,:) = Tcur.';
+        % disp(['T min mix zone: '  num2str(min(Tcur(z_w_lower_start_idx:z_w_lower_end_idx)))])
+        % disp([ 'T max mix zone: ' num2str(max(Tcur(z_w_upper_start_idx:z_w_upper_end_idx)))]);
     end
-
-
+   
     %%%------------------------------------------%%%
     % 03: Define frequently used indices
     %%%------------------------------------------%%%

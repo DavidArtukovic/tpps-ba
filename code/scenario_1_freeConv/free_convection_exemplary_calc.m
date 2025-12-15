@@ -29,12 +29,12 @@ alpha = lambda_w / (rho_w * cp_w);   % [m^2/s]
 >>>>>>> Stashed changes
 
 %% Time steps to visualize
-dt_list = [0, 900, 1800, 2700, 3600];   % [s]
+dt_list = [0,1,2,3,4,5,6]*7200;   % [s]
 
 %% Plot
 figure; hold on; grid on;
 
-plot(T0, z, 'k--', 'LineWidth', 1.5);
+% plot(T0, z, 'k--', 'LineWidth', 1.5);
 
 for dt = dt_list
     T = T0;
@@ -97,8 +97,8 @@ for dt = dt_list
 
     plot(T, z, 'LineWidth', 1.5);
 end
-
+plot(T0, z, 'k--', 'LineWidth', 1.5);
 xlabel('T');
 ylabel('z');
-legend(['initial', "Δt = " + string(dt_list) + " s"], 'Location','best');
-title('Operator-type free convection update');
+legend(["Δt = " + string(dt_list) + " s",'initial'], 'Location','best');
+title('Closed-form free convection update');
