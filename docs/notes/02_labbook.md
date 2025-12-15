@@ -4,7 +4,7 @@ Hier werden To Do's, Erkentnisse, Fragen sowie Protokolle zu den Treffen mit den
 # Open Tasks
 - [x] Derive algebraic expressions for the inclusion of the convection term.
 - [x] Go through all scripts, update indexing and comments.
-- [ ] Integrate the free convection into the existing Matlab code
+- [ ] Integrate free convection via mixing term into the existing Matlab code
 - [x] Extensive commenting in code_info of szenario1.m 
 - [x] Extensive commenting in code_info of HeatFluidSolid.m 
 - [ ] To-Do - Aufräumen des dt terms in heattransferSzen und HeatFluidSolid

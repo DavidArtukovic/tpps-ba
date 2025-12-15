@@ -143,7 +143,7 @@ T0init(7) = 11;                 % Initial insulation temperature
 % 06. Time Loop over Scenario (t_900/2 for 10 days)
 %%%------------------------------------------%%%
 
-for i = 1:length(t_900/2)
+for i = 1:(length(t_900)/3)
     tic
 
     % Update vertical water discretization according to piston position
@@ -220,16 +220,16 @@ end
 % 07. Store Scenario Results
 %%%------------------------------------------%%%
 
-Res_900_d18_18   = Res_900;
-Res_hour_d18_18  = Res_hour;
-Res_Wasser_d18_18 = T_W_900;
-Res_System_d18_18 = T_V_900;
+Res_900_d18_18_noFK   = Res_900;
+Res_hour_d18_18_noFK  = Res_hour;
+Res_Wasser_d18_18_noFK = T_W_900;
+Res_System_d18_18_noFK = T_V_900;
 
-filenameSIM = ['d' num2str(d_ST) '_h' num2str(H(3)) '_Res_Matlab_d18_18.mat'];
+filenameSIM = ['d' num2str(d_ST) '_h' num2str(H(3)) '_Res_Matlab_noFK.mat'];
 
 % Save simulation results (commented out for safety)
-% save(filenameSIM, "Res_900_d18_18", "Res_hour_d18_18", ...
-%      "Res_Wasser_d18_18", "Res_System_d18_18")
+% save(filenameSIM, "Res_900_d18_18_noFK", "Res_hour_d18_18_noFK", ...
+%      "Res_Wasser_d18_18_noFK", "Res_System_d18_18_noFK")
 
 %%% ============================================================ %%%
 %                           LOCAL FUNCTIONS                       
