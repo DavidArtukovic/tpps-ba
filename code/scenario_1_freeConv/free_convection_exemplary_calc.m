@@ -5,9 +5,9 @@ clear; clc; close all;
 z = linspace(-10,10,400)';   % [m]
 
 %% Initial temperature profile
-<<<<<<< Updated upstream
+
 T0 = 50+z;                   % arbitrary linear profile
-=======
+
 T0 = 50 + z;                         % arbitrary linear profile
 %% Concave initial temperature profile with fixed boundary values
 c = 0.08;     % curvature strength (>0 => concave)
@@ -26,7 +26,7 @@ rho_w = 997.6;        % [kg/m^3]
 cp_w  = 4.177;         % [kJ/(kg*K)]
 lambda_w = 0.6081;    % [W/(m*K)]
 alpha = lambda_w / (rho_w * cp_w);   % [m^2/s]
->>>>>>> Stashed changes
+
 
 %% Time steps to visualize
 dt_list = [0,1,2,3,4,5,6]*7200;   % [s]
@@ -39,13 +39,13 @@ figure; hold on; grid on;
 for dt = dt_list
     T = T0;
 
-<<<<<<< Updated upstream
+
     % apply update only in mixing region z ∈ [0,10]
-=======
+
     % ------------------------------------------------------------
     % (1) Free convection operator update (Schäfer-consistent)
     % ------------------------------------------------------------
->>>>>>> Stashed changes
+
     ids = (z >= 0 & z <= 10);
     
     Tin  = 60;      % [°C] inlet temperature
@@ -57,10 +57,10 @@ for dt = dt_list
     Tmix = T(ids);
     zloc = z(ids);
 
-<<<<<<< Updated upstream
+
     T(ids) = 60 + ...
              (z(ids) - 10)* (1 - 9.2e-6 * dt);
-=======
+
     
     % Mixing length
     L = z_mix - z_in;
@@ -93,12 +93,18 @@ for dt = dt_list
     if enableDiffusion
         T = diffuse_dirichlet_explicit(T, alpha, dz, dt, T_left, T_right);
     end
->>>>>>> Stashed changes
+
 
     plot(T, z, 'LineWidth', 1.5);
 end
 plot(T0, z, 'k--', 'LineWidth', 1.5);
-xlabel('T');
-ylabel('z');
+
+xlabel('T', 'FontSize', 18);
+ylabel('z', 'FontSize', 18);
+title('Closed-form free convection update', 'FontSize', 20);
 legend(["Δt = " + string(dt_list) + " s",'initial'], 'Location','best');
 title('Closed-form free convection update');
+legend(["\Deltat = " + string(dt_list) + " s",'initial'], ...
+       'Location','best', 'FontSize', 18);
+
+set(gca, 'FontSize', 14);   % tick labels
