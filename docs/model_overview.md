@@ -58,6 +58,178 @@ $$
 Coupling terms represent heat transfer between adjacent domains.
 They appear as source/sink terms in each energy balance equation.
 
+**TO-DO!!!**
+Understand and derive the origin of the coupling terms. Particularly their connection to semi-infinite plates!
+
+
+### 2.4 Dimensionless Quantities (Derivation + Relevance)
+
+**Reynolds Number (Re):**
+$$
+\mathrm{Re} = \frac{v\,L}{\nu}
+$$
+with  
+- $v$ : characteristic flow velocity [m/s]  
+- $L$ : characteristic length of the body (e.g. hydraulic diameter, gap width) [m]  
+- $\nu$ : kinematic viscosity of water (higher number the stiffer the material) [$m^2$/s]
+
+**Physical meaning:**  
+Ratio of inertial to viscous forces (Trägheit zur Zähigkeit). Determines whether the flow is laminar or turbulent.
+
+**Typical regimes (water):**  
+- $\mathrm{Re} \ll 1$ : creeping (Stokes) flow  
+- $\mathrm{Re} \lesssim 2{,}300$ : laminar pipe flow  
+- $\mathrm{Re} \gtrsim 4{,}000$ : turbulent flow
+
+**Relevance for this work:**  
+Characterizes forced convection during charging and discharging processes. Reynolds number alone is insufficient when buoyancy effects are significant.
+
+---
+
+**Rayleigh Number (Ra):**
+$$
+\mathrm{Ra} = \frac{g\,\beta\,\Delta T\,L^3}{\nu\,\alpha}
+$$
+with  
+- $g$ : gravitational acceleration [m/$s^2$]  
+- $\beta$ : thermal expansion coefficient [1/K]  
+- $\Delta T$ : characteristic temperature difference [K]  
+- $L$ : characteristic length scale (e.g. wall height, gap height) [m]  
+- $\alpha$ : thermal diffusivity [$m^2$/s]
+
+**Physical meaning:**  
+Measures the strength of buoyancy-driven (free) convection relative to thermal and viscous diffusion within fluids.
+
+**Typical regimes:**  
+- $\mathrm{Ra} < 10^3$ : heat transfer dominated by conduction/diffusion 
+- $10^3 \lesssim \mathrm{Ra} \lesssim 10^7$ : laminar natural convection  
+- $\mathrm{Ra} \gtrsim 10^7$ : turbulent natural convection
+
+**Relevance for this work:**  
+Governs wall-driven downward flows caused by cooling at the storage wall. Even for large systems, local Rayleigh numbers can be high in wall boundary layers.
+
+---
+
+**Froude Number (Fr):**
+$$
+\mathrm{Fr} = \frac{v}{\sqrt{g\,L}}
+$$
+with  
+- $v$ : characteristic flow velocity [m/s]  
+- $L$ : characteristic length scale (e.g. stratification height) [m]
+- $g$ : gravitational force (e.g. stratification height) [m/$s^2$]
+
+**Physical meaning:**  
+Ratio of inertial forces to gravitational forces.
+
+**Typical regimes:**  
+- $\mathrm{Fr} \ll 1$ : gravity-dominated flow, stable stratification  
+- $\mathrm{Fr} \sim 1$ : significant interface deformation and mixing
+
+**Relevance for this work:**  
+Relevant for high mass-flow charging or discharging events. Typically small in thermally stratified water storage systems.
+
+---
+
+**Richardson Number (Ri):**
+$$
+\mathrm{Ri} = \frac{g\,\beta\,\Delta T\,L}{v^2} = \frac{\mathrm{Gr}}{\mathrm{Re}^2} ? \frac{1}{Fr^2}
+$$
+with  
+- $g$ : gravitational acceleration [m/s$^2$]  
+- $\beta$ : thermal expansion coefficient [1/K]  
+- $\Delta T$ : temperature difference between fluid layers [K]  
+- $L$ : characteristic vertical length scale [m]  
+- $v$ : characteristic flow velocity [m/s]
+
+**Physical meaning:**  
+Ratio of buoyancy forces to inertial forces. Indicates the stability of thermal stratification.
+
+**Typical regimes:**  
+- $\mathrm{Ri} \ll 1$ : forced convection dominates, strong mixing  
+- $\mathrm{Ri} \approx 1$ : transition regime  
+- $\mathrm{Ri} \gg 1$ : buoyancy-dominated flow, stable stratification
+
+**Relevance for this work:**  
+Key parameter for assessing whether inflowing water leads to stratification or mixing during charging and discharging.
+
+**Relation to Archimedes Number:**
+The Archimedes number is the ratio of gravitational forces to viscous forces.
+$$
+\mathrm{Ar} = \frac{g\, \rho \,\Delta \rho\,L^3}{\eta^2}
+$$
+with  
+- $g$ : gravitational acceleration [m/$s^2$]  
+- $\Delta \rho$ : density difference between fluid and body [kg/$m^3$]  
+- $L^3$ : volume calculated out of charateristic length [$m^3$]  
+- $\eta$ : dynamische Viskosität [m]  
+- $v$ : characteristic flow velocity [m/s]
+
+**Alternative representation of the Archimedes number:**
+$$
+\mathrm{Ar} = \frac{\mathrm{Gr}}{\mathrm{Re}^2}
+$$
+
+with
+
+$
+\mathrm{Gr} = \frac{g\,\beta\,\Delta T\,L^3}{\nu^2},
+\qquad
+\mathrm{Re} = \frac{U L}{\nu}
+$
+
+#### Equivalence
+
+Substituting $\mathrm{Gr}$ and $\mathrm{Re}$ into $\mathrm{Ar}$:
+
+$
+\mathrm{Ar}
+= \frac{g\,\beta\,\Delta T\,L^3 / \nu^2}{U^2 L^2 / \nu^2}
+= \frac{g\,\beta\,\Delta T\,L}{v^2}
+= \mathrm{Ri}
+$
+
+Thus, the Archimedes number and the Richardson number are **mathematically identical**, up to the
+choice of characteristic length $L$.
+
+**Conclusion:**  
+For a 1D stratified storage model with buoyancy-based mixing closure, the Richardson number fully
+justifies the dominance of natural convection and the modeling approach.
+
+---
+
+**Prandtl Number (Pr):**
+$$
+\mathrm{Pr} = \frac{\nu}{\alpha}
+$$
+with  
+- $\nu$ : kinematic viscosity [$m^2$/s]  
+- $\alpha$ : thermal diffusivity [$m^2$/s]
+
+**Physical meaning:**  
+Ratio of momentum diffusivity to thermal diffusivity. It indicates whether velocity or temperature gradients dominate the transport processes.
+
+**Typical regimes:**  
+- $\mathrm{Pr} \ll 1$ : thermal diffusion dominates (e.g. liquid metals)  
+- $\mathrm{Pr} \sim 1$ : momentum and thermal diffusion comparable (e.g. gases)  
+- $\mathrm{Pr} \gg 1$ : momentum diffusion dominates (e.g. liquids)
+
+**Relevance for this work:**  
+For water in the relevant temperature range, $\mathrm{Pr} \approx 5\text{--}7$. This implies that thermal boundary layers are thicker than velocity boundary layers. Consequently, temperature gradients persist even when velocity gradients are already damped, which favors buoyancy-driven wall flows in thermally stratified water storages.
+
+---
+
+**Relation between dimensionless numbers:**
+$$
+\mathrm{Ri} = \frac{\mathrm{Ra}}{\mathrm{Re}^2}\,\mathrm{Pr}^{-1}
+$$
+
+**Interpretation:**  
+- $\mathrm{Re}$ quantifies the strength of forced convection  
+- $\mathrm{Ra}$ quantifies the strength of buoyancy-driven convection  
+- $\mathrm{Ri}$ determines which mechanism dominates the flow behavior
+
+---
 
 ## 3. Extension: Natural Convection (Thesis Objective)
 Natural convection will be introduced into the 1D water equation.

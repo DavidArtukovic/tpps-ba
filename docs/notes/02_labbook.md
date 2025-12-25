@@ -4,10 +4,20 @@ Hier werden To Do's, Erkentnisse, Fragen sowie Protokolle zu den Treffen mit den
 # Open Tasks
 - [x] Derive algebraic expressions for the inclusion of the convection term.
 - [x] Go through all scripts, update indexing and comments.
-- [ ] Integrate free convection via mixing term into the existing Matlab code
 - [x] Extensive commenting in code_info of szenario1.m 
 - [x] Extensive commenting in code_info of HeatFluidSolid.m 
 - [ ] To-Do - Aufräumen des dt terms in heattransferSzen und HeatFluidSolid
+- [ ] Fix difference between own and Dominic Code (until 27.12.2025)
+- [ ] Understand the made-up of the coupling terms (until 30.12.2025)
+- [ ] Integrate free convection via mixing term into the existing Matlab code (differential form) (until 03.01.2026)
+- [ ] Propadeaticum related literature on free convection big systems, pace of one paper per day (until 06.01.2026)
+    - Especially from the Xiang (2022) Paper the Comsol examples of Dahash and several 1D Water + 2D Soil examples should be discussed.
+- [x] Understand relevance of Froude, Reynolds and Richardson number as well as their calculation. Calculate for the present case (08.01.2026)
+
+## 25.12.25 To Be Discussed in Literature
+Dahash (2017) gives idea of temperature gradient specific thermal conductivity.  
+Franke (1997) has to be better understand and derived.
+
 
 ## 12.12.25 - Fragen Dominic
 - Warum in HeattransferSzen.m Zeile 110 die Temepratur von replacement_bottom_idx-1, analog Zeile 117 im Ladefall?
