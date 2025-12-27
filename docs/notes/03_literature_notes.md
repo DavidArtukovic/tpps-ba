@@ -208,4 +208,63 @@ The MIX concept is particularly useful as an evaluation metric for stratificatio
 - How can the MIX concept be robustly transferred to a purely 1D modeling framework?
 - How to represent inlet-induced turbulence and mixing in a reduced-order model without excessive numerical diffusion?
 
+## Xiang et al. (2022) – *A comprehensive review on pit thermal energy storage (PTES): technical elements, numerical approaches and recent applications*
+
+**Key idea:**  
+Comprehensive review of large-scale **pit thermal energy storage (PTES)** with emphasis on **design aspects**, **heat transfer mechanisms**, and especially **numerical modeling strategies** ranging from simplified 1D system models to detailed CFD approaches. The paper synthesizes results from ~160 studies and identifies best practices and limitations for long-term storage simulations.
+
+### Numerical modeling approaches  
+
+- **Reduced-order / system-level models (1D, TRNSYS-type):**
+  - Water storage typically modeled as **1D vertically stratified**
+  - Soil modeled in 2D or 3D with effective heat conduction
+  - Natural convection in the water often **not resolved explicitly**
+  - Stratification maintained via:
+    - increased vertical resolution,
+    - effective thermal conductivity,
+    - artificial mixing or inversion-prevention schemes
+  - Suitable for **multi-year simulations**, but sensitive to parametrization
+
+- **Finite Element models (e.g. COMSOL):**
+  - 2D/3D coupled water–soil domains
+  - Can include **groundwater flow (Darcy)** and complex boundary conditions
+  - High physical fidelity, but limited scalability for long-term studies
+
+- **CFD / Finite Volume models:**
+  - Used to resolve **natural convection, inlet mixing, and wall effects**
+  - Typically restricted to **short time horizons**
+  - Serve as **reference models** for understanding and calibration
+
+### Key findings  
+
+- For large PTES systems, stratification is dominated by **vertical temperature gradients**.
+- **Inlet-induced mixing and turbulence** are localized phenomena; the bulk storage remains largely laminar.
+- Horizontal discretization has **minor influence** compared to vertical resolution.
+- Long-term storage performance predictions are highly sensitive to:
+  - boundary conditions,
+  - soil properties,
+  - insulation and cover modeling.
+- Many simplified models reproduce annual energy balances well, but:
+  - mispredict thermocline thickness,
+  - underestimate or overestimate heat losses on shorter time scales.
+
+### Relevance for TPPS / this thesis  
+
+- Although focused on PTES, the numerical insights are **directly transferable to TPPS**:
+  - large water volumes,
+  - slow charge/discharge,
+  - dominance of buoyancy-driven stratification.
+- Strongly supports the use of **1D vertically resolved water models** for system-level TPPS simulations.
+- Confirms the need for:
+  - carefully designed **mixing or source-term closures** to represent unresolved natural convection,
+  - CFD studies as **supporting tools**, not primary simulation frameworks.
+- Provides a solid **literature-backed justification** for a hierarchical modeling approach:
+  - CFD / high-fidelity models → physical understanding
+  - Reduced-order models → long-term and grid-coupled simulations
+
+### Open questions / points for deeper understanding  
+
+- How to parameterize buoyancy-driven mixing consistently in 1D models?
+- How to translate CFD-based stratification metrics into reduced-order diagnostics?
+- How sensitive are TPPS results to soil and boundary-condition uncertainties compared to PTES?
 
