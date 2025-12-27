@@ -1,15 +1,26 @@
-clear
+
 clc
+clear
 close all
+%%%------------------------------------------%%%
+% 01. Load Scenario and Initialization Simulation
+%%%------------------------------------------%%%
+
+% Load local paths (per-machine config)
+run(fullfile('..','..', 'configs', 'paths_local.m'));
+
+% Build data subfolder for this configuration
+DATA_SCEN1_BASE = fullfile(DATA_BASE, 'Modellvergleich1D');
+DATA_SCEN1_OWN = fullfile(DATA_BASE, 'scenario1_freeConv');
 
 % Laden der Relevanten Daten
+load(fullfile(DATA_SCEN1_BASE, 'd18_h18.mat'));
+load(fullfile(DATA_SCEN1_BASE, 'd18_h18_Res_Matlab_d18_18.mat')); % Dominic Matlab Ergebnisse: "Temperatur über Systemhöhe alle 900 sek"
+load(fullfile(DATA_SCEN1_BASE, '1D_05_TPPS_18_18.mat')); % Comsol Ergebnisse "Temperatur über Höhe an unterschiedlichen Punkten 
+load(fullfile(DATA_SCEN1_OWN, 'd18_h18_Res_Matlab_FK.mat'));  % Matlab Ergebnisse mit freier Konvektion
+load(fullfile(DATA_SCEN1_OWN, 'd18_h18_Res_Matlab_noFK.mat')); % Matlab Ergebnisse mit freier Konvektion
 
-load d18_h18.mat %Szenario 
-load d18_h18_Res_Matlab_d18_18.mat %Dominic Matlab Ergebnisse: "Temperatur über Systemhöhe alle 900 sek"
-load 1D_05_TPPS_18_18.mat %Comsol Ergebnisse "Temperatur über Höhe an unterschiedlichen Punkten 
-load ..\scenario_1_freeConv\d18_h18_Res_Matlab_FK.mat   % Matlab Ergebnisse mit freier Konvektion
-load ..\scenario_1_freeConv\d18_h18_Res_Matlab_noFK.mat   % Matlab Ergebnisse mit freier Konvektion
-
+%%
 dz = 0.05; %Ortsdiskretisierung Comsol
 o=0; %laufvariable für einzelne (Comsol) Simulation im Betriebsszenario (bis anzahl an Comsol ergebnissen)
 k=0; %laufvariable für Viertelstunden -> Stunden (Matlab) 

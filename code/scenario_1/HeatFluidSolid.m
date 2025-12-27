@@ -211,6 +211,13 @@ function dTdt = HeatFluidSolid(t,T,Nz,dz,flow,T0init,SW,A,z_RE)
     % 5.2 Coupling 1D water with 2D radial soil at the inner radius
     %--------------------------------------------------------------
 
+    % Coupling 1D water (lower part) with 2D radial soil at inner radius
+    for e = 1:Nz(2)
+        Tf(e,1) = ...
+            (SW(1,4)*T(Nz(3)+Nz(8)+e-1) + SW(2,4)*Tf(e,2)) / (SW(1,4)+SW(2,4));
+    end
+
+    % Coupling 1D water (upper part) with 2D radial soil at inner radius
     for e = Nz(2)+Nz(3)-1 : Nz(2)+Nz(3)+Nz(4)-2
         Tf(e,1) = ...
             (SW(1,4)*T(Nz(8)+Nz(5)+e-1) + SW(2,4)*Tf(e,2)) / (SW(1,4)+SW(2,4));
@@ -299,7 +306,7 @@ function dTdt = HeatFluidSolid(t,T,Nz,dz,flow,T0init,SW,A,z_RE)
     % Upper water node adjacent to piston
     idx_water_top_piston = Nz(3)+Nz(8)+Nz(2)+Nz(5)-2;
     dTdt(idx_water_top_piston) = dTdt(idx_water_top_piston) ...
-        + alpha_pw * (T(Nz(3)) - T(Nz(3)-1));
+        - alpha_pw * (T(Nz(3)) - T(Nz(3)-1));
 
     % Lower water node adjacent to piston
     idx_water_bottom_piston = Nz(3)+Nz(8)+Nz(2)-1;

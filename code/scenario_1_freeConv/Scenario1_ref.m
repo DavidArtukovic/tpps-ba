@@ -31,7 +31,8 @@ clear
 run(fullfile('..','..', 'configs', 'paths_local.m'));
 
 % Build data subfolder for this configuration
-DATA_SCEN1 = fullfile(DATA_BASE, 'Matlab_d18_h18_Szenario1');
+DATA_SCEN1 = fullfile(DATA_BASE, 'scenario1');
+DATA_SCEN1_FK = fullfile(DATA_BASE, 'scenario1_freeConv');
 
 % Load init and scenario files
 load(fullfile(DATA_SCEN1, 'Init_d18_h18_time8.mat'));   % Geometry, material values and initial values
@@ -224,13 +225,14 @@ Res_900_d18_18_noFK   = Res_900;
 Res_hour_d18_18_noFK  = Res_hour;
 Res_Wasser_d18_18_noFK = T_W_900;
 Res_System_d18_18_noFK = T_V_900;
-
+%%
 filenameSIM = ['d' num2str(d_ST) '_h' num2str(H(3)) '_Res_Matlab_noFK.mat'];
+fullpathSIM = fullfile(DATA_SCEN1, filenameSIM);
 
 % Save simulation results (commented out for safety)
-% save(filenameSIM, "Res_900_d18_18_noFK", "Res_hour_d18_18_noFK", ...
-%      "Res_Wasser_d18_18_noFK", "Res_System_d18_18_noFK")
-
+save(fullpathSIM, "Res_900_d18_18_FK", "Res_hour_d18_18_noFK", ...
+     "Res_Wasser_d18_18_noFK", "Res_System_d18_18_noFK")
+%%
 %%% ============================================================ %%%
 %                           LOCAL FUNCTIONS                       
 %%% ============================================================ %%%
