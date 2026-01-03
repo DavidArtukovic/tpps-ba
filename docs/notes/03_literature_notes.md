@@ -36,8 +36,6 @@ The coupling terms demand further investigation and understanding!
 **Relevance:**  
 Provides foundations for modeling free convection in TPPS.
 
----
-
 ## Schäfer et al. (2021) – *Development of a zero-energy-sauna: Simulation study of thermal energy storage*
 **Key idea:**  
 Modeling of a zero-energy sauna via a 1D energy conservation model. Includes natural convection through an effective mixing term. Idea is thoroughly explained in Gerle (2019)
@@ -48,12 +46,38 @@ My approach for representing free convection in low-velocity water domains.
 **Questions**
 Explanation of turbulent regions demands further investigation.
 
-## VDI-Wärmeatlas (2019) - *Free Convection*
+## Wärmeübertragung-Grundlagen und Praxis (2019) - *Conctact temperature + radial heat conduction (coupling terms)*
 
-**Relevance:**  
-Give's the theoretical backround for the use of semi-infinite bodies in the calculation of the contact temperature. To be thoroughly derived in model_overview.
+**Relevance - contact temperature:**  
+At pages 66-67 the book explains how one can arrive at the expression of an instantantious contact temperature for two semi-infinite bodies.
+Equation 2.82 is the temperatuer explained in model_overview as well as equation (8) in the paper of Häuslein (2024).
 
----
+
+**Key idea - radial heat conduction:**  
+Analytical derivation of **stationary radial heat conduction** in hollow cylinders based on Fourier’s law in cylindrical coordinates.  
+Because the heat transfer area depends on the radius $A(r)=2\pi r l$, the resulting thermal resistance is **logarithmic**, which is characteristic for pipe-wall geometries.
+
+**Core result:**
+- Radial heat flux through a hollow cylinder wall:
+  $$
+  \dot Q
+  =
+  \frac{2\pi l\,\lambda}{\ln(r_2/r_1)}
+  (\vartheta_1-\vartheta_2)
+  $$
+
+**Relevance for my thesis:**  
+- Provides the **theoretical basis** for the radial coupling (“pipe wall”) terms used in Häuslein et al. (2024).
+- The logarithmic term $\ln(R_1/R_0)$ in the TPPS model directly originates from cylindrical heat conduction.
+- The radial loss terms $\sigma(z)$ can be interpreted as this pipe-wall heat flux, normalized by the local heat capacity
+  $$
+  \rho c_p \pi R_0^2,
+  $$
+  yielding a volumetric source/sink term in a 1D axial energy balance.
+
+**Source:**  
+VDI – *Wärmeübertragung: Grundlagen und Praxis*, 2019, Chapter 2.1.3 “Wärmeleitung in einem Hohlzylinder”.
+
 
 ## Cesaro Oliveski et al. (2003) – *Comparison between models for the simulation of hot water storage tanks*
 
@@ -136,20 +160,38 @@ These insights are directly relevant for the present thesis, as they motivate th
 - Qualitative understand of **multinode-with-inversion** and **multinode-with-mean** approaches.
 - Transferability of the proposed correction strategies to modified 1D formulations with explicit mixing source terms.
 
----
 
 ## Franke (1997) – *Object-oriented modeling of solar heating systems*
 
 **Key idea:** 
 Franke introduces a modular, **object-oriented framework** for simulating solar thermal heating systems. The system is decomposed into physical components (e.g. collectors, pipes, storage), each described by energy and mass balances. Stratified hot water storages are modeled in 1D, with simplified representations of heat losses and mixing.
 
-**Relevance**
-Franke provides the methodological foundation later adopted by Cesaro (2003):
-- Justification of 1D stratified storage models for system-level simulations
+**Assumptions of Inversion:**
+- Buoyancy acts instantanious
+- No inertia
+- No partial mixing
+- No dependence from Rayleigh, Prandtl and Geometry
+
+**Relevance for TPES Modelling:**
+Franke provides the idea of multimode with inversion approach (also adopted by Cesaro (2003)):
+The algorithm is a simple pair-wise **permutation policy** which conserves energy
+```
+for i = bottom … top-1:
+    if T[i] > T[i+1]:        # instable Stratification
+        permute nodes i and i+1
+        set lower = T[i]
+        set T[i] = T[i+1]
+        set T[i+1] = lower
+repeat until profile is monotone
+```
+
 - Clear separation between physical modeling and numerical implementation
-- Conceptual basis for source/sink terms representing mixing and losses
+- Free Convection as infinitely fast and perfectly efficient process.
+
 
 → Relevant mainly as a modeling philosophy reference, not for specific equations.
+→ However, Cesaro finds that the **projected energy losses are to high**, despite solid temperature distribution.
+→ Particularly not useful in penstock induced convection.
 
 ## Spall (1998) – *Transient mixed convection in cylindrical thermal storage tanks*
 
@@ -268,3 +310,28 @@ Comprehensive review of large-scale **pit thermal energy storage (PTES)** with e
 - How to translate CFD-based stratification metrics into reduced-order diagnostics?
 - How sensitive are TPPS results to soil and boundary-condition uncertainties compared to PTES?
 
+## Bai et al. (2019) – *Numerical and experimental study of an underground water pit for seasonal heat storage*
+
+**Key Idea:**
+Seasonal PTES modeled with a **1D multinode water model** that **does not resolve free or forced convection explicitly**, but enforces stratification numerically.
+
+**Treatment of convection:**  
+- **Forced convection (charging/discharging):**  
+  Represented implicitly via **plug-flow–like node-to-node advection**
+- **Free convection:**  
+  Handled by **multinode with inversion (after Franke, 1997)**:
+  - After each timestep, vertical temperature profile is checked
+  - If $ \partial T / \partial z > 0 $ → **nodes are instantaneously mixed**
+  - Ensures static stability without resolving flow physics
+
+**Numerical implications:**  
+- Free convection is **not predicted**, but **suppressed a-posteriori**
+- Buoyancy effects only appear as a **numerical correction**
+
+**Relevance for my thesis:**  
+- Confirms that PTES literature **avoids explicit free-convection modeling**
+- Highlights the gap between:
+- Provides a **baseline approach** to improve upon with physically motivated free-convection closures.
+
+**Relation to Franke (1997):**  
+Direct application of the **multinode with inversion** concept to guarantee stratification stability.

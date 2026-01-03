@@ -64,7 +64,6 @@ function [T_Sys,T_REf] = HeattransferSzen(t2,IC_Sys,Nz,dz,flow,T0init,SW,A,z_RE,
     %%%------------------------------------------%%%
 
     [t2,T_Sys] = ode45(@HeatFluidSolid,t2,IC_Sys,[],Nz,dz,flow,T0init,SW,A,z_RE);
-
     %%%------------------------------------------%%%
     % 02. Define frequently used indices
     %%%------------------------------------------%%%
@@ -123,7 +122,7 @@ function [T_Sys,T_REf] = HeattransferSzen(t2,IC_Sys,Nz,dz,flow,T0init,SW,A,z_RE,
     T_Sys(:,sys_top_no_ins_idx) = (SW(1,4)*T_Sys(:,sys_top_no_ins_idx-1)+SW(2,4)...
                                   *T_Sys(:,sys_top_no_ins_idx+1))/((SW(1,4)+SW(2,4)));
 
-    % Water / soil coupling condition – (Robin BC)
+    % Water / soil coupling condition (Robin BC)
     T_Sys(:,water_soil_idx) = (SW(1,4)*T_Sys(:,water_soil_idx+1)+SW(2,4)*T_Sys(:,water_soil_idx-1))/((SW(1,4)+SW(2,4)));
 
     %%%------------------------------------------%%%

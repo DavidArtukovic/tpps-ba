@@ -230,7 +230,7 @@ filenameSIM = ['d' num2str(d_ST) '_h' num2str(H(3)) '_Res_Matlab_noFK.mat'];
 fullpathSIM = fullfile(DATA_SCEN1, filenameSIM);
 
 % Save simulation results (commented out for safety)
-save(fullpathSIM, "Res_900_d18_18_FK", "Res_hour_d18_18_noFK", ...
+save(fullpathSIM, "Res_900_d18_18_noFK", "Res_hour_d18_18_noFK", ...
      "Res_Wasser_d18_18_noFK", "Res_System_d18_18_noFK")
 %%
 %%% ============================================================ %%%

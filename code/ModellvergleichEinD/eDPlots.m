@@ -12,13 +12,14 @@ run(fullfile('..','..', 'configs', 'paths_local.m'));
 % Build data subfolder for this configuration
 DATA_SCEN1_BASE = fullfile(DATA_BASE, 'Modellvergleich1D');
 DATA_SCEN1_OWN = fullfile(DATA_BASE, 'scenario1_freeConv');
+DATA_SCEN1_OWN2 = fullfile(DATA_BASE, 'scenario1');
 
 % Laden der Relevanten Daten
 load(fullfile(DATA_SCEN1_BASE, 'd18_h18.mat'));
 load(fullfile(DATA_SCEN1_BASE, 'd18_h18_Res_Matlab_d18_18.mat')); % Dominic Matlab Ergebnisse: "Temperatur über Systemhöhe alle 900 sek"
 load(fullfile(DATA_SCEN1_BASE, '1D_05_TPPS_18_18.mat')); % Comsol Ergebnisse "Temperatur über Höhe an unterschiedlichen Punkten 
 load(fullfile(DATA_SCEN1_OWN, 'd18_h18_Res_Matlab_FK.mat'));  % Matlab Ergebnisse mit freier Konvektion
-load(fullfile(DATA_SCEN1_OWN, 'd18_h18_Res_Matlab_noFK.mat')); % Matlab Ergebnisse mit freier Konvektion
+load(fullfile(DATA_SCEN1_OWN2, 'd18_h18_Res_Matlab_noFK.mat')); % Matlab Ergebnisse mit freier Konvektion
 
 %%
 dz = 0.05; %Ortsdiskretisierung Comsol
@@ -41,7 +42,7 @@ k_fk = 0;
 for i = 1:1920
     if mod(i,4) == 0
        k_fk = k_fk + 1;
-       T_Sys_M_fk(:,k_fk) = Res_System_d18_18_fk(401:end,i); % without insulation
+       T_Sys_M_fk(:,k_fk) = Res_System_d18_18_FK(401:end,i); % without insulation
     end
 end
 

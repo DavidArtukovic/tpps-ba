@@ -2,7 +2,6 @@
 
 This document provides an overview of the physical and mathematical TPPS model.
 
-
 ## 1. Domains
 - Water
 - Solid (piston, soil, insulation)
@@ -54,13 +53,84 @@ r\,\frac{\partial T_s(z, r; t)}{\partial r}
 \tag{3}
 $$
 
-### 2.3 Coupling Terms (σ-terms)
+### 2.3 Coupling Terms ($\sigma$-terms)
+
 Coupling terms represent heat transfer between adjacent domains.
 They appear as source/sink terms in each energy balance equation.
 
-**TO-DO!!!**
-Understand and derive the origin of the coupling terms. Particularly their connection to semi-infinite plates!
+#### Example of water and insulation
+At the contact between water ($W$) and insulation ($D$), the heat flux must be continuous. Using Fourier's law on both sides yields
+$$
+q = -\lambda_W \frac{T_K - T_W}{\Delta x_W},
+\qquad
+q = -\lambda_D \frac{T_D - T_K}{\Delta x_D},
+$$
+where $T_W$ and $T_D$ denote the temperatures of the nodes adjacent to the interface (water and insulation side), $T_K$ is the (unknown) contact temperature, $\lambda_W,\lambda_D$ are thermal conductivities, and $\Delta x_W,\Delta x_D$ are distances from the nodes to the interface.
 
+Flux continuity implies
+$$
+\lambda_W \frac{T_K - T_W}{\Delta x_W}
+=
+\lambda_D \frac{T_D - T_K}{\Delta x_D}.
+$$
+
+#### Algebraic derivation of the contact temperature
+Rearranging gives
+$$
+\left(\frac{\lambda_W}{\Delta x_W}+\frac{\lambda_D}{\Delta x_D}\right)T_K
+=
+\frac{\lambda_W}{\Delta x_W}T_W+\frac{\lambda_D}{\Delta x_D}T_D,
+$$
+hence
+$$
+T_K
+=
+\frac{\frac{\lambda_W}{\Delta x_W}T_W+\frac{\lambda_D}{\Delta x_D}T_D}
+{\frac{\lambda_W}{\Delta x_W}+\frac{\lambda_D}{\Delta x_D}}.
+$$
+For equal half-cell distances $\Delta x_W=\Delta x_D$, this reduces to the common conductivity-weighted mean
+$$
+T_K
+=
+\frac{\lambda_W T_W+\lambda_D T_D}{\lambda_W+\lambda_D}.
+$$
+
+#### Link to the implemented coupling coefficient $\texttt{SW(:,4)}$
+In the implementation, the interface weighting is not based on $\lambda$ (or $\lambda/\Delta x$) but on the coefficient
+$$
+b := \sqrt{\lambda\,\rho\,c_p},
+$$
+i.e.\ $\texttt{SW(1,4)}=\sqrt{\lambda_W\rho_W c_{p,W}}$ for water and $\texttt{SW(3,4)}=\sqrt{\lambda_D\rho_D c_{p,D}}$ for insulation. This quantity has units
+$$
+[b] = \mathrm{J\,m^{-2}\,K^{-1}\,s^{-1/2}}
+$$
+and is commonly referred to as the $\emph{thermal effusivity}=\emph{Wärmeeindringkoeffizient}$ (it governs transient heat exchange with **semi-infinite bodies**).
+
+Using this coefficient, the contact temperature is computed as the effusivity-weighted mean
+$$
+T_K
+=
+\frac{b_W T_W + b_D T_D}{b_W+b_D}
+=
+\frac{\sqrt{\lambda_W\rho_W c_{p,W}}\,T_W+\sqrt{\lambda_D\rho_D c_{p,D}}\,T_D}
+{\sqrt{\lambda_W\rho_W c_{p,W}}+\sqrt{\lambda_D\rho_D c_{p,D}}}.
+$$
+This choice implicitly accounts for both heat conduction ($\lambda$) and thermal storage ($\rho c_p$) at the interface, which is consistent with transient contact problems and the semi-infinite plate interpretation.
+
+This expression is valid for all times for semi-infinite bodies in perfect thermal contact. It is also a good first guess for the initial contact temperature for finite bodies. It is used for the **green dots** in the sketch in Häuslein's (2024) paper.
+
+<img src="../sketches/grid_sketch_Haeuslein_2024.png" alt="Description" width="400">
+
+#### Different treatment of water-soil and water-insulation
+In the present model, the water–soil and water–insulation couplings are **not implemented as explicit source/sink terms in dT/dt**, but as **algebraic interface conditions**.  
+The interface layer itself is assumed to have **no thermal mass???** and therefore stores no energy; it only enforces **instantaneous heat-flux continuity** between the adjacent domains.  
+Mathematically, these are still **Robin-type interface conditions**, but they are realized by directly reconstructing the contact temperature \(T_K\) instead of integrating an additional ODE.  
+- Temperature gradients at water-soil and water-insulation are zero, they become set every time the ODE is solved for one iteration step.
+
+#### Radial loss terms (Eq. 6+7)
+
+
+---
 
 ### 2.4 Dimensionless Quantities (Derivation + Relevance)
 
@@ -246,7 +316,7 @@ $$
 $$
 which corresponds to equation (3) in Schäfer (2021). 
 
-#### Linear Approach for the Mixed Temperature
+#### Linear approach for the mixed temperature
 
 During a mixing event (natural convection), the new temperature
 distribution in the mixing zone $ z \in [z_{\text{in}}, z_{\text{mix}}] $
@@ -260,7 +330,7 @@ Note as well that $T_w^* = T_w(z, t+dt)$ and is thus the temperature distributio
 
 ---
 
-#### Determination of Intercept $b$ via Boundary Condition
+#### Determination of intercept $b$ via boundary condition
 The boundary condition at the top of the mixing zone is given by:
 
 $$
@@ -287,7 +357,7 @@ $$
 
 ---
 
-#### Integration of the New Temperature Profile
+#### Integration of the new temperature profile
 
 We integrate (8) over the mixing zone:
 
@@ -318,7 +388,7 @@ $$
 
 ---
 
-#### Energy Balance to Determine the Slope $a$
+#### Energy balance to determine the slope $a$
 
 The energy added by the inflowing hot water must equal the
 internal energy increase of the mixing region:
@@ -369,7 +439,7 @@ Now both constants $[a, b]$ are defined by the **boundary condition** and the **
 ---
 
 
-#### Update of Linear Approach
+#### Update of linear approach
 
 $$
 T_w^*(z) = T_{w,\text{in}} + a(z - z_{\text{mix}}),
@@ -392,7 +462,7 @@ This expresses the updated temperature field after one infinitesimal mixing step
 
 ---
 
-#### Temperature Increase and Definition of the Mixing Function
+#### Temperature increase and definition of the mixing function
 
 The incremental temperature increase in the mixing zone is:
 
@@ -413,7 +483,7 @@ where equation (15) has been plugged in.
 
 ---
 
-#### Final Mixing Source Term (Equation 8 in Schäfer 2021)
+#### Final mixing source term (Equation 8 in Schäfer 2021)
 
 Using Equation (4) in its discretized form:
 
@@ -443,7 +513,7 @@ T_{w,\text{in}} - T_w(z)\,dz
 \tag{18}
 $$
 
-which matches Equation (8) from Schäfer et al. (2021). Note, the unit of the convecitve term is given by: $[q_{\text{conv, free}}(z)] = \frac{W}{m^3}$. Thus, we speak of a power input per volume.
+which matches Equation (8) from Schäfer et al. (2021). Note, the unit of the convecitve term is given by: $[\dot{q}_{\text{conv, free}}(z)] = \frac{W}{m^3}$. Thus, we speak of a power input per volume.
 
 
 The heat flow is given by: 

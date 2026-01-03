@@ -147,21 +147,21 @@ h_1D_tot = h_tot + (V_Kupp - V_PP)/(d_ST^2*pi/4); % Total 1D height incl. cupola
 SW(1,1) = 0.6;                                  % Thermal conductivity λ of water [W/mK]
 SW(1,2) = 1000;                                 % Density ρ of water [kg/m³]
 SW(1,3) = 4200;                                 % Specific heat capacity cp of water [J/kgK]
-SW(1,4) = round(sqrt(SW(1,1)*SW(1,2)*SW(1,3)),10); % Thermal diffusivity coefficient √(λρcp) [J/m²K·s^0.5]
+SW(1,4) = round(sqrt(SW(1,1)*SW(1,2)*SW(1,3)),10); % Thermal effusivity [Waermeeindringkoeffizient] √(λρcp) [J/m²K·s^0.5]
 SW(1,5) = SW(1,1)/(SW(1,2)*SW(1,3));            % Thermal diffusivity α = λ/(ρc) [m²/s]
 
 % Soil mass (approximated as concrete-like)
 SW(2,1) = 2.1;                                  % Thermal conductivity λ of soil mass [W/mK]
 SW(2,2) = 2400;                                 % Density ρ of soil mass [kg/m³]
 SW(2,3) = 1000;                                 % Specific heat capacity cp of soil mass [J/kgK]
-SW(2,4) = round(sqrt(SW(2,1)*SW(2,2)*SW(2,3)),10); % Thermal diffusivity coefficient √(λρcp) [J/m²K·s^0.5]
+SW(2,4) = round(sqrt(SW(2,1)*SW(2,2)*SW(2,3)),10); % Thermal effusivity [Waermeeindringkoeffizient] √(λρcp) [J/m²K·s^0.5]
 SW(2,5) = SW(2,1)/(SW(2,2)*SW(2,3));            % Thermal diffusivity α = λ/(ρc) [m²/s]
 
 % Insulation material (glass foam granulate)
 SW(3,1) = 0.08;                                 % Thermal conductivity λ of insulation [W/mK]
 SW(3,2) = 170;                                  % Density ρ of insulation [kg/m³]
 SW(3,3) = 850;                                  % Specific heat capacity cp of insulation [J/kgK]
-SW(3,4) = round(sqrt(SW(3,1)*SW(3,2)*SW(3,3)),10); % Thermal diffusivity coefficient √(λρcp) [J/m²K·s^0.5]
+SW(3,4) = round(sqrt(SW(3,1)*SW(3,2)*SW(3,3)),10); % Thermal effusivity [Waermeeindringkoeffizient] √(λρcp) [J/m²K·s^0.5]
 SW(3,5) = SW(3,1)/(SW(3,2)*SW(3,3));            % Thermal diffusivity α = λ/(ρc) [m²/s]
 
 

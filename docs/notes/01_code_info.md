@@ -97,7 +97,6 @@ $$
 
 where $S_{pz}$ is a scaling parameter $\rho c_P A$ and $\Delta z$ is the vertical grid spacing.
 
-
 The **radial domains (soil and insulation)** are represented as a series of concentric cylindrical rings.
 For each radial ring $m$ the vertical integration of temperature is carried out analogously to the 1D case, but scaled by a ring-specific geometric factor $z_{RE}(2,m)$ representing the effective lateral area of that ring.
 For a given radial ring, the differential volume contribution is
@@ -123,12 +122,58 @@ end
 Heat_Rinsu = SW(3,2) * SW(3,3) * sum(DTRE);
 ```
 
-
 ## scenario_1_freeConv/HeatFluidSolid.m
 
 ### Position of Upper Bypass Inlet in Non-Moving Piston State.
 
 The upper bypass inlet is placed within the replacement volume. Within the first 10 days of scenario_1 there is no piston moving,  the position is fix. Thus the water transported via the bypass enters within the ring gap, for the upper water volume.
+
+### Contact Temperature between Water and Insulation
+
+The goal is to have an **continious** heat flow on the contact point. Four contact temperatures are calculated
+Lines: 
+- 85
+- 108
+- 133
+- 155
+
+### Piston–Water Coupling Terms (Axial Heat Conduction)
+
+The following code implements the **axial thermal coupling between the piston and the adjacent water nodes**, corresponding to Eqs. (4) and (5) in Häuslein's (2024) paper. 
+The conductive heat flux at the piston surfaces (top and bottom) is attributed to the first discretized water layer and enters the water energy balance as a source/sink term. Note that for this calculation the contact temperatures in the previous section are needed and used.
+
+The coupling coefficient `alpha_pw` represents the **normalized axial heat conduction** from the piston into a water control volume,
+
+$$
+\alpha_{pw}
+=
+\frac{\lambda_{\text{pist}} A_{\text{pist}}}
+{\rho_w c_{p,w} A_{\text{TPPS}} \Delta z^2},
+$$
+
+which matches the prefactor of the piston coupling terms in Eqs. (4) and (5).
+
+```matlab
+%%%------------------------------------------%%%
+% 09 Additional piston loss terms into the water nodes
+%%%------------------------------------------%%%
+
+% Coupling coefficient for axial heat conduction between piston and water
+% Corresponds to λ_pist * A_pist / (ρ_w * c_p,w * A_TPPS * Δz²)
+alpha_pw = (SW(2,1) * A(2)) / (A(1) * SW(1,2) * SW(1,3) * dz^2);
+
+% Upper water node adjacent to the piston (top contact)
+% Implements Eq. (5): axial heat flux from piston top into upper water node
+idx_water_top_piston = Nz(3)+Nz(8)+Nz(2)+Nz(5)-2;
+dTdt(idx_water_top_piston) = dTdt(idx_water_top_piston) ...
+    - alpha_pw * (T(Nz(3)) - T(Nz(3)-1));
+
+% Lower water node adjacent to the piston (bottom contact)
+% Implements Eq. (4): axial heat flux from piston base into lower water node
+idx_water_bottom_piston = Nz(3)+Nz(8)+Nz(2)-1;
+dTdt(idx_water_bottom_piston) = dTdt(idx_water_bottom_piston) ...
+    - alpha_pw * (T(1) - T(2));
+```
 
 ## scenario_1_freeConv/HeattransferSzen.m
 
@@ -139,5 +184,19 @@ After integration, the “mapping” section reshapes the flattened soil part ba
 Using `t2 = [0, dt/2, dt]` (`Nt2=2`) produces intermediate output states (e.g., at 450 s) so that this reshaping/interface handling can be evaluated at sub-times within one 900 s procedure step.
 Note: `Nt2` mainly increases the temporal resolution of this mapping/interface handling at the stored output times; it does not directly prescribe the internal adaptive step size of `ode45`.
 
+### ODE45 – Time Integration of the Discrete TPPS Model
 
+The transient TPPS model is advanced in time using MATLAB’s `ode45` solver:
 
+```matlab
+[t2, T_Sys] = ode45(@HeatFluidSolid, t2, IC_Sys, [], Nz, dz, flow, T0init, SW, A, z_RE);
+```
+
+After spatial discretization of the governing heat equations (finite differences in axial and radial direction), the full system is reduced to a large set of ordinary differential equations (ODEs) of the form
+$\dot{T}(t) = f(t, T)$
+where the state vector $T$ contains all temperature degrees of freedom of the model (water, piston, insulation, soil), flattened into a one-dimensional vector as required by ode45. The solver `ode45` performs pure time integration of this ODE system. It does not know anything about grids, materials, or physical domains. All spatial coupling, material interfaces, and boundary conditions are encoded explicitly in the right-hand side function HeatFluidSolid. In particular:
+- Diffusion and convection appear through finite-difference expressions in dTdt.
+- Thermal coupling between domains occurs only if temperatures from other domains explicitly enter the corresponding derivative.
+- Algebraic interface conditions (e.g. Robin-type contact temperatures) are enforced outside the ODE by direct reconstruction and are therefore not integrated as dynamic states.
+
+Numerically, `ode45` uses an explicit adaptive **Runge–Kutta (4,5) Dormand–Prince scheme**. Conceptually, each state is updated according to: $T^{n+1} = T^n +\Delta t \dot{T}$ with the size $\Delta t$ chosen automatically to control the local truncation error. `ode45` is well suited here because the dominant thermal dynamics are moderately stiff and smooth in time, while adaptive step size control ensures numerical stability and efficiency without manual tuning of the time step.
