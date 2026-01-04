@@ -124,7 +124,7 @@ This expression is valid for all times for semi-infinite bodies in perfect therm
 #### Different treatment of water-soil and water-insulation
 In the present model, the water–soil and water–insulation couplings are **not implemented as explicit source/sink terms in dT/dt**, but as **algebraic interface conditions**.  
 The interface layer itself is assumed to have **no thermal mass???** and therefore stores no energy; it only enforces **instantaneous heat-flux continuity** between the adjacent domains.  
-Mathematically, these are still **Robin-type interface conditions**, but they are realized by directly reconstructing the contact temperature \(T_K\) instead of integrating an additional ODE.  
+Mathematically, these are still **Robin-type interface conditions**, but they are realized by directly reconstructing the contact temperature $T_K$ instead of integrating an additional ODE.  
 - Temperature gradients at water-soil and water-insulation are zero, they become set every time the ODE is solved for one iteration step.
 
 #### Radial loss terms (Eq. 6+7)
@@ -305,7 +305,7 @@ $$
 Natural convection will be introduced into the 1D water equation.
  Approach: No fluid transport via a flow but energy entrance per volume element, per incremental time unit.
 
-### 3.1 Energy Balance Approach for Natural Convection (Gerle, Schäfer)
+### 3.1 Energy Balance Approach for Natural Convection (Schäfer)
 Thermal energy per volume to arbitrary reference point, differentiated by time under the assumption of a an incompressible fluid:
 $$
 \begin{aligned}
@@ -405,7 +405,7 @@ $$
 \int_{z_{\text{in}}}^{z_{\text{mix}}}
 \left( T_{w,\text{in}} + a (z - z_{\text{mix}}) - T_w(z) \right) dz
 =
-\dot Q_{\text{mix}} \, dt
+\dot Q_{\text{in}} \, dt
 \tag{12}
 \end{aligned}
 $$
@@ -429,7 +429,7 @@ a
 =
 \frac{2}{(z_{\text{mix}} - z_{\text{in}})^2}
 \left[
-I - \frac{\dot Q_{\text{mix}}\, dt}
+I - \frac{\dot Q_{\text{in}}\, dt}
        {\rho_w c_w A_{\text{hws}}}
 \right]
 \tag{14}
@@ -453,12 +453,12 @@ T_{w,\text{in}}
 +
 \frac{2(z - z_{\text{mix}})}{(z_{\text{mix}} - z_{\text{in}})^2}
 \left[
-I - \frac{1}{\rho_w c_w A_{\text{hws}}}\,\dot Q_{\text{mix}} \, dt
+I - \frac{1}{\rho_w c_w A_{\text{hws}}}\,\dot Q_{\text{in}} \, dt
 \right].
 \tag{15}
 $$
 
-This expresses the updated temperature field after one infinitesimal mixing step in terms of the integral $I$, the inflow energy $\dot Q_{\text{mix}} dt$, and the geometric mixing factor.
+This expresses the updated temperature field after one infinitesimal mixing step in terms of the integral $I$, the inflow energy $\dot Q_{\text{in}} dt$, and the geometric mixing factor.
 
 ---
 
@@ -472,7 +472,7 @@ $$
 &= T_w^*(z) - T_w(z) \\
 &=T_{w,\text{in}} + \frac{2(z - z_{\text{mix}})}{(z_{\text{mix}} - z_{\text{in}})^2}
 \left[
-I - \frac{1}{\rho_w c_w A_{\text{hws}}}\,\dot Q_{\text{mix}} \, dt
+I - \frac{1}{\rho_w c_w A_{\text{hws}}}\,\dot Q_{\text{in}} \, dt
 \right]
 - T_w(z)
 \tag{16}
@@ -506,7 +506,7 @@ T_{w,\text{in}} - T_w(z)\,dz
 +
 \frac{\rho_w c_w}{\Delta t}(T_{w,\text{in}} - T_w(z))
 -
-\dot Q_{\text{mix}}
+\dot Q_{\text{in}}
 \frac{2(z - z_{\text{mix}})}
      {A_{\text{hws}}(z_{\text{mix}} - z_{\text{in}})^2}
 }
@@ -518,7 +518,7 @@ which matches Equation (8) from Schäfer et al. (2021). Note, the unit of the co
 
 The heat flow is given by: 
  $$
- \dot{Q}_{mix} = \dot{M_w}\,c_w\,(T_{w,in}-T_{w}(z_{in}))
+ \dot{Q}_{in} = \dot{M_w}\,c_w\,(T_{w,in}-T_{w}(z_{in}))
  $$
 
 ### 3.2. Variable Mixed Zone
@@ -602,7 +602,7 @@ $$
 #### Heat flow into the mixing zone
 
 $$
-\dot{Q}_{\mathrm{mix}}
+\dot{Q}_{\mathrm{in}}
 =
 \dot{m}_w c_w
 \left(
@@ -619,7 +619,7 @@ $$
 follows:
 
 $$
-\dot{Q}_{\mathrm{mix}}
+\dot{Q}_{\mathrm{in}}
 =
 13.8 \mathrm{kg\,s^{-1}} \cdot 4.18 \mathrm{kJ\,kg^{-1} K^{-1}}\cdot 10 \mathrm{K}
 =
@@ -668,7 +668,7 @@ T_{w,\mathrm{in}}
 \int_{z_{\mathrm{in}}}^{z_{\mathrm{mix}}}
 (T_{w,\mathrm{in}} - T_w(z))\,\mathrm{d}z
 -
-\frac{\dot{Q}_{\mathrm{mix}}}{\rho_w c_w A_{\mathrm{hws}}}\,\Delta t
+\frac{\dot{Q}_{\mathrm{in}}}{\rho_w c_w A_{\mathrm{hws}}}\,\Delta t
 \right]
 $$
 
@@ -715,4 +715,139 @@ T_w^*(z)
 \right)~\mathrm{K}
 }
 $$
-![Description](../sketches/exemplary_temp_profile_freeConv.png "Optional title")
+
+<p align="center">
+  <img src="../sketches/exemplary_temp_profile_freeConv.png" alt="Description" width="600">
+</p>
+
+### 3.4 Alternative Derivation of Gerle (2019) - Via Linear Energy Stratification
+
+
+We consider the natural convection event as a **redistribution of thermal
+energy** within the mixing zone. During mixing, the temperature (or equivalently,
+the stored thermal energy) is assumed to vary **linearly**:
+
+$$
+q_{\text{new}}(z) = a z + b
+\tag{19}
+$$
+
+This gives two unknowns $(a,b)$, therefore we impose two physically motivated
+conditions.
+
+---
+
+#### Condition (1): Boundary value remains unchanged at the upper boundary
+
+At the lower edge of the mixing region, the temperature (and thus the energy)
+does not change during the mixing event:
+
+$$
+q_{\text{new}}(z_\text{mix})
+=
+q_{\text{old}}(z_\text{mix})
+\tag{20}
+$$
+
+Inserting (19):
+
+$$
+a z_\text{mix} + b = q_{\text{old}}(z_\text{mix})
+\quad\Rightarrow\quad
+b = q_{\text{old}}(z_\text{mix}) - a z_\text{mix}
+\tag{21}
+$$
+
+---
+
+#### Condition (2): Conservation of total energy in the mixing region
+
+The total energy after the mixing event equals the previously stored energy
+plus the convective energy inflow:
+
+$$
+\int_{z_\text{in}}^{z_\text{mix}} q_{\text{new}}(z)\,dz
+=
+\int_{z_\text{in}}^{z_\text{mix}} q_{\text{old}}(z)\,dz
++
+Q_{\text{in}}
+\tag{22}
+$$
+
+Using the linear approach (19):
+
+$$
+\int_{z_\text{in}}^{z_\text{mix}} (a z + b)\,dz
+=
+Q_{\text{old}} + Q_{\text{in}}
+\tag{23}
+$$
+
+Evaluating the integral:
+
+$$
+\frac{a}{2}(z_\text{mix}^2 - z_\text{in}^2)
++
+b (z_\text{mix}-z_\text{in})
+=
+Q_{\text{old}} + Q_{\text{in}}
+\tag{24}
+$$
+
+Insert expression (21) for $b$:
+
+$$
+\frac{a}{2}(z_\text{mix}^2 - z_\text{in}^2)
++
+\left[q_{\text{old}}(z_\text{mix}) - a z_\text{mix}\right](z_\text{mix}-z_\text{in})
+=
+Q_{\text{old}} + Q_{\text{in}}
+\tag{25}
+$$
+
+Solve for $a$:
+
+$$
+a
+=
+\frac{
+Q_{\text{old}} + Q_{\text{in}} -
+q_{\text{old}}(z_\text{mix})(z_\text{mix}-z_\text{in})
+}{
+\frac{1}{2}(z_\text{mix}^2 - z_\text{in}^2)
+-
+z_\text{in}(z_\text{mix}-z_\text{in})
+}
+\tag{26}
+$$
+
+Once $a$ is known, $b$ follows directly from (21).
+
+---
+
+#### Final expression for the redistributed energy profile
+
+$$
+q_{\text{new}}(z)
+=
+a z + b
+=
+a z +
+\left[q_{\text{old}}(z_\text{in}) - a z_\text{in}\right]
+\tag{27}
+$$
+
+Thus the mixing operator enforces:
+
+1. **Energy conservation over the full mixing region**, and  
+2. **consistency at the boundary** where no local change occurs.
+
+Because $q = \rho_w c_w T$, the updated temperature field follows from:
+
+$$
+T_w^*(z) = \frac{q_{\text{new}}(z)}{\rho_w c_w}
+\tag{28}
+$$
+
+This completes the discrete linear redistribution formulation equivalent to
+the graphical derivation.
