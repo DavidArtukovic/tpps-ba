@@ -19,7 +19,7 @@ load(fullfile(DATA_SCEN1_BASE, 'd18_h18.mat'));
 load(fullfile(DATA_SCEN1_BASE, 'd18_h18_Res_Matlab_d18_18.mat')); % Dominic Matlab Ergebnisse: "Temperatur über Systemhöhe alle 900 sek"
 load(fullfile(DATA_SCEN1_BASE, '1D_05_TPPS_18_18.mat')); % Comsol Ergebnisse "Temperatur über Höhe an unterschiedlichen Punkten 
 load(fullfile(DATA_SCEN1_OWN, 'd18_h18_Res_Matlab_FK.mat'));  % Matlab Ergebnisse mit freier Konvektion
-load(fullfile(DATA_SCEN1_OWN2, 'd18_h18_Res_Matlab_noFK.mat')); % Matlab Ergebnisse mit freier Konvektion
+load(fullfile(DATA_SCEN1_OWN, 'd18_h18_Res_Matlab_noFK.mat')); % Matlab Ergebnisse mit freier Konvektion
 
 %%
 dz = 0.05; %Ortsdiskretisierung Comsol
@@ -130,7 +130,7 @@ for m = 1:length(p)
     grid on
     xticks([40, 50, 60, 70, 80])
     %Achse auf Matlab Koordinaten reduzieren (Comsol hat mehr Höhencoordinaten wegen Halbkugel oben und unten)
-    axis([40 80 z_Mu z_Mo])
+    axis([10 80 z_Mu z_Mo])
     % Beschriftung nur am ersten Plot
     if m == 1
         ylabel('System depth [m]','Interpreter','Latex','Fontsize',12)

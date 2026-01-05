@@ -64,131 +64,16 @@ function [T_Sys,T_REf] = HeattransferSzen(t2,IC_Sys,Nz,dz,flow,T0init,SW,A,z_RE,
     %%%------------------------------------------%%%
 
     [t2,T_Sys] = ode45(@HeatFluidSolid,t2,IC_Sys,[],Nz,dz,flow,T0init,SW,A,z_RE);
+
+
     %%%------------------------------------------%%%
     % 02: Free convection as DISCRETE mixing operator (post-ODE)
     %%%------------------------------------------%%%
 
-    dt_mix = 450;
+    dt_mix = t2(2) - t2(1); % time step size for mixing operator [s]
+    T_Sys = apply_free_convection(T_Sys, dt_mix, flow, Nz, dz, SW, A);
 
-    % Indices 
-    replacement_top_idx    = Nz(3)+Nz(8)+Nz(2)+Nz(5)-2;
-    replacement_bottom_idx = Nz(3)+Nz(8)+Nz(2)-1;
-    replacement_mid_idx    = round((replacement_top_idx + replacement_bottom_idx)/2, 0);
 
-    z_inlet_upper_idx = replacement_mid_idx;
-    z_inlet_lower_idx = Nz(3)+Nz(8) + round(Nz(2)*2/3, 0);
-
-    % lower water bounds
-    z_w_lower_start_idx = Nz(3)+Nz(8)+1;
-    z_w_lower_end_idx   = Nz(3)+Nz(8)+Nz(2)-1;
-
-    % upper water bounds
-    z_w_upper_start_idx = Nz(3)+Nz(8)+Nz(2)+Nz(5)-2;              % first upper water node
-    z_w_upper_end_idx   = Nz(3)+Nz(8)+Nz(2)+Nz(5)+Nz(4)-3;        % last water node before insulation interface
-
-    % --- Parameters (same as HeatFluidSolid.m) ---
-    rho_w = SW(1,2);      % [kg/m^3]
-    c_w   = SW(1,3);      % [J/(kg K)]
-    A_hws = A(3);         % [m^2]
-
-    v_flow = abs(flow);   % [m/s]
-    Vdot   = v_flow * A_hws;
-    mdot   = rho_w * Vdot;
-
-    for tt = 3:size(T_Sys,1)
-        
-        % Use the already-updated previous state as baseline (sequential operator)
-        Tcur = T_Sys(tt,:).';
-
-        T_w_in_upper = Tcur(z_inlet_upper_idx);
-        T_w_in_lower = Tcur(z_inlet_lower_idx);
-
-        if flow < 0
-            %----------------------------------------------------------
-            % Charging: free convection in LOWER water volume
-            % Use upper inlet temperature as "inflow" temperature (as in old code)
-            %----------------------------------------------------------
-            Tin = T_w_in_upper;
-            z_mix_idx = z_inlet_lower_idx;
-
-            if T_w_in_upper > T_w_in_lower
-                % upward direction in lower volume (increasing index)
-                while (Tin > Tcur(z_mix_idx)) && (z_mix_idx < z_w_lower_end_idx)
-                    z_mix_idx = z_mix_idx + 1;
-                end
-                ids_mix = z_inlet_lower_idx:z_mix_idx;
-                Tmix = Tcur(ids_mix);
-                I_mix = sum((Tin - Tmix) * dz);          % [K*m]
-            else
-                % downward direction in lower volume (decreasing index)
-                while (Tin < Tcur(z_mix_idx)) && (z_mix_idx > z_w_lower_start_idx)
-                    z_mix_idx = z_mix_idx - 1;
-                end
-                ids_mix = z_inlet_lower_idx:-1:z_mix_idx;
-                Tmix = Tcur(ids_mix);
-                I_mix = sum((Tin - Tmix) * dz * (-1));   % [K*m] sign fix for reversed bounds
-            end
-
-            Qdot = mdot * c_w * abs(T_w_in_upper - T_w_in_lower);  % [W]
-
-        elseif flow > 0
-            %----------------------------------------------------------
-            % Discharging: free convection in UPPER water volume
-            % Use lower inlet temperature as "inflow" temperature (as in old code)
-            %----------------------------------------------------------
-            Tin = T_w_in_lower;
-            z_mix_idx = z_inlet_upper_idx;
-
-            if T_w_in_lower > T_w_in_upper
-                % upward direction in upper volume (increasing index)
-                while (Tin > Tcur(z_mix_idx)) && (z_mix_idx < z_w_upper_end_idx)
-                    z_mix_idx = z_mix_idx + 1;
-                end
-                ids_mix = z_inlet_upper_idx:z_mix_idx;
-                Tmix = Tcur(ids_mix);
-                I_mix = sum((Tin - Tmix) * dz);          % [K*m]
-            else
-                % downward direction in upper volume (decreasing index)
-                while (Tin < Tcur(z_mix_idx)) && (z_mix_idx > z_w_upper_start_idx)
-                    z_mix_idx = z_mix_idx - 1;
-                end
-                % NOTE: fixed vs your old code: use -1 step to avoid empty ids
-                ids_mix = (z_inlet_upper_idx-1):-1:z_mix_idx;
-                Tmix = Tcur(ids_mix);
-                I_mix = sum((Tin - Tmix) * dz * (-1));   % [K*m]
-            end
-
-            Qdot = mdot * c_w * abs(T_w_in_lower - T_w_in_upper);  % [W]
-
-        else
-            % No flow -> no free convection mixing
-            break;
-        end
-
-        %--------------------------------------------------------------
-        % Apply the CLOSED-FORM update
-        % T_new = Tin + geom_factor * ( I_mix - Qdot*dt_mix/(rho*c*A) )
-        %--------------------------------------------------------------
-        dz_mix = max((numel(ids_mix)-1) * dz, eps);       % [m]
-        z_dist = (ids_mix - z_mix_idx).' * dz;            % [m]
-        geom_factor = 2 * z_dist / (dz_mix^2);            % [1/m]
-        % disp(['Tin        = ' num2str(Tin)])
-        % disp(['Tcur(z)    = ' num2str(Tcur(z_mix_idx))])
-        % disp(['Qdot       = ' num2str(Qdot)])
-        % disp(['mdot       = ' num2str(mdot)])
-        % disp(['ids_mix first = ' num2str(ids_mix(1))])
-        % disp(['ids_mix last  = '  num2str(ids_mix(end))])
-        % disp(['abs(T_w_in_lower - T_w_in_upper) = ' num2str(abs(T_w_in_lower - T_w_in_upper))])
-        Tnew_mix = Tin + geom_factor .* ( I_mix - (Qdot * dt_mix)/(rho_w*c_w*A_hws) );
-
-        % disp(['Tnew_max        = ' num2str(max(Tnew_mix))])
-        % disp(['Tnew_min        = ' num2str(min(Tnew_mix))])
-        Tcur(ids_mix) = Tnew_mix;
-        T_Sys(tt,:) = Tcur.';
-        % disp(['T min mix zone: '  num2str(min(Tcur(z_w_lower_start_idx:z_w_lower_end_idx)))])
-        % disp([ 'T max mix zone: ' num2str(max(Tcur(z_w_upper_start_idx:z_w_upper_end_idx)))]);
-    end
-   
     %%%------------------------------------------%%%
     % 03: Define frequently used indices
     %%%------------------------------------------%%%
