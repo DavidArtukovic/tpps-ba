@@ -7,19 +7,18 @@ close all
 %%%------------------------------------------%%%
 
 % Load local paths (per-machine config)
-run(fullfile('..','..', 'configs', 'paths_local.m'));
+run(fullfile('..','..','..', 'configs', 'paths_local.m'));
 
 % Build data subfolder for this configuration
 DATA_SCEN1_BASE = fullfile(DATA_BASE, 'Modellvergleich1D');
 DATA_SCEN1_OWN = fullfile(DATA_BASE, 'scenario1_freeConv');
-DATA_SCEN1_OWN2 = fullfile(DATA_BASE, 'scenario1');
 
 % Laden der Relevanten Daten
 load(fullfile(DATA_SCEN1_BASE, 'd18_h18.mat'));
 load(fullfile(DATA_SCEN1_BASE, 'd18_h18_Res_Matlab_d18_18.mat')); % Dominic Matlab Ergebnisse: "Temperatur über Systemhöhe alle 900 sek"
 load(fullfile(DATA_SCEN1_BASE, '1D_05_TPPS_18_18.mat')); % Comsol Ergebnisse "Temperatur über Höhe an unterschiedlichen Punkten 
-load(fullfile(DATA_SCEN1_OWN, 'd18_h18_Res_Matlab_FK.mat'));  % Matlab Ergebnisse mit freier Konvektion
-load(fullfile(DATA_SCEN1_OWN, 'd18_h18_Res_Matlab_noFK.mat')); % Matlab Ergebnisse mit freier Konvektion
+load(fullfile(DATA_SCEN1_OWN, '260108_d18_h18_Res_Matlab_FK_v2.mat'));  % Matlab Ergebnisse mit freier Konvektion v2
+load(fullfile(DATA_SCEN1_OWN, '260105_d18_h18_Res_Matlab_FK_v1.mat')); % Matlab Ergebnisse mit freier Konvektion v1
 
 %%
 dz = 0.05; %Ortsdiskretisierung Comsol
@@ -130,7 +129,7 @@ for m = 1:length(p)
     grid on
     xticks([40, 50, 60, 70, 80])
     %Achse auf Matlab Koordinaten reduzieren (Comsol hat mehr Höhencoordinaten wegen Halbkugel oben und unten)
-    axis([10 80 z_Mu z_Mo])
+    axis([40 80 z_Mu z_Mo])
     % Beschriftung nur am ersten Plot
     if m == 1
         ylabel('System depth [m]','Interpreter','Latex','Fontsize',12)
@@ -139,7 +138,7 @@ for m = 1:length(p)
     if m == length(p)
         legend('$T_{Sys}$ Comsol','$T_{Sys}$ Matlab',...
             '$T_{Sys}$ Matlab (DA FK)$', '$T_{Sys}$ Matlab (DA no FK)$', ...
-       'Interpreter','Latex','Fontsize',10)
+       'Interpreter','Latex','Fontsize',9)
     end
     sgtitle(['1D Temperature Profil in the 72 m diameter System at Times: ' num2str(t_Sys_M(p)) ] ,'Interpreter','Latex','Fontsize',12)
 end

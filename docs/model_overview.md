@@ -418,7 +418,7 @@ $$
 I - a\frac{(z_{\text{mix}} - z_{\text{in}})^2}{2}
 \right]
 =
-\dot Q_{\text{mix}}\, dt
+\dot Q_{\text{in}}\, dt
 \tag{13}
 $$
 
