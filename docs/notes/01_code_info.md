@@ -1,6 +1,16 @@
 #  01 - Code Info 
 This notebook collects specific information on code junks, calculations within the matlab files and related stuff.
 
+
+
+## scenario_1/timesteps.m
+
+### Meaning of t_900
+
+- `t_900(1,:)` indicates thermal charging or discharging, one implies charging, zero is halting and minus one is discharging (position of the piston remains fix).
+- `t_900(2,:)` indicates the piston position (potential energy), one implies the piston is at the top and zero implies the piston is completely at the bottom (no potential energy remaining).
+
+
 ## scenario_1/Init.m
 
 ### Translation of Dome Zone into Cylinder
@@ -200,3 +210,17 @@ where the state vector $T$ contains all temperature degrees of freedom of the mo
 - Algebraic interface conditions (e.g. Robin-type contact temperatures) are enforced outside the ODE by direct reconstruction and are therefore not integrated as dynamic states.
 
 Numerically, `ode45` uses an explicit adaptive **Runge–Kutta (4,5) Dormand–Prince scheme**. Conceptually, each state is updated according to: $T^{n+1} = T^n +\Delta t \dot{T}$ with the size $\Delta t$ chosen automatically to control the local truncation error. `ode45` is well suited here because the dominant thermal dynamics are moderately stiff and smooth in time, while adaptive step size control ensures numerical stability and efficiency without manual tuning of the time step.
+
+
+### Subcycling of 1D–2D Coupling via Intermediate Time Levels
+
+The time vector
+```matlab
+t2 = 0 : dt/Nt2 : dt;
+```
+is passed to `ode45`, which returns the 1D system state `T_Sys` at these discrete times.
+These intermediate states are **not introduced for physical accuracy, but for numerical coupling purposes**.
+
+In Step 05, each stored 1D state is sequentially mapped to the 2D radial soil domain, boundary conditions are applied, and the updated 2D temperatures are mapped back into the 1D system. By looping over `tt = 1 : 1+Nt2`, the explicit 1D–2D coupling is effectively subcycled in time.
+
+This reduces the effective coupling time step from `dt` to `dt/Nt2`, which improves numerical stability and smoothness at the water–soil and insulation interfaces. The intermediate time level has no independent physical meaning; it is purely a numerical device for stabilizing the explicit domain coupling.

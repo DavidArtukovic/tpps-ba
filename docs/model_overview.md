@@ -418,7 +418,7 @@ $$
 I - a\frac{(z_{\text{mix}} - z_{\text{in}})^2}{2}
 \right]
 =
-\dot Q_{\text{mix}}\, dt
+\dot Q_{\text{in}}\, dt
 \tag{13}
 $$
 
@@ -563,16 +563,8 @@ $$
 ---
 
 #### Physical parameters
-
-
 $$
 \rho_w = 1000~\mathrm{kg\,m^{-3}};\, c_w = 4.18~\mathrm{kJ\,kg^{-1}\,K^{-1}}; \, A_{\mathrm{hws}} = 300~\mathrm{m^2}
-$$
-
-Time step:
-
-$$
-\Delta t = 1~\mathrm{s}
 $$
 
 ---

@@ -60,12 +60,22 @@ function [T_Sys,T_REf] = HeattransferSzen(t2,IC_Sys,Nz,dz,flow,T0init,SW,A,z_RE,
     DTd = zeros(Nz(9),3);  % [1D insulation, 2D insulation, contact]
 
     %%%------------------------------------------%%%
-    % 01. Integrate transient 1D TPPS model with flow (fluid + solid)
+    % 01: Integrate transient 1D TPPS model with flow (fluid + solid)
     %%%------------------------------------------%%%
 
     [t2,T_Sys] = ode45(@HeatFluidSolid,t2,IC_Sys,[],Nz,dz,flow,T0init,SW,A,z_RE);
+
+
     %%%------------------------------------------%%%
-    % 02. Define frequently used indices
+    % 02: Free convection as DISCRETE mixing operator (post-ODE)
+    %%%------------------------------------------%%%
+
+    dt_mix = t2(2) - t2(1); % time step size for mixing operator [s]
+    T_Sys = apply_free_convection(T_Sys, dt_mix, flow, Nz, dz, SW, A);
+
+
+    %%%------------------------------------------%%%
+    % 03: Define frequently used indices
     %%%------------------------------------------%%%
 
     % Air node at the very top of the system
@@ -87,7 +97,7 @@ function [T_Sys,T_REf] = HeattransferSzen(t2,IC_Sys,Nz,dz,flow,T0init,SW,A,z_RE,
 
 
     %%%------------------------------------------%%%
-    % 03: Coupling conditions between 1D domains
+    % 04: Coupling conditions between 1D domains
     %%%------------------------------------------%%%
 
     % 3.1: Water (Volumen Saugrohr) / piston coupling at top and bottom (Dirichlet BC)
@@ -126,14 +136,14 @@ function [T_Sys,T_REf] = HeattransferSzen(t2,IC_Sys,Nz,dz,flow,T0init,SW,A,z_RE,
     T_Sys(:,water_soil_idx) = (SW(1,4)*T_Sys(:,water_soil_idx+1)+SW(2,4)*T_Sys(:,water_soil_idx-1))/((SW(1,4)+SW(2,4)));
 
     %%%------------------------------------------%%%
-    % 04: Mapping 1D system state <-> 2D radial soil field
+    % 05: Mapping 1D system state <-> 2D radial soil field
     %%%------------------------------------------%%%
 
     % Time loop over all stored time steps for radial soil coupling
     for tt = 1:1+Nt2
 
         %----------------------------------------------------------
-        % 2.1: Build 2D radial soil temperature field from 1D state
+        % 5.1: Build 2D radial soil temperature field from 1D state
         %----------------------------------------------------------
 
         for j = 1:Nz(13) % vertical direction (z)
@@ -143,7 +153,7 @@ function [T_Sys,T_REf] = HeattransferSzen(t2,IC_Sys,Nz,dz,flow,T0init,SW,A,z_RE,
         end
 
         %----------------------------------------------------------
-        % 2.2: Re-apply boundary conditions in the 2D radial soil
+        % 5.2: Re-apply boundary conditions in the 2D radial soil
         %----------------------------------------------------------
 
         % Vertical boundaries
@@ -167,7 +177,7 @@ function [T_Sys,T_REf] = HeattransferSzen(t2,IC_Sys,Nz,dz,flow,T0init,SW,A,z_RE,
         end
 
         %----------------------------------------------------------
-        % 2.3: Couple system insulation (1D) with radial insulation (2D)
+        % 5.3: Couple system insulation (1D) with radial insulation (2D)
         %----------------------------------------------------------
 
         % Temperature in system insulation (1D) at system top
@@ -187,7 +197,7 @@ function [T_Sys,T_REf] = HeattransferSzen(t2,IC_Sys,Nz,dz,flow,T0init,SW,A,z_RE,
                                /(SW(2,4)+SW(3,4));
 
         %----------------------------------------------------------
-        % 2.4: Map updated 2D temperature field back into system vector
+        % 5.4: Map updated 2D temperature field back into system vector
         %----------------------------------------------------------
         
         for j = 1:Nz(13)

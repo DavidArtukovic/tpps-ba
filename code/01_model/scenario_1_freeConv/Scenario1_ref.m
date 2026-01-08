@@ -144,7 +144,7 @@ T0init(7) = 11;                 % Initial insulation temperature
 % 06. Time Loop over Scenario (t_900/2 for 10 days)
 %%%------------------------------------------%%%
 
-for i = 1:(length(t_900)/3)
+for i = 1:(length(t_900))
     tic
 
     % Update vertical water discretization according to piston position
@@ -153,7 +153,7 @@ for i = 1:(length(t_900)/3)
 
     % Flow velocity in the storage system [m/s] (charging or discharging)
     flow = Res_900(9, i+1) + Res_900(10, i+1);
-
+    disp(['flow        = ' num2str(flow)]);
     % Compute heat transfer and mass transport for the current 15-min step
     [T_Sys, T_REf] = HeattransferSzen(t2, IC_Sys, Nz, dz, flow, ...
                                       T0init, SW, A, z_RE, T_REf, Nt2);
@@ -220,18 +220,40 @@ end
 %%%------------------------------------------%%%c
 % 07. Store Scenario Results
 %%%------------------------------------------%%%
+fk = true;
+version = 'v3';
+dateTag = datestr(now, "yymmdd");
 
-Res_900_d18_18_noFK   = Res_900;
-Res_hour_d18_18_noFK  = Res_hour;
-Res_Wasser_d18_18_noFK = T_W_900;
-Res_System_d18_18_noFK = T_V_900;
-%%
-filenameSIM = ['d' num2str(d_ST) '_h' num2str(H(3)) '_Res_Matlab_noFK.mat'];
-fullpathSIM = fullfile(DATA_SCEN1, filenameSIM);
+if fk
+    Res_900_d18_18_FK   = Res_900;
+    Res_hour_d18_18_FK  = Res_hour;
+    Res_Wasser_d18_18_FK = T_W_900;
+    Res_System_d18_18_FK = T_V_900;
 
-% Save simulation results (commented out for safety)
-save(fullpathSIM, "Res_900_d18_18_noFK", "Res_hour_d18_18_noFK", ...
-     "Res_Wasser_d18_18_noFK", "Res_System_d18_18_noFK")
+  filenameSIM = [ ...
+                  dateTag '_d' num2str(d_ST) '_h' num2str(H(3)) ...
+                  '_Res_Matlab_FK_' version '.mat' ];
+    fullpathSIM = fullfile(DATA_SCEN1_FK, filenameSIM);
+
+    % Save simulation results (commented out for safety)
+    save(fullpathSIM, "Res_900_d18_18_FK", "Res_hour_d18_18_FK", ...
+         "Res_Wasser_d18_18_FK", "Res_System_d18_18_FK")
+else
+    Res_900_d18_18_noFK   = Res_900;
+    Res_hour_d18_18_noFK  = Res_hour;
+    Res_Wasser_d18_18_noFK = T_W_900;
+    Res_System_d18_18_noFK = T_V_900;
+
+    filenameSIM = [ ...
+                    dateTag '_d' num2str(d_ST) '_h' num2str(H(3)) ...
+                    '_Res_Matlab_noFK_' version '.mat' ];
+    fullpathSIM = fullfile(DATA_SCEN1_FK, filenameSIM);
+
+    % Save simulation results (commented out for safety)
+    save(fullpathSIM, "Res_900_d18_18_noFK", "Res_hour_d18_18_noFK", ...
+         "Res_Wasser_d18_18_noFK", "Res_System_d18_18_noFK")
+end
+
 %%
 %%% ============================================================ %%%
 %                           LOCAL FUNCTIONS                       

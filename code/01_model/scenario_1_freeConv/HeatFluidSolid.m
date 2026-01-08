@@ -48,9 +48,6 @@ function dTdt = HeatFluidSolid(t,T,Nz,dz,flow,T0init,SW,A,z_RE)
     %  - Nz(12)*Nz(13) = number of nodes in the 2D radial soil / insulation
     dTdt = zeros(Nz(10)+Nz(12)*Nz(13),1); 
 
-    % Free Convection: additional source term vector (only water nodes used)
-    dTdt_free = zeros(size(dTdt));   % [K/s] contribution from free convection
-
     % Initialize radial soil temperature field (2D) and its time derivative.
     % rows    -> vertical direction
     % columns -> radial direction
@@ -63,32 +60,6 @@ function dTdt = HeatFluidSolid(t,T,Nz,dz,flow,T0init,SW,A,z_RE)
 
     % top of the 1D system (air node)
     sys_top_idx = Nz(3)+Nz(8)+Nz(2)+Nz(5)+Nz(4)+Nz(9)-4;
-
-    % midpoint of replacement volume. 
-    replacement_top_idx = Nz(3)+Nz(8)+Nz(2)+Nz(5)-2;  % index of replacement volume at top
-    replacement_bottom_idx = Nz(3)+Nz(8)+Nz(2)-1;     % index of replacement volume at bottom
-    replacement_mid_idx = round((replacement_top_idx+replacement_bottom_idx)/2,0);
-
-    %%% Free Convection %%%
-    % Assumption: The inlet/outlet for the heatsystem does not produce free convection
-    % since it is at the top of the upper water volume and the bottom of the lower water volume respectively.
-    % only inlet and outlet of bypass are relevant. 
-
-
-    % the upper bypass inlet is at height of the ring gap. Take mid-point of replacement volume as inlet position.
-    z_inlet_upper_idx = replacement_mid_idx; % later flexible based on the top water node
-
-    % place inlet of lower water volume 2/3 of lower water volume
-    z_inlet_lower_idx = Nz(3)+Nz(8) + round(Nz(2)*2/3,0);
-
-    % lower water region index
-    z_w_lower_start_idx = Nz(3)+Nz(8)+1;
-    z_w_lower_end_idx   = Nz(3)+Nz(8)+Nz(2)-1;
-
-    rho_w = SW(1,2);      % water density [kg/m³]
-    c_w   = SW(1,3);      % water heat capacity [J/kgK]
-    A_hws = A(3);         % effective water cross-section (ring gap) [m²]
-
 
     %%%------------------------------------------%%%
     % 01 Vertical Insulation and Air (1D)
@@ -299,129 +270,8 @@ function dTdt = HeatFluidSolid(t,T,Nz,dz,flow,T0init,SW,A,z_RE)
     end
 
 
-
     %%%------------------------------------------%%%
-    % 08 Free Convection in the water region (1D)
-    %%%------------------------------------------%%%
-
-    dt_mix = 900 ; % time step for free convection estimation [s]
-
-    T_w_in_upper = T(z_inlet_upper_idx); % store water temperature at upper inlet
-    T_w_in_lower = T(z_inlet_lower_idx); % store water temperature at upper inlet
-
-    % estimate thermal energy inflow rate due to free convection at lower inlet
-    % Volume and mass flow rate based on "flow" velocity
-    v_flow = abs(flow);                   % [m/s]
-    Vdot   = v_flow * A_hws;              % [m³/s]
-    mdot   = rho_w * Vdot;                % [kg/s]
-
-    %--------------------------------------------------------------
-    % 8.1 Charging of heat water storage (flow < 0)
-    % Free convection in lower water volume
-    %--------------------------------------------------------------
-    if flow < 0 % charging
-
-        % Estimate into which direction free convection occurs at lower inlet and estimate the mixing zone
-        z_mix_idx = z_inlet_lower_idx; % start at inlet position
-        if T_w_in_upper > T_w_in_lower 
-            % free convection in upward direction within the lower water volume
-            while(T_w_in_upper > T(z_mix_idx) && z_mix_idx < z_w_lower_end_idx)
-                z_mix_idx = z_mix_idx + 1; % increase mix zone by one node
-            end
-            % Mixed-zone node ids (cells affected by FK)
-            ids_mix = z_inlet_lower_idx:z_mix_idx;
-
-            % water temperatures in mixing zone
-            T_mix = T(ids_mix);
-
-            % Integral I = ∫(T_in - T(z)) dz over the mixed zone (equation 11 model_overview.md)
-            I_mix = sum( (T_w_in_upper - T_mix) * dz);    % [K*m] (rectangle rule)
-            
-        else
-            % free convection in downward direction within the lower water volume
-            while(T_w_in_upper < T(z_mix_idx) && z_mix_idx > z_w_lower_start_idx)
-                z_mix_idx = z_mix_idx - 1; % decrease mix zone by one node
-            end
-            % Mixed-zone node ids (cells affected by FK)
-            ids_mix = z_inlet_lower_idx:-1:z_mix_idx;
-
-            % water temperatures in mixing zone
-            T_mix = T(ids_mix);
-
-            % Integral I = ∫(T_in - T(z)) dz over the mixed zone (equation 11 model_overview.md)
-            % Note the negative sign since upper integration bound is smaller than lower bound
-            I_mix = sum( (T_w_in_upper - T_mix) * dz*(-1) );    % [K*m] (rectangle rule)
-        end
-
-        Qdot = mdot * c_w * (T_w_in_upper - T_w_in_lower); % [W]
-
-
-        % Local coordinate z from inlet (z_in = 0), along free convection direction
-        dz_mix = max((numel(ids_mix)-1) * dz, eps);    % [m]
-
-        % equivalent to z-z_mix in equation 18
-        z_dist = (ids_mix - z_mix_idx).' * dz;  % [m]
-
-        % Geometric factor: 2(z - z_mix)/(z_mix - z_in)^2
-        geom_factor = 2 * z_dist / (dz_mix^2);  % [1/m]
-
-        % dt_mix is Schäfer's Δt (a FIXED model timestep), NOT the ODE time t
-        dTdt_free(ids_mix) = (1/dt_mix) * ( geom_factor * I_mix + (T_w_in_upper - T_mix)) - Qdot * geom_factor / (A_hws*rho_w*c_w);
-
-    %--------------------------------------------------------------
-    % 8.2 Discharging of heat water storage (flow > 0)
-    % Free convection in upper water volume
-    %--------------------------------------------------------------
-    elseif flow > 0 % discharging
-
-        % Estimate into which direction free convection occurs at upper inlet and estimate the mixing zone
-        z_mix_idx = z_inlet_upper_idx; % start at inlet position
-        if T_w_in_lower > T_w_in_upper 
-            % free convection in upward direction within the upper water volume
-            while(T_w_in_lower > T(z_mix_idx) && z_mix_idx < Nz(3)+Nz(8)+Nz(2)+Nz(5)+Nz(4)-3)
-                z_mix_idx = z_mix_idx + 1; % increase mix zone by one node
-            end
-            % Mixed-zone node ids (cells affected by FK)
-            ids_mix = z_inlet_upper_idx:z_mix_idx;
-
-            % water temperatures in mixing zone
-            T_mix = T(ids_mix);
-
-            % Integral I = ∫(T_in - T(z)) dz over the mixed zone (equation 11 model_overview.md)
-            I_mix = sum( (T_w_in_lower - T_mix) * dz );    % [K*m] (rectangle rule)
-        else
-            % free convection in downward direction within the upper water volume
-            while(T_w_in_lower < T(z_mix_idx) && z_mix_idx > Nz(3)+Nz(8)+Nz(2)-1)
-                z_mix_idx = z_mix_idx - 1; % decrease mix zone by one node
-            end
-            ids_mix = z_inlet_upper_idx-1:z_mix_idx;
-
-             % water temperatures in mixing zone
-            T_mix = T(ids_mix);
-
-            % Integral I = ∫(T_in - T(z)) dz over the mixed zone (equation 11 model_overview.md)
-            I_mix = sum( (T_w_in_lower - T_mix) * dz * (-1) );    % [K*m] (rectangle rule)
-
-        end
-
-        Qdot = mdot * c_w * (T_w_in_lower - T_w_in_upper); % [W]
-
-        % Local coordinate z from inlet (z_in = 0), along free convection direction
-        dz_mix = max((numel(ids_mix)-1) * dz, eps);    % [m]
-
-        % equivalent to z-z_mix in equation 18
-        z_dist = (ids_mix - z_mix_idx).' * dz;  % [m]
-
-        % Geometric factor: 2(z - z_mix)/(z_mix - z_in)^2
-        geom_factor = 2 * z_dist / (dz_mix^2);  % [1/m]
-
-        % dt_mix is Schäfer's Δt (a FIXED model timestep), NOT the ODE time t
-        dTdt_free(ids_mix) = (1/dt_mix) * ( geom_factor * I_mix + (T_w_in_lower - T_mix)) - Qdot * geom_factor / (A_hws*rho_w*c_w);
-    end
-
-
-    %%%------------------------------------------%%%
-    % 09 Water region (1D) with axial conduction, convection and radial losses
+    % 08 Water region (1D) with axial conduction, convection and radial losses
     %%%------------------------------------------%%%
 
     for i = Nz(3)+Nz(8)+1 : sys_top_no_ins_idx-1
@@ -446,9 +296,6 @@ function dTdt = HeatFluidSolid(t,T,Nz,dz,flow,T0init,SW,A,z_RE)
                     - flow * (T(i+1) - T(i-1)) / (2*dz);
         end
     end
-
-   % Add free convection contribution to the water nodes
-    dTdt = dTdt + dTdt_free;
 
     %%%------------------------------------------%%%
     % 09 Additional piston loss terms into the water nodes
