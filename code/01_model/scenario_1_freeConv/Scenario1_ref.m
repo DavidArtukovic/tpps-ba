@@ -28,7 +28,7 @@ clear
 %%%------------------------------------------%%%
 
 % Load local paths (per-machine config)
-run(fullfile('..','..', 'configs', 'paths_local.m'));
+run(fullfile('..','..','..', 'configs', 'paths_local.m'));
 
 % Build data subfolder for this configuration
 DATA_SCEN1 = fullfile(DATA_BASE, 'scenario1');
@@ -221,7 +221,7 @@ end
 % 07. Store Scenario Results
 %%%------------------------------------------%%%
 fk = true;
-version = 'v3';
+version = 'v4';
 dateTag = datestr(now, "yymmdd");
 
 if fk

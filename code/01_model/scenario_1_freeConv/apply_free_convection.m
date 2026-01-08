@@ -301,19 +301,16 @@ function Tcur = fk_extrapolated_zmix_Qscaled(Tcur, ids_mix, z_mix_idx, Tin, T_w_
     %--------------------------------------------------------------
 
     % Coordinates in meters relative to mixing boundary
-    z_loc = ( (1:numel(ids_mix)) - numel(ids_mix) ) * params.dz;  % [m], z=0 at mixing boundary
-
-    % Linear least-squares fit: T(z) = a*z + b
-    p = polyfit(z_loc, Tmix(:), 1);
-    dTdz = p(1);                      % [K/m] global mean gradient
-    T_end = p(2);                     % temperature at z=0 (mix boundary)
-    
+    mix_height = (numel(ids_mix)-1)*params.dz;
+    dTdz = abs((Tmix(end) - Tmix(1)) / mix_height);    % geometric mean absolute slope
+   
     if abs(dTdz) < 1e-8
         return; % later: fully_mixed
+        disp('Warning: near-zero gradient in extrapolated_zmix case');
     end
 
-    % Distance needed to reach Tin by extrapolation
-    dz_star = (Tin - T_end) / dTdz;   % [m]
+    % Distance needed to reach Tin by extrapolation (positive in upward, negative in downward direction)
+    dz_star = (Tin - Tmix(end)) / dTdz;   % [m]
 
     %--------------------------------------------------------------
     % 4) Integral over EXTRAPOLATED mixing interval
@@ -337,7 +334,7 @@ function Tcur = fk_extrapolated_zmix_Qscaled(Tcur, ids_mix, z_mix_idx, Tin, T_w_
     %--------------------------------------------------------------
     % 6) Recompute bracket term with Q_eff and other parameters
     %--------------------------------------------------------------
-    bracket = I_num - (Qdot_eff * dt_mix) / ...
+    bracket = I_star - (Qdot_eff * dt_mix) / ...
               (params.rho_w * params.c_w * params.A_hws); % [K*m]
 
     % Effective extrapolated mixing length
@@ -360,6 +357,7 @@ function Tcur = fk_extrapolated_zmix_Qscaled(Tcur, ids_mix, z_mix_idx, Tin, T_w_
     disp(['bracket            = ' num2str(bracket)])
     disp(['Qdot_eff       = ' num2str(Qdot_eff)])
     disp(['Qdot_in       = ' num2str(Qdot_in)])
+    disp(['dz_star          = ' num2str(dz_star)])
     disp(['T_mix_end_before mixing        = ' num2str(Tmix(end))])
     disp(['T_in         = ' num2str(Tin)])
     disp(['T_mix_min_after_mixing         = ' num2str(Tcur(ids_mix(1)))])
