@@ -13,33 +13,33 @@ function T_Sys = apply_free_convection(T_Sys, dt_mix, flow, Nz, dz, SW, A)
     %--------------------------------------------------------------
     params = init_fk_parameters(Nz, dz, SW, A, flow);
 
-    for tt = 2:size(T_Sys,1)
+    % for tt = 2:size(T_Sys,1)
         
-        % Use the already-updated previous state as baseline (sequential operator)
-        Tcur = T_Sys(tt,:).';
+    % Use the already-updated previous state as baseline (sequential operator)
+    Tcur = T_Sys(end,:).';
 
-        %----------------------------------------------------------
-        % 1) Detect free-convection region and inflow temperature
-        %----------------------------------------------------------
-        [ids_mix, Tin, z_mix_idx, T_w_in_upper, T_w_in_lower] = detect_fk_region(Tcur, flow, params);
+    %----------------------------------------------------------
+    % 1) Detect free-convection region and inflow temperature
+    %----------------------------------------------------------
+    [ids_mix, Tin, z_mix_idx, T_w_in_upper, T_w_in_lower] = detect_fk_region(Tcur, flow, params);
 
-        if isempty(ids_mix)
-            return  ; % no mixing region detected
-        end
-
-        %----------------------------------------------------------
-        % 2) Classify numerical free-convection case
-        %----------------------------------------------------------
-        fk_case = classify_fk_case(Tcur(ids_mix), Tin, 0.5);  % dT_fully_mixed = 0.5 K
-
-        %----------------------------------------------------------
-        % 3) Apply appropriate free-convection operator
-        %----------------------------------------------------------
-        Tcur = apply_fk_operator(Tcur, ids_mix, z_mix_idx, Tin, T_w_in_upper, T_w_in_lower, fk_case, dt_mix, params);
-
-        T_Sys(tt,:) = Tcur.';
-
+    if isempty(ids_mix)
+        return  ; % no mixing region detected
     end
+
+    %----------------------------------------------------------
+    % 2) Classify numerical free-convection case
+    %----------------------------------------------------------
+    fk_case = classify_fk_case(Tcur(ids_mix), Tin, 0.5);  % dT_fully_mixed = 0.5 K
+
+    %----------------------------------------------------------
+    % 3) Apply appropriate free-convection operator
+    %----------------------------------------------------------
+    Tcur = apply_fk_operator(Tcur, ids_mix, z_mix_idx, Tin, T_w_in_upper, T_w_in_lower, fk_case, dt_mix, params);
+
+    T_Sys(end,:) = Tcur.';
+
+    % end
 end
 
 function params = init_fk_parameters(Nz, dz, SW, A, flow)
@@ -217,9 +217,11 @@ function Tcur = apply_fk_operator(Tcur, ids_mix, z_mix_idx, Tin, T_w_in_upper, T
             disp('case: internal_zmix');
             disp(['bracket            = ' num2str(bracket)])
             disp(['Qdot       = ' num2str(Qdot_mix)])
-            disp(['T_mix_end_before mixing        = ' num2str(Tmix(end))])
-            disp(['T_mix_min        = ' num2str(Tcur(ids_mix(1)))])
-            disp(['T_mix_max        = ' num2str(Tcur(ids_mix(end)))])
+            disp(['last mixing node = '  num2str(z_dist(end))])
+            disp(['T_mix_end_before_mixing        = ' num2str(Tmix(end))])
+            disp(['T_mix_begin_before_mixing        = ' num2str(Tmix(1))])
+            disp(['T_mix_end_after_mixing        = ' num2str(Tcur(ids_mix(1)))])
+            disp(['T_mix_begin_after_mixing        = ' num2str(Tcur(ids_mix(end)))])
             disp('---------------------------------------------------');
 
         case 'extrapolated_zmix'
@@ -339,7 +341,7 @@ function Tcur = fk_extrapolated_zmix_Qscaled(Tcur, ids_mix, z_mix_idx, Tin, T_w_
 
     % Effective extrapolated mixing length
     L_num  = (numel(ids_mix)-1) * params.dz;   % [m] numerical mixing length
-    L_eff  = L_num + abs(dz_star);              % [m] extrapolated length
+    L_eff  = abs(L_num) + abs(dz_star);              % [m] extrapolated length
 
     % Distances to extrapolated mixing point z_mix*
     z_dist_eff = (ids_mix - z_mix_idx) * params.dz - dz_star;  % [m]
@@ -358,10 +360,11 @@ function Tcur = fk_extrapolated_zmix_Qscaled(Tcur, ids_mix, z_mix_idx, Tin, T_w_
     disp(['Qdot_eff       = ' num2str(Qdot_eff)])
     disp(['Qdot_in       = ' num2str(Qdot_in)])
     disp(['dz_star          = ' num2str(dz_star)])
-    disp(['T_mix_end_before mixing        = ' num2str(Tmix(end))])
     disp(['T_in         = ' num2str(Tin)])
-    disp(['T_mix_min_after_mixing         = ' num2str(Tcur(ids_mix(1)))])
-    disp(['T_mix_max_after_mixing        = ' num2str(Tcur(ids_mix(end)))])
+    disp(['T_mix_end_before_mixing        = ' num2str(Tmix(end))])
+    disp(['T_mix_begin_before_mixing        = ' num2str(Tmix(1))])
+    disp(['T_mix_end_after_mixing        = ' num2str(Tcur(ids_mix(end)))])
+    disp(['T_mix_begin_after_mixing        = ' num2str(Tcur(ids_mix(1)))])
     disp('---------------------------------------------------');
 
 end

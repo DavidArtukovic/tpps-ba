@@ -26,8 +26,8 @@ DATA_SCEN1_OWN  = fullfile(DATA_BASE, 'scenario1_freeConv');
 load(fullfile(DATA_SCEN1_BASE, 'd18_h18.mat'));
 data_no_fk   = load(fullfile(DATA_SCEN1_BASE, 'd18_h18_Res_Matlab_d18_18.mat'));
 data_comsol  = load(fullfile(DATA_SCEN1_BASE, '1D_05_TPPS_18_18.mat'));
-data_fk_v1   = load(fullfile(DATA_SCEN1_OWN,  '260108_d18_h18_Res_Matlab_FK_v3.mat'));
-data_fk_v2   = load(fullfile(DATA_SCEN1_OWN,  '260108_d18_h18_Res_Matlab_FK_v4.mat'));
+data_fk_v1   = load(fullfile(DATA_SCEN1_OWN,  '260108_d18_h18_Res_Matlab_FK_v4.mat'));
+data_fk_v2   = load(fullfile(DATA_SCEN1_OWN,  '260109_d18_h18_Res_Matlab_FK_v6.mat'));
 
 %%%------------------------------------------%%%
 % 03. Reduce Matlab solutions to hourly resolution
@@ -125,13 +125,13 @@ models(2).z     = z_M;
 models(2).style = '-';
 models(2).color = [0.8500 0.3250 0.0980];
 
-models(3).name  = 'MATLAB (FK v3)';
+models(3).name  = 'MATLAB (FK v4)';
 models(3).T     = T_M_fk_v1;
 models(3).z     = z_M;
 models(3).style = '--';
 models(3).color = [0.4660 0.6740 0.1880];
 
-models(4).name  = 'MATLAB (FK v4)';
+models(4).name  = 'MATLAB (FK v6)';
 models(4).T     = T_M_fk_v2;
 models(4).z     = z_M;
 models(4).style = '--';

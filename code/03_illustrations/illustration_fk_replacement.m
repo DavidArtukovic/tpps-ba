@@ -1,4 +1,4 @@
-%% plot_energy_conservation_boxes.m
+%% illustration_fk_replacement.m
 % Visualization of energy conservation using area arguments
 % Units: temperature = 1 unit, height = 1 unit
 
@@ -35,11 +35,11 @@ text(0.4,0.3,'Q_{out}=1/2','Color',[0.8 0.4 0],'FontSize',9);
 
 % Inlet energy (blue hatched area) Qin_2 ≈ 4
 fill([6 10 10 6],[7 7 6 6],[0.6 0.8 1],'EdgeColor','k', 'FaceAlpha', 0.4);
-text(7.1,6.4,'Q_{in,2} \approx 4','Color',[0 0.3 0.8],'FontSize',10);
+text(7.1,6.4,'Q_{in,2} = 4','Color',[0 0.3 0.8],'FontSize',10);
 
 % Inlet energy (blue hatched area) Qin_1 ≈ 6
 fill([0 6 6 0],[7 7 6 6],[0.6 0.8 1],'EdgeColor','k', 'FaceAlpha', 0.4);
-text(3.1,6.4,'Q_{in,1} \approx 6','Color',[0 0.3 0.8],'FontSize',10);
+text(3.1,6.4,'Q_{in,1} = 6','Color',[0 0.3 0.8],'FontSize',10);
 
 % Axes & annotation
 xlim([0 T_max]); ylim([0 z_max]);
@@ -51,7 +51,7 @@ grid on;
 % RIGHT: Equivalent energy after extrapolated mixing
 % =========================================================
 subplot(1,2,2); hold on; axis equal;
-title('Left: Temperature Profile and New Water After Mixing');
+title('Right: Temperature Profile and New Water After Mixing');
 xlabel('T'); ylabel('z');
 
 % Main diagonal

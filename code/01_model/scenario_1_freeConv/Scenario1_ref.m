@@ -221,7 +221,7 @@ end
 % 07. Store Scenario Results
 %%%------------------------------------------%%%
 fk = true;
-version = 'v4';
+version = 'v6';
 dateTag = datestr(now, "yymmdd");
 
 if fk

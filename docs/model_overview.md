@@ -843,3 +843,307 @@ $$
 
 This completes the discrete linear redistribution formulation equivalent to
 the graphical derivation.
+
+### 3.5 Treatment of Water Replacement (Shift Case)
+
+In the discrete implementation of free convection, a special case occurs when the inflowing water volume leads to a **net vertical displacement** of the existing temperature profile rather than a pure redistribution within the mixing zone.
+
+This situation arises when the inflow volume corresponds to an **effective piston-like replacement** of water inside the mixing region. Physically, part of the previously stored water is shifted downward and leaves the domain at the bottom outlet. Consequently, a fraction of the thermal energy stored in the lower part of the water column is removed from the system.
+
+In the graphical energy interpretation, this process manifests as:
+- a **downward shift** of the original temperature profile,
+- a **loss of energy at the bottom boundary** corresponding to the displaced volume,
+- and a remaining redistribution of the temperature field inside the effective mixing zone.
+
+From an energy balance perspective, this is not an inconsistency but a direct consequence of modeling the inflow as a **plug-flow replacement**. The removed energy is explicitly accounted for by the outflow term, such that total energy conservation holds over the full control volume (including inflow and outflow).
+
+This treatment ensures that the free convection operator remains conservative while allowing physically meaningful water replacement events during charging or discharging phases.
+<p align="center">
+  <img src="../sketches/illustration_fk_replacement.png" alt="Description" width="600">
+</p>
+
+### 3.6 Treatment of Inlet Temperatures Above the Maximum Water Temperature
+
+This section treats the special case in which the inlet temperature exceeds
+the maximum temperature within the water column,
+
+$$
+T_{w,\mathrm{in}} > \max_z T_w(z),
+$$
+
+such that the classical definition of the mixing height
+$$
+T_w(z_{\mathrm{mix}}) = T_{w,\mathrm{in}}
+$$
+cannot be fulfilled within the physical domain.
+
+The following derivation follows the graphical and energetic construction
+shown in the accompanying handwritten notes.
+
+<p align="center">
+  <img src="../sketches/illustration_fk_extrapolation.png" alt="Description" width="600">
+</p>
+
+---
+
+#### Step 1: Integral over the actual mixing zone
+
+The integral term entering the mixing formulation is defined as
+
+$$
+I
+=
+\int_{z_{\mathrm{in}}}^{z_{\mathrm{mix}}}
+\left(
+T_{w,\mathrm{in}} - T_w(z)
+\right)\,dz.
+$$
+
+From the sketch, the temperature profile is linear with
+
+$$
+T_w(z) = z,
+\qquad
+T_{w,\mathrm{in}} = 10,
+\qquad
+z_{\mathrm{in}} = 5,
+\qquad
+z_{\mathrm{mix}} = 8.
+$$
+
+Thus,
+
+$$
+\begin{aligned}
+I
+&=
+\int_{5}^{8} (10 - z)\,dz \\
+&=
+\left[ 10z - \frac{1}{2}z^2 \right]_{5}^{8} \\
+&=
+(80 - 32) - (50 - 12.5) \\
+&=
+48 - 37.5 \\
+&=
+10.5.
+\end{aligned}
+$$
+
+---
+
+#### Step 2: Additional extrapolation height
+
+The slope of the temperature profile inside the mixing zone is
+
+$$
+\frac{dT}{dz}
+=
+\frac{T_w(z_{\mathrm{mix}}) - T_w(z_{\mathrm{in}})}
+     {z_{\mathrm{mix}} - z_{\mathrm{in}}}
+=
+\frac{8 - 5}{8 - 5}
+=
+1.
+$$
+
+The additional extrapolation height required to reach the inlet temperature is
+
+$$
+\Delta z^*
+=
+\frac{T_{w,\mathrm{in}} - T_w(z_{\mathrm{mix}})}{dT/dz}
+=
+\frac{10 - 8}{1}
+=
+2.
+$$
+
+This defines the virtual mixing endpoint
+
+$$
+z_{\mathrm{mix}}^* = z_{\mathrm{mix}} + \Delta z^* = 8 + 2 = 10.
+$$
+
+---
+
+#### Step 3: Additional integral contribution from extrapolation
+
+The extrapolated region contributes an additional triangular area to the
+integral,
+
+$$
+I_{\mathrm{extra}}
+=
+\frac{1}{2}
+\left(
+T_{w,\mathrm{in}} - T_w(z_{\mathrm{mix}})
+\right)
+\Delta z^*
+=
+\frac{1}{2} (10 - 8)\cdot 2
+=
+2.
+$$
+
+Thus, the total (virtual) integral becomes
+
+$$
+I^* = I + I_{\mathrm{extra}} = 10.5 + 2 = 12.5.
+$$
+
+---
+
+#### Step 4: Scaling of inflowing energy
+
+The ratio between the physical and virtual integrals defines the scaling factor
+
+$$
+\eta = \frac{I}{I^*} = \frac{10.5}{12.5} = \frac{21}{25}.
+$$
+
+The physical inflowing energy is
+
+$$
+\dot Q_{\mathrm{in}}
+=
+\dot m_w c_w
+\left(
+T_{w,\mathrm{in}} - T_w(z_{\mathrm{in}})
+\right)
+=
+1 \cdot (10 - 5)
+=
+5.
+$$
+
+The effective inflow energy entering the virtual mixing formulation is therefore
+
+$$
+\dot Q_{\mathrm{in}}^*
+=
+\frac{\dot Q_{\mathrm{in}}}{\eta}
+=
+\frac{5}{21/25}
+=
+\frac{125}{21}.
+$$
+
+---
+
+#### Step 5: Virtual mixing length
+
+The physical mixing length is
+
+$$
+L = z_{\mathrm{mix}} - z_{\mathrm{in}} = 8 - 5 = 3,
+$$
+
+while the virtual mixing length becomes
+
+$$
+L^* = L + \Delta z^* = 3 + 2 = 5.
+$$
+
+---
+
+#### Step 6: Computation of the new temperature profile
+
+Using the linear mixing formulation, the updated temperature profile reads
+
+$$
+T_w^*(z)
+=
+T_{w,\mathrm{in}}
++
+\frac{2(z - z_{\mathrm{mix}}^*)}{(L^*)^2}
+\left[
+I^* - \dot Q_{\mathrm{in}}^*
+\right].
+$$
+
+Insert numerical values:
+
+$$
+\begin{aligned}
+T_w^*(z)
+&=
+10
++
+\frac{2(z - 10)}{5^2}
+\left[
+12.5 - \frac{125}{21}
+\right] \\
+&=
+10
++
+\frac{2(z - 10)}{25}
+\cdot
+\frac{10}{21}.
+\end{aligned}
+$$
+
+Thus,
+
+$$
+\boxed{
+T_w^*(z)
+=
+10
++
+(z - 10)
+\left(
+1 - \frac{10}{21}
+\right)
+}
+$$
+
+---
+
+#### Step 7: Values inside the physical mixing zone
+
+At the upper boundary:
+
+$$
+T_w^*(8)
+=
+10 + (8 - 10)\left(1 - \frac{10}{21}\right)
+=
+8.95.
+$$
+
+At the inlet position:
+
+$$
+T_w^*(5)
+=
+10 + (5 - 10)\left(1 - \frac{10}{21}\right)
+=
+7.38.
+$$
+
+---
+
+#### Step 8: Energy consistency check
+
+The added energy inside the physical mixing zone is
+
+$$
+\begin{aligned}
+Q_{\mathrm{in}}
+&=
+\int_{z_{\mathrm{in}}}^{z_{\mathrm{mix}}}
+\left(
+T_w^*(z) - T_w(z)
+\right)\,dz \\
+&=
+\int_{5}^{8}
+\left[
+10 + (z - 10)\left(1 - \frac{10}{21}\right) - z
+\right]dz \\
+&=
+5,
+\end{aligned}
+$$
+
+which exactly matches the prescribed inflow energy and confirms energetic
+consistency.
