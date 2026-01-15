@@ -1,5 +1,5 @@
 
-function T_Sys = apply_free_convection(T_Sys, dt_mix, flow, Nz, dz, SW, A)
+function T_Sys = apply_free_convection(T_Sys, dt_mix, flow, Nz, dz, SW, A,fklog)
 % Applies discrete free convection mixing operator
 % Sequential in time, conservative by construction
 
@@ -21,7 +21,7 @@ function T_Sys = apply_free_convection(T_Sys, dt_mix, flow, Nz, dz, SW, A)
     %----------------------------------------------------------
     % 1) Detect free-convection region and inflow temperature
     %----------------------------------------------------------
-    [ids_mix, Tin, z_mix_idx, T_w_in_upper, T_w_in_lower] = detect_fk_region(Tcur, flow, params);
+    [ids_mix, Tin, z_mix_idx, T_w_in_upper, T_w_in_lower] = detect_fk_region(Tcur, flow, params,fklog);
 
     if isempty(ids_mix)
         return  ; % no mixing region detected
@@ -35,7 +35,7 @@ function T_Sys = apply_free_convection(T_Sys, dt_mix, flow, Nz, dz, SW, A)
     %----------------------------------------------------------
     % 3) Apply appropriate free-convection operator
     %----------------------------------------------------------
-    Tcur = apply_fk_operator(Tcur, ids_mix, z_mix_idx, Tin, T_w_in_upper, T_w_in_lower, fk_case, dt_mix, params);
+    Tcur = apply_fk_operator(Tcur, ids_mix, z_mix_idx, Tin, T_w_in_upper, T_w_in_lower, fk_case, dt_mix, params,fklog);
 
     T_Sys(end,:) = Tcur.';
 
@@ -73,7 +73,7 @@ function params = init_fk_parameters(Nz, dz, SW, A, flow)
     params.dz = dz;
 end
 
-function [ids_mix, Tin, z_mix_idx, T_w_in_upper, T_w_in_lower] = detect_fk_region(Tcur, flow, params)
+function [ids_mix, Tin, z_mix_idx, T_w_in_upper, T_w_in_lower] = detect_fk_region(Tcur, flow, params, fklog)
 
     T_w_in_upper = Tcur(params.z_inlet_upper_idx);
     T_w_in_lower = Tcur(params.z_inlet_lower_idx);
@@ -87,8 +87,8 @@ function [ids_mix, Tin, z_mix_idx, T_w_in_upper, T_w_in_lower] = detect_fk_regio
         % to be transfered to lower water volume.
         % Use upper inlet temperature as "inflow" temperature.
         %--------------------------------------------------------------
-        disp('***********************************')
-        disp('Thermal Charging detected (flow < 0)')
+        fklog('***********************************');
+        fklog('Thermal Charging detected (flow < 0)');
         Tin = T_w_in_upper;
         z_mix_idx = params.z_inlet_lower_idx; % set end of mix-zone to lower inlet
 
@@ -98,7 +98,7 @@ function [ids_mix, Tin, z_mix_idx, T_w_in_upper, T_w_in_lower] = detect_fk_regio
                 z_mix_idx = z_mix_idx + 1;
             end
             ids_mix = params.z_inlet_lower_idx:z_mix_idx;
-            disp('Upward mixing in lower volume detected');
+            fklog('Upward mixing in lower volume detected');
 
         else
             % downward direction in lower volume (decreasing index)
@@ -106,7 +106,7 @@ function [ids_mix, Tin, z_mix_idx, T_w_in_upper, T_w_in_lower] = detect_fk_regio
                 z_mix_idx = z_mix_idx - 1;
             end
             ids_mix = params.z_inlet_lower_idx:-1:z_mix_idx;
-            disp('Downward mixing in lower volume detected');
+            fklog('Downward mixing in lower volume detected');
 
         end
 
@@ -116,8 +116,8 @@ function [ids_mix, Tin, z_mix_idx, T_w_in_upper, T_w_in_lower] = detect_fk_regio
         % free convection in UPPER water volume since shortage volume needs to be replaced
         % Use lower inlet temperature as "inflow" temperature
         %----------------------------------------------------------
-        disp('***********************************')
-        disp('Thermal Discharging detected (flow > 0)')
+        fklog('***********************************');
+        fklog('Thermal Discharging detected (flow > 0)');
         Tin = T_w_in_lower;
         z_mix_idx = params.z_inlet_upper_idx;
 
@@ -127,23 +127,23 @@ function [ids_mix, Tin, z_mix_idx, T_w_in_upper, T_w_in_lower] = detect_fk_regio
                 z_mix_idx = z_mix_idx + 1;
             end
             ids_mix = params.z_inlet_upper_idx:z_mix_idx;
-            disp('Upward mixing in upper volume detected');
+            fklog('Upward mixing in upper volume detected');
         else
             % downward direction in upper volume (decreasing index)
             while (Tin < Tcur(z_mix_idx)) && (z_mix_idx > params.z_w_upper_start_idx)
                 z_mix_idx = z_mix_idx - 1;
             end
             ids_mix = (params.z_inlet_upper_idx-1):-1:z_mix_idx;
-            disp('Downward mixing in upper volume detected');
+            fklog('Downward mixing in upper volume detected');
         end
         
         
     end
    
-    disp(['Tin        = ' num2str(Tin)])
-    disp(['T_w_in_upper      = ' num2str(T_w_in_upper)])
-    disp(['T_w_in_lower      = ' num2str(T_w_in_lower)])
-     disp('***********************************')
+    fklog(['Tin        = ' num2str(Tin)]);
+    fklog(['T_w_in_upper      = ' num2str(T_w_in_upper)]);
+    fklog(['T_w_in_lower      = ' num2str(T_w_in_lower)]);
+    fklog('***********************************');
 
 end
 
@@ -171,7 +171,7 @@ function fk_case = classify_fk_case(Tmix, Tin, dT_fully_mixed)
     end
 end
 
-function Tcur = apply_fk_operator(Tcur, ids_mix, z_mix_idx, Tin, T_w_in_upper, T_w_in_lower, fk_case, dt_mix, params)
+function Tcur = apply_fk_operator(Tcur, ids_mix, z_mix_idx, Tin, T_w_in_upper, T_w_in_lower, fk_case, dt_mix, params,fklog)
     % Applies free convection operator depending on classified FK case
     %
     % fk_case : 'internal_zmix' | 'extrapolated_zmix' | 'fully_mixed'
@@ -213,16 +213,16 @@ function Tcur = apply_fk_operator(Tcur, ids_mix, z_mix_idx, Tin, T_w_in_upper, T
             % T_new = Tin + geom_factor * ( I_mix - Qdot*dt_mix/(rho*c*A) )
             %--------------------------------------------------------------
             Tcur(ids_mix) = Tin + geom .* bracket;
-            disp('---------------------------------------------------');
-            disp('case: internal_zmix');
-            disp(['bracket            = ' num2str(bracket)])
-            disp(['Qdot       = ' num2str(Qdot_mix)])
-            disp(['last mixing node = '  num2str(z_dist(end))])
-            disp(['T_mix_end_before_mixing        = ' num2str(Tmix(end))])
-            disp(['T_mix_begin_before_mixing        = ' num2str(Tmix(1))])
-            disp(['T_mix_end_after_mixing        = ' num2str(Tcur(ids_mix(1)))])
-            disp(['T_mix_begin_after_mixing        = ' num2str(Tcur(ids_mix(end)))])
-            disp('---------------------------------------------------');
+            fklog('---------------------------------------------------');
+            fklog('case: internal_zmix');
+            fklog(['bracket            = ' num2str(bracket)]);
+            fklog(['Qdot       = ' num2str(Qdot_mix)]);
+            fklog(['last mixing node = '  num2str(z_dist(end))]);
+            fklog(['T_mix_end_before_mixing        = ' num2str(Tmix(end))]);
+            fklog(['T_mix_begin_before_mixing        = ' num2str(Tmix(1))]);
+            fklog(['T_mix_end_after_mixing        = ' num2str(Tcur(ids_mix(1)))]);
+            fklog(['T_mix_begin_after_mixing        = ' num2str(Tcur(ids_mix(end)))]);
+            fklog('---------------------------------------------------');
 
         case 'extrapolated_zmix'
             %--------------------------------------------------------------
@@ -239,7 +239,7 @@ function Tcur = apply_fk_operator(Tcur, ids_mix, z_mix_idx, Tin, T_w_in_upper, T
             % Energy conservation is ensured by scaling the reconstructed
             % temperature profile using the integrated energy content.
             %--------------------------------------------------------------
-            Tcur = fk_extrapolated_zmix_Qscaled(Tcur, ids_mix, z_mix_idx, Tin, T_w_in_upper, T_w_in_lower, dt_mix, params);
+            Tcur = fk_extrapolated_zmix_Qscaled(Tcur, ids_mix, z_mix_idx, Tin, T_w_in_upper, T_w_in_lower, dt_mix, params,fklog);
 
         case 'fully_mixed'
             %--------------------------------------------------------------
@@ -275,18 +275,18 @@ function Tcur = apply_fk_operator(Tcur, ids_mix, z_mix_idx, Tin, T_w_in_upper, T
 
             % Apply uniform shift (positive or negative)
             Tcur(ids_mix) = Tcur(ids_mix) + dT;
-            disp('---------------------------------------------------');
-            disp('case: fully_mixed');
-            disp(['dT uniform shift   = ' num2str(dT)]);
-            disp('---------------------------------------------------');
+            fklog('---------------------------------------------------');
+            fklog('case: fully_mixed');
+            fklog(['dT uniform shift   = ' num2str(dT)]);
+            fklog('---------------------------------------------------');
     end
 
 end
 
-function Tcur = fk_extrapolated_zmix_Qscaled(Tcur, ids_mix, z_mix_idx, Tin, T_w_in_upper, T_w_in_lower, dt_mix, params)
+function Tcur = fk_extrapolated_zmix_Qscaled(Tcur, ids_mix, z_mix_idx, Tin, T_w_in_upper, T_w_in_lower, dt_mix, params, fklog)
     % Free convection with extrapolated z_mix and Q-scaling
     % Ensures that full Q_in*dt is allocated in the actual numerical mixing zone
-
+    
     %--------------------------------------------------------------
     % 1) Current temperatures in numerical mixing zone
     %--------------------------------------------------------------
@@ -304,24 +304,24 @@ function Tcur = fk_extrapolated_zmix_Qscaled(Tcur, ids_mix, z_mix_idx, Tin, T_w_
 
     % Coordinates in meters relative to mixing boundary
     mix_height = (numel(ids_mix)-1)*params.dz;
-    dTdz = abs((Tmix(end) - Tmix(1)) / mix_height);    % geometric mean absolute slope
+    dTdz = (Tmix(end) - Tmix(1)) / mix_height;    % geometric mean absolute slope
    
-    if abs(dTdz) < 1e-8
+    if abs(dTdz) < 1e-6
         return; % later: fully_mixed
-        disp('Warning: near-zero gradient in extrapolated_zmix case');
+        fklog('Warning: near-zero gradient in extrapolated_zmix case');
     end
 
     % Distance needed to reach Tin by extrapolation (positive in upward, negative in downward direction)
-    dz_star = (Tin - Tmix(end)) / dTdz;   % [m]
+    dz_star = abs((Tin - Tmix(end)) / dTdz);   % [m]
 
     %--------------------------------------------------------------
     % 4) Integral over EXTRAPOLATED mixing interval
     %     (analytical for linear extrapolation)
     %--------------------------------------------------------------
     % Additional triangular area from extrapolation
-    I_extra = 0.5 * abs(Tin - Tmix(end)) * abs(dz_star); % [K*m]
+    I_extra = 0.5 * abs(Tin - Tmix(end)) * dz_star; % [K*m]
 
-    I_star = I_num + I_extra;   % total extrapolated integral
+    I_star = I_num + I_extra;   % total extrapolated integral (always >0)
 
     %--------------------------------------------------------------
     % 5) Energy scaling factor eta and effective heat input
@@ -340,7 +340,7 @@ function Tcur = fk_extrapolated_zmix_Qscaled(Tcur, ids_mix, z_mix_idx, Tin, T_w_
               (params.rho_w * params.c_w * params.A_hws); % [K*m]
 
     % Effective extrapolated mixing length
-    L_num  = (numel(ids_mix)-1) * params.dz;   % [m] numerical mixing length
+    L_num  = (numel(ids_mix)-1) * params.dz;         % [m] numerical mixing length
     L_eff  = abs(L_num) + abs(dz_star);              % [m] extrapolated length
 
     % Distances to extrapolated mixing point z_mix*
@@ -354,18 +354,23 @@ function Tcur = fk_extrapolated_zmix_Qscaled(Tcur, ids_mix, z_mix_idx, Tin, T_w_
     %--------------------------------------------------------------
     Tcur(ids_mix) = Tin + geom .* bracket;
 
-    disp('---------------------------------------------------');
-    disp('case: extrapolated_zmix');         
-    disp(['bracket            = ' num2str(bracket)])
-    disp(['Qdot_eff       = ' num2str(Qdot_eff)])
-    disp(['Qdot_in       = ' num2str(Qdot_in)])
-    disp(['dz_star          = ' num2str(dz_star)])
-    disp(['T_in         = ' num2str(Tin)])
-    disp(['T_mix_end_before_mixing        = ' num2str(Tmix(end))])
-    disp(['T_mix_begin_before_mixing        = ' num2str(Tmix(1))])
-    disp(['T_mix_end_after_mixing        = ' num2str(Tcur(ids_mix(end)))])
-    disp(['T_mix_begin_after_mixing        = ' num2str(Tcur(ids_mix(1)))])
-    disp('---------------------------------------------------');
+    fklog('---------------------------------------------------');
+    fklog('case: extrapolated_zmix');         
+    fklog(['bracket            = ' num2str(bracket)]);
+    fklog(['geom factor_begin     = ' num2str(geom(1))]);
+    fklog(['geom factor_end       = ' num2str(geom(end))]);
+    fklog(['Qdot_eff       = ' num2str(Qdot_eff)]);
+    fklog(['Qdot_in       = ' num2str(Qdot_in)]);
+    fklog(['dz_star          = ' num2str(dz_star)]);
+    fklog(['z_dist_eff_end          = ' num2str(z_dist_eff(end))]);
+    fklog(['z_dist_eff_begin          = ' num2str(z_dist_eff(1))]);
+    fklog(['L_eff             = ' num2str(L_eff)]);
+    fklog(['T_in         = ' num2str(Tin)]);
+    fklog(['T_mix_end_before_mixing        = ' num2str(Tmix(end))]);
+    fklog(['T_mix_begin_before_mixing        = ' num2str(Tmix(1))]);
+    fklog(['T_mix_end_after_mixing        = ' num2str(Tcur(ids_mix(end)))]);
+    fklog(['T_mix_begin_after_mixing        = ' num2str(Tcur(ids_mix(1)))]);
+    fklog('---------------------------------------------------');
 
 end
 

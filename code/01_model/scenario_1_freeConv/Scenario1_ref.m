@@ -144,7 +144,19 @@ T0init(7) = 11;                 % Initial insulation temperature
 % 06. Time Loop over Scenario (t_900/2 for 10 days)
 %%%------------------------------------------%%%
 
-for i = 1:(length(t_900))
+version = 'v8';
+dateTag = datestr(now, "yymmdd");
+
+FK_LOG_BASE = fullfile(DATA_SCEN1_FK,'01_logs');
+
+fk_logfile = fullfile(FK_LOG_BASE, ...
+    [dateTag '_scenario1_FK_' version '.log']);
+
+fid_fk = fopen(fk_logfile,'w');
+
+fklog = @(s) fprintf(fid_fk,'%s\n',string(s));
+
+for i = 1:(length(t_900)/10)
     tic
 
     % Update vertical water discretization according to piston position
@@ -156,7 +168,7 @@ for i = 1:(length(t_900))
     disp(['flow        = ' num2str(flow)]);
     % Compute heat transfer and mass transport for the current 15-min step
     [T_Sys, T_REf] = HeattransferSzen(t2, IC_Sys, Nz, dz, flow, ...
-                                      T0init, SW, A, z_RE, T_REf, Nt2);
+                                      T0init, SW, A, z_RE, T_REf, Nt2,fklog);
 
     % Update initial condition for the next procedure step
     IC_Sys = T_Sys(end, :);
@@ -214,15 +226,17 @@ for i = 1:(length(t_900))
     end
 
     disp(i * 15 / 60);   % Elapsed simulation time in hours
+    fklog('|||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||')
+    fklog(sprintf('t = %.2f h', i * 15 / 60))
     toc
 end
+
+fclose(fid_fk);
 %%
 %%%------------------------------------------%%%c
 % 07. Store Scenario Results
 %%%------------------------------------------%%%
 fk = true;
-version = 'v6';
-dateTag = datestr(now, "yymmdd");
 
 if fk
     Res_900_d18_18_FK   = Res_900;

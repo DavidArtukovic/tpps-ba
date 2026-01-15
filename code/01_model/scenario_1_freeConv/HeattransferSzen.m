@@ -51,7 +51,7 @@
 % ---------------------------------------------------------------
 
 
-function [T_Sys,T_REf] = HeattransferSzen(t2,IC_Sys,Nz,dz,flow,T0init,SW,A,z_RE,T_REf,Nt2)
+function [T_Sys,T_REf] = HeattransferSzen(t2,IC_Sys,Nz,dz,flow,T0init,SW,A,z_RE,T_REf,Nt2,fklog)
 
     %--------------------------------------------------------------
     % Preallocation for contact temperatures between system insulation (1D)
@@ -72,7 +72,7 @@ function [T_Sys,T_REf] = HeattransferSzen(t2,IC_Sys,Nz,dz,flow,T0init,SW,A,z_RE,
 
     % dt_mix = t2(2) - t2(1); % time step size for mixing operator [s]
     dt_mix = 900; % time step size for mixing operator [s]
-    T_Sys = apply_free_convection(T_Sys, dt_mix, flow, Nz, dz, SW, A);
+    T_Sys = apply_free_convection(T_Sys, dt_mix, flow, Nz, dz, SW, A, fklog);
 
 
     %%%------------------------------------------%%%
