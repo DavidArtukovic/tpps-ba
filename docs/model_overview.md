@@ -881,7 +881,7 @@ The following derivation follows the graphical and energetic construction
 shown in the accompanying handwritten notes.
 
 <p align="center">
-  <img src="../sketches/illustration_fk_extrapolation.png" alt="Description" width="900">
+  <img src="../sketches/illustration_fk_extrapolation.png" alt="Description" width="600">
 </p>
 
 ---
@@ -1147,3 +1147,483 @@ $$
 
 which exactly matches the prescribed inflow energy and confirms energetic
 consistency.
+
+### 3.7 Modified Extrapolation Approach: New Calculation of Slope $\mathrm{a}$
+
+This section proposes a modification of the extrapolation treatment from
+Section 3.6 for the case
+
+$$
+T_{w,\mathrm{in}} > \max_z T_w(z),
+$$
+
+i.e. the inlet temperature cannot be reached within the physical domain.
+
+The **key idea** is to keep the **virtual mixing endpoint** $z_{\mathrm{mix}}^*$
+(and thus the boundary condition $T_w^*(z_{\mathrm{mix}}^*)=T_{w,\mathrm{in}}$),
+but to enforce the **energy balance only over the physical mixing zone**
+$[z_{\mathrm{in}},z_{\mathrm{mix}}]$ (instead of over $[z_{\mathrm{in}},z_{\mathrm{mix}}^*]$).
+
+This avoids attributing additional "capacity" to the extrapolated region while
+still using it as a geometrical construction to define the linear ansatz.
+
+---
+
+#### 3.7.1 Geometric construction (same as in 3.6)
+
+As in Section 3.6, we define the physical mixing height $z_{\mathrm{mix}}$ as the
+top of the actually affected region, and construct a virtual endpoint
+$z_{\mathrm{mix}}^*$ such that the extrapolated old profile reaches the inlet temperature.
+
+Using the local slope of the water temperature at the upper end of the mixing zone,
+
+$$
+\left.\frac{dT_w}{dz}\right|_{z_{\mathrm{mix}}}
+\approx
+\frac{T_w(z_{\mathrm{mix}})-T_w(z_{\mathrm{in}})}{z_{\mathrm{mix}}-z_{\mathrm{in}}},
+$$
+
+the additional height required to reach $T_{w,\mathrm{in}}$ is
+
+$$
+\Delta z^*
+=
+\frac{T_{w,\mathrm{in}}-T_w(z_{\mathrm{mix}})}
+{\left.\frac{dT_w}{dz}\right|_{z_{\mathrm{mix}}}},
+\qquad
+z_{\mathrm{mix}}^* = z_{\mathrm{mix}} + \Delta z^*.
+$$
+
+---
+
+#### 3.7.2 Linear approach with virtual boundary condition
+
+We keep the same linear functional form as in Section 3.1:
+
+$$
+T_w^*(z) = a z + b.
+$$
+
+The intercept is again fixed via the (now **virtual**) boundary condition
+
+$$
+T_w^*(z_{\mathrm{mix}}^*) = T_{w,\mathrm{in}}
+\quad\Rightarrow\quad
+b = T_{w,\mathrm{in}} - a z_{\mathrm{mix}}^*,
+$$
+
+hence
+
+$$
+T_w^*(z) = T_{w,\mathrm{in}} + a\,(z - z_{\mathrm{mix}}^*).
+\tag{3.7-1}
+$$
+
+---
+
+#### 3.7.3 Energy balance over the *physical* mixing zone (difference to 3.6)
+
+Define the physical integral (same definition as in 3.1, but here used explicitly
+as the *only* integral that enters the energy equation)
+
+$$
+I
+:=
+\int_{z_{\mathrm{in}}}^{z_{\mathrm{mix}}}
+\left(T_{w,\mathrm{in}} - T_w(z)\right)\,dz.
+\tag{3.7-2}
+$$
+
+The energy balance is enforced **only** over the actual mixing zone:
+
+$$
+\rho_w c_w A_{\mathrm{hws}}
+\int_{z_{\mathrm{in}}}^{z_{\mathrm{mix}}}
+\left(T_w^*(z)-T_w(z)\right)\,dz
+=
+\dot Q_{\mathrm{in}}\,dt.
+\tag{3.7-3}
+$$
+
+Insert the linear approach (3.7-1):
+
+$$
+\rho_w c_w A_{\mathrm{hws}}
+\int_{z_{\mathrm{in}}}^{z_{\mathrm{mix}}}
+\left(
+T_{w,\mathrm{in}} + a(z-z_{\mathrm{mix}}^*) - T_w(z)
+\right)\,dz
+=
+\dot Q_{\mathrm{in}}\,dt.
+$$
+
+Split the integral and use the definition of $I$:
+
+$$
+\rho_w c_w A_{\mathrm{hws}}
+\left[
+I
++
+a\int_{z_{\mathrm{in}}}^{z_{\mathrm{mix}}}(z-z_{\mathrm{mix}}^*)\,dz
+\right]
+=
+\dot Q_{\mathrm{in}}\,dt.
+\tag{3.7-4}
+$$
+
+The remaining geometric integral is
+
+$$
+\int_{z_{\mathrm{in}}}^{z_{\mathrm{mix}}}(z-z_{\mathrm{mix}}^*)\,dz
+=
+\left[\frac{1}{2}z^2 - z_{\mathrm{mix}}^* z\right]_{z_{\mathrm{in}}}^{z_{\mathrm{mix}}}
+=
+\frac{1}{2}\left(z_{\mathrm{mix}}^2 - z_{\mathrm{in}}^2\right)
+-
+z_{\mathrm{mix}}^*\left(z_{\mathrm{mix}}-z_{\mathrm{in}}\right).
+\tag{3.7-5}
+$$
+
+Define the shorthand
+
+$$
+k := \rho_w c_w A_{\mathrm{hws}},
+\qquad
+E := \frac{\dot Q_{\mathrm{in}}\,dt}{k}.
+$$
+
+Then (3.7-4) becomes
+
+$$
+I + a\,G = E,
+\qquad
+G :=
+\frac{1}{2}\left(z_{\mathrm{mix}}^2 - z_{\mathrm{in}}^2\right)
+-
+z_{\mathrm{mix}}^*\left(z_{\mathrm{mix}}-z_{\mathrm{in}}\right).
+\tag{3.7-6}
+$$
+
+Solving for $a$ yields the modified slope
+
+$$
+\boxed{
+a
+=
+\frac{E - I}{G}
+=
+\frac{\frac{\dot Q_{\mathrm{in}}\,dt}{\rho_w c_w A_{\mathrm{hws}}}-I}
+{\frac{1}{2}\left(z_{\mathrm{mix}}^2 - z_{\mathrm{in}}^2\right)
+-
+z_{\mathrm{mix}}^*\left(z_{\mathrm{mix}}-z_{\mathrm{in}}\right)}
+}
+\tag{3.7-7}
+$$
+
+Finally, the updated temperature profile in the mixing zone is
+
+$$
+\boxed{
+T_w^*(z)
+=
+T_{w,\mathrm{in}} + a\,(z - z_{\mathrm{mix}}^*)
+}
+\quad\text{with $a$ from (3.7-7).}
+\tag{3.7-8}
+$$
+
+---
+
+#### 3.7.4 Explicit differences to Section 3.6
+
+Compared to Section 3.6:
+
+1) **Virtual endpoint retained**  
+   The virtual boundary condition $T_w^*(z_{\mathrm{mix}}^*)=T_{w,\mathrm{in}}$
+   is kept unchanged.
+
+2) **No virtual integral and no scaling factor $\eta$**  
+   Section 3.6 introduced a *virtual* integral $I^*$ and the ratio
+   $\eta = I/I^*$ to rescale $\dot Q_{\mathrm{in}}$.
+   In the new approach, the energy equation is written directly over the
+   physical zone, so **$I^*$ and $\eta$ are not required**.
+
+3) **Energy is enforced where the state is updated**  
+   The energy balance (3.7-3) is applied exactly on the interval where
+   $T_w^*(z)$ is physically realized, i.e. $z\in[z_{\mathrm{in}},z_{\mathrm{mix}}]$.
+   The extrapolated region is only a geometrical construct to define
+   $z_{\mathrm{mix}}^*$ in the linear ansatz.
+
+
+#### 3.7.5 Numerical backcheck for the extrapolation test case (09.01.26)
+
+We re-compute the extrapolation example from the handwritten note using the
+modified approach of Section 3.7 (virtual boundary at $z_{\mathrm{mix}}^*$,
+but energy balance only over the physical zone $[z_{\mathrm{in}},z_{\mathrm{mix}}]$). 
+
+**Given (from the sketch):**
+
+- Physical mixing zone: $z_{\mathrm{in}}=5$, $z_{\mathrm{mix}}=8$
+- Inlet temperature: $T_{w,\mathrm{in}} = 10$
+- Old profile in the mixing zone: $T_w(z)=z$ (consistent with the integral $\int (10-z)\,dz$)
+- Inflow energy per step (normalized): $\dot Q_{\mathrm{in}}\,dt = 5$
+
+---
+
+##### Step 1: Physical integral $I$ over the actual mixing zone
+
+$$
+I
+=
+\int_{z_{\mathrm{in}}}^{z_{\mathrm{mix}}}
+\left(T_{w,\mathrm{in}}-T_w(z)\right)\,dz
+=
+\int_{5}^{8} (10-z)\,dz
+=
+\left[10z-\frac{1}{2}z^2\right]_{5}^{8}
+=10.5.
+$$
+
+---
+
+##### Step 2: Virtual endpoint $z_{\mathrm{mix}}^*$ from extrapolation (geometry only)
+
+$$
+\left.\frac{dT_w}{dz}\right|_{z_{\mathrm{mix}}}
+\approx
+\frac{T_w(8)-T_w(5)}{8-5}
+=
+\frac{8-5}{3}
+=1,
+\qquad
+\Delta z^*=
+\frac{T_{w,\mathrm{in}}-T_w(z_{\mathrm{mix}})}{dT/dz}
+=
+\frac{10-8}{1}
+=2,
+$$
+$$
+z_{\mathrm{mix}}^* = z_{\mathrm{mix}}+\Delta z^* = 8+2 = 10.
+$$
+
+---
+
+##### Step 3: Compute the modified slope $a$ (energy enforced only on $[5,8]$)
+
+We use the linear ansatz with virtual boundary condition:
+$$
+T_w^*(z) = T_{w,\mathrm{in}} + a\,(z-z_{\mathrm{mix}}^*)
+= 10 + a\,(z-10).
+$$
+
+The energy balance over the physical mixing zone reads (normalized with
+$k=\rho_w c_w A_{\mathrm{hws}}=1$ as in the note):
+$$
+\int_{5}^{8}\left(T_w^*(z)-T_w(z)\right)\,dz = \dot Q_{\mathrm{in}}\,dt = 5.
+$$
+
+Using the compact form from Section 3.7:
+$$
+I + a\,G = E,
+\quad
+E=5,
+\quad
+G=
+\frac{1}{2}(z_{\mathrm{mix}}^2-z_{\mathrm{in}}^2)
+-
+z_{\mathrm{mix}}^*(z_{\mathrm{mix}}-z_{\mathrm{in}}).
+$$
+
+Insert numbers:
+$$
+G=\frac{1}{2}(8^2-5^2)-10(8-5)
+=\frac{1}{2}(64-25)-30
+=19.5-30=-10.5.
+$$
+
+Therefore,
+$$
+a=\frac{E-I}{G}
+=
+\frac{5-10.5}{-10.5}
+=
+\frac{11}{21}
+\approx 0.5238.
+$$
+
+---
+
+##### Step 4: Updated profile and point values in the physical mixing zone
+
+$$
+\boxed{
+T_w^*(z)=10+\frac{11}{21}(z-10)
+}
+$$
+
+Point checks:
+$$
+T_w^*(8)=10+\frac{11}{21}(-2)=10-\frac{22}{21}=\frac{188}{21}\approx 8.95,
+$$
+$$
+T_w^*(5)=10+\frac{11}{21}(-5)=10-\frac{55}{21}=\frac{155}{21}\approx 7.38.
+$$
+
+---
+
+##### Step 5: Energy backcheck (must give exactly 5)
+
+$$
+\int_{5}^{8}\left(T_w^*(z)-T_w(z)\right)\,dz
+=
+\int_{5}^{8}\left(10+\frac{11}{21}(z-10)-z\right)\,dz
+=
+\frac{10}{21}\int_{5}^{8}(10-z)\,dz
+=
+\frac{10}{21}\cdot 10.5
+=
+5.
+$$
+
+So the modified approach reproduces the example consistently and enforces
+the full inflow energy in the *physical* mixing zone by construction.
+
+
+#### 3.7.6 Numerical backcheck for the extrapolation test case - concave case (16.01.26)
+
+We re-compute the extrapolation example from the handwritten note using the
+modified approach of Section 3.7 (virtual boundary at $z_{\mathrm{mix}}^*$,
+but energy balance only over the physical zone $[z_{\mathrm{in}},z_{\mathrm{mix}}]$).
+
+<p align="center">
+  <img src="../sketches/illustration_fk_extrapolation_concave.png" alt="Description" width="600">
+</p>
+
+**Given (from the sketch):**
+
+- Physical mixing zone: $z_{\mathrm{in}}=5$, $z_{\mathrm{mix}}=8$
+- Inlet temperature: $T_{w,\mathrm{in}} = 10$
+- Old profile in the mixing zone: $T_w(z)=5$
+- Inflow energy per step (normalized): $\dot Q_{\mathrm{in}}\,dt = 5$
+
+---
+
+##### Step 1: Physical integral $I$ over the actual mixing zone
+
+$$
+I
+=
+\int_{z_{\mathrm{in}}}^{z_{\mathrm{mix}}}
+\left(T_{w,\mathrm{in}}-T_w(z)\right)\,dz
+=
+\int_{5}^{8} (10-5)\,dz
+=
+\left[5z\right]_{5}^{8}
+=15
+$$
+
+---
+
+##### Step 2: Virtual endpoint $z_{\mathrm{mix}}^*$ from extrapolation (geometry only)
+
+$$
+\left.\frac{dT_w}{dz}\right|_{z_{\mathrm{mix}}}
+\approx
+\frac{T_w(8)-T_w(5)}{8-5}
+=
+\frac{8-5}{3}
+=1,
+\qquad
+\Delta z^*=
+\frac{T_{w,\mathrm{in}}-T_w(z_{\mathrm{mix}})}{dT/dz}
+=
+\frac{10-8}{1}
+=2,
+$$
+$$
+z_{\mathrm{mix}}^* = z_{\mathrm{mix}}+\Delta z^* = 8+2 = 10.
+$$
+
+---
+
+##### Step 3: Compute the modified slope $a$ (energy enforced only on $[5,8]$)
+
+We use the linear ansatz with virtual boundary condition:
+$$
+T_w^*(z) = T_{w,\mathrm{in}} + a\,(z-z_{\mathrm{mix}}^*)
+= 10 + a\,(z-10).
+$$
+
+The energy balance over the physical mixing zone reads (normalized with
+$k=\rho_w c_w A_{\mathrm{hws}}=1$ as in the note):
+$$
+\int_{5}^{8}\left(T_w^*(z)-T_w(z)\right)\,dz = \dot Q_{\mathrm{in}}\,dt = 5.
+$$
+
+Using the compact form from Section 3.7:
+$$
+I + a\,G = E,
+\quad
+E=5,
+\quad
+G=
+\frac{1}{2}(z_{\mathrm{mix}}^2-z_{\mathrm{in}}^2)
+-
+z_{\mathrm{mix}}^*(z_{\mathrm{mix}}-z_{\mathrm{in}}).
+$$
+
+Insert numbers:
+$$
+G=\frac{1}{2}(8^2-5^2)-10(8-5)
+=\frac{1}{2}(64-25)-30
+=19.5-30=-10.5.
+$$
+
+Therefore,
+$$
+a=\frac{E-I}{G}
+=
+\frac{5-15}{-10.5}
+=
+\frac{20}{21}
+\approx 0.9524.
+$$
+
+---
+
+##### Step 4: Updated profile and point values in the physical mixing zone
+
+$$
+\boxed{
+T_w^*(z)=10+\frac{20}{21}(z-10)
+}
+$$
+
+Point checks:
+$$
+T_w^*(8)=10+\frac{20}{21}(-2)=10-\frac{40}{21}=\frac{170}{21}\approx 8.095,
+$$
+$$
+T_w^*(5)=10+\frac{20}{21}(-5)=10-\frac{100}{21}=\frac{110}{21}\approx 5.238.
+$$
+
+---
+
+##### Step 5: Energy backcheck (must give exactly 5)
+
+$$
+\int_{5}^{8}\left(T_w^*(z)-T_w(z)\right)\,dz
+=
+\int_{5}^{8}\left(10+\frac{20}{21}(z-10)-5\right)\,dz
+=
+\int_{5}^{8} 5- \frac{20}{21} (10-z)\,dz
+=
+\int_{5}^{8} -\frac{95}{21} + \frac{20}{21}z\,dz
+=
+\left[ -\frac{95}{21}z + \frac{10}{21}z^2 \right]_5^8
+=
+5.
+$$
+
+So the modified approach reproduces the example consistently and enforces
+the full inflow energy in the *physical* mixing zone by construction.
