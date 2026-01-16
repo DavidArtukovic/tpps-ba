@@ -144,10 +144,10 @@ T0init(7) = 11;                 % Initial insulation temperature
 % 06. Time Loop over Scenario (t_900/2 for 10 days)
 %%%------------------------------------------%%%
 
-version = 'v8';
+version = 'v11';
 dateTag = datestr(now, "yymmdd");
 
-FK_LOG_BASE = fullfile(DATA_SCEN1_FK,'01_logs');
+FK_LOG_BASE = fullfile(DATA_SCEN1_FK, '01_logs');
 
 fk_logfile = fullfile(FK_LOG_BASE, ...
     [dateTag '_scenario1_FK_' version '.log']);
@@ -156,7 +156,18 @@ fid_fk = fopen(fk_logfile,'w');
 
 fklog = @(s) fprintf(fid_fk,'%s\n',string(s));
 
-for i = 1:(length(t_900)/10)
+fklog(sprintf([ ...
+    '=== Scenario 1 Free Convection Simulation ===\n' ...
+    'Description:\n' ...
+    '  - Inlet at 9/10 of lower volume.\n' ...
+    '  - Uniform shift until 1°C\n' ...
+]));
+fklog(sprintf('Date and Time: %s', dateTag));
+fklog(sprintf('Version: %s', version));
+fklog(sprintf('Position lower inlet: %d', Nz(3)+Nz(8)+round(Nz(2)*9/10,0)));
+
+
+for i = 1:(length(t_900)/2)
     tic
 
     % Update vertical water discretization according to piston position
@@ -166,6 +177,7 @@ for i = 1:(length(t_900)/10)
     % Flow velocity in the storage system [m/s] (charging or discharging)
     flow = Res_900(9, i+1) + Res_900(10, i+1);
     disp(['flow        = ' num2str(flow)]);
+    disp(['Nz replacement height    = ' num2str(Nz(5)*0.005) ' m']);
     % Compute heat transfer and mass transport for the current 15-min step
     [T_Sys, T_REf] = HeattransferSzen(t2, IC_Sys, Nz, dz, flow, ...
                                       T0init, SW, A, z_RE, T_REf, Nt2,fklog);

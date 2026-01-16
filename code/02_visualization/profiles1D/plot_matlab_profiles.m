@@ -19,10 +19,10 @@ data_no_fk = load(fullfile(DATA_SCEN1_BASE, ...
     'd18_h18_Res_Matlab_d18_18.mat'));
 
 data_fk_v6 = load(fullfile(DATA_SCEN1_OWN, ...
-    '260109_d18_h18_Res_Matlab_FK_v6.mat'));
+    '260115_d18_h18_Res_Matlab_FK_v9.mat'));
 
 data_fk_v7 = load(fullfile(DATA_SCEN1_OWN, ...
-    '260112_d18_h18_Res_Matlab_FK_v7.mat'));
+    '260116_d18_h18_Res_Matlab_FK_v10.mat'));
 
 %%%------------------------------------------%%%
 % 02. Spatial grid (MATLAB only)
@@ -31,7 +31,7 @@ data_fk_v7 = load(fullfile(DATA_SCEN1_OWN, ...
 dz_M = 0.005;                           % MATLAB resolution
 Nz   = size(data_no_fk.Res_System_d18_18,1) - 400;
 z_M  = flip((0:Nz-1)' * dz_M);
-
+% z_lower_inlet = 
 %%%------------------------------------------%%%
 % 03. Extract full 14-min resolution (no reduction)
 %%%------------------------------------------%%%
@@ -51,7 +51,7 @@ t_hours = (0:size(T_noFK,2)-1) * dt_min / 60;
 % 05. Select operating points (indices!)
 %%%------------------------------------------%%%
 % Example: every 6 hours
-p = round([6 18 30 38.5 54] * 60 / dt_min);
+p = round([31 31.25 31.5 38.5 54] * 60 / dt_min);
 
 %%%------------------------------------------%%%
 % 06. Model container
@@ -62,12 +62,12 @@ models(1).T     = T_noFK;
 models(1).style = '-';
 models(1).color = [0.8500 0.3250 0.0980];
 
-models(2).name  = 'MATLAB (FK v6)';
+models(2).name  = 'MATLAB (FK v9)';
 models(2).T     = T_fk6;
 models(2).style = '--';
 models(2).color = [0.4660 0.6740 0.1880];
 
-models(3).name  = 'MATLAB (FK v7)';
+models(3).name  = 'MATLAB (FK v10)';
 models(3).T     = T_fk7;
 models(3).style = '--';
 models(3).color = [0.4940 0.1840 0.5560];

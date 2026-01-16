@@ -24,7 +24,7 @@ load(fullfile(DATA_SCEN1_BASE, 'd18_h18.mat'));
 data_no_fk = load(fullfile(DATA_SCEN1_BASE, 'd18_h18_Res_Matlab_d18_18.mat'));    % Matlab reference (no FK)
 data_comsol = load(fullfile(DATA_SCEN1_BASE, '1D_05_TPPS_18_18.mat'));             % COMSOL reference
 data_fk_v1 = load(fullfile(DATA_SCEN1_OWN,  '260109_d18_h18_Res_Matlab_FK_v6.mat')); % Matlab FK v3
-data_fk_v2 = load(fullfile(DATA_SCEN1_OWN,  '260112_d18_h18_Res_Matlab_FK_v7.mat')); % Matlab FK v4
+data_fk_v2 = load(fullfile(DATA_SCEN1_OWN,  '260115_d18_h18_Res_Matlab_FK_v9.mat')); % Matlab FK v4
 
 %%
 %%%------------------------------------------%%%

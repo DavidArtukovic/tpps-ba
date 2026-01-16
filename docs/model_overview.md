@@ -881,7 +881,7 @@ The following derivation follows the graphical and energetic construction
 shown in the accompanying handwritten notes.
 
 <p align="center">
-  <img src="../sketches/illustration_fk_extrapolation.png" alt="Description" width="600">
+  <img src="../sketches/illustration_fk_extrapolation.png" alt="Description" width="900">
 </p>
 
 ---

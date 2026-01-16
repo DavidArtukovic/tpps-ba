@@ -110,6 +110,12 @@ function [T_Sys,T_REf] = HeattransferSzen(t2,IC_Sys,Nz,dz,flow,T0init,SW,A,z_RE,
         % Bottom: piston / lower water replacement volume
         T_Sys(:,1) = (SW(1,4)*T_Sys(:,replacement_bottom_idx)...
                      +SW(2,4)*T_Sys(:,2))/((SW(1,4)+SW(2,4)));
+        %%% Non -physical mixing in piston domain to avoid numerical artifacts
+        % % Top: piston / upper water replacement volume
+        % T_Sys(:,Nz(3)) = (T_Sys(:,replacement_top_idx)+T_Sys(:,Nz(3)-1))/2;
+        %   % Bottom: piston / lower water replacement volume
+        % T_Sys(:,1) = (T_Sys(:,replacement_bottom_idx)+T_Sys(:,2))/2;
+             
     elseif flow > 0
         % Discharging
         % Top: piston / upper water replacement volume
@@ -117,13 +123,24 @@ function [T_Sys,T_REf] = HeattransferSzen(t2,IC_Sys,Nz,dz,flow,T0init,SW,A,z_RE,
                          +SW(2,4)*T_Sys(:,Nz(3)-1))/((SW(1,4)+SW(2,4)));
         % Bottom: piston / lower water replacement volume
         T_Sys(:,1) = (SW(1,4)*T_Sys(:,replacement_bottom_idx-1)+SW(2,4)*T_Sys(:,2))/((SW(1,4)+SW(2,4)));
+        %%% Non -physical mixing in piston domain to avoid numerical artifacts
+        % % Top: piston / upper water replacement volume
+        % T_Sys(:,Nz(3)) = (T_Sys(:,replacement_top_idx)+T_Sys(:,Nz(3)-1))/2;
+        %   % Bottom: piston / lower water replacement volume
+        % T_Sys(:,1) = (T_Sys(:,replacement_bottom_idx-1)+T_Sys(:,2))/2;
                 
     else
         % Charging
         % Top: piston / upper water replacement volume
         T_Sys(:,Nz(3)) = (SW(1,4)*T_Sys(:,replacement_top_idx+1)+SW(2,4)*T_Sys(:,Nz(3)-1))/((SW(1,4)+SW(2,4)));
-          % Bottom: piston / lower water replacement volume
+        % Bottom: piston / lower water replacement volume
         T_Sys(:,1) = (SW(1,4)*T_Sys(:,replacement_bottom_idx)+SW(2,4)*T_Sys(:,2))/((SW(1,4)+SW(2,4)));
+
+        %%% Non -physical mixing in piston domain to avoid numerical artifacts
+        % % Top: piston / upper water replacement volume
+        % T_Sys(:,Nz(3)) = (T_Sys(:,replacement_top_idx+1)+T_Sys(:,Nz(3)-1))/2;
+        %   % Bottom: piston / lower water replacement volume
+        % T_Sys(:,1) = (T_Sys(:,replacement_bottom_idx)+T_Sys(:,2))/2;
     end
 
     % Air temperature at system top (Dirichlet BC)

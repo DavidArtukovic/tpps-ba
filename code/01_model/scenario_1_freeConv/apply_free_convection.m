@@ -21,7 +21,7 @@ function T_Sys = apply_free_convection(T_Sys, dt_mix, flow, Nz, dz, SW, A,fklog)
     %----------------------------------------------------------
     % 1) Detect free-convection region and inflow temperature
     %----------------------------------------------------------
-    [ids_mix, Tin, z_mix_idx, T_w_in_upper, T_w_in_lower] = detect_fk_region(Tcur, flow, params,fklog);
+    [ids_mix, Tin, z_mix_idx, T_w_in_upper, T_w_in_lower] = detect_fk_region(Tcur, flow, params, fklog);
 
     if isempty(ids_mix)
         return  ; % no mixing region detected
@@ -30,12 +30,12 @@ function T_Sys = apply_free_convection(T_Sys, dt_mix, flow, Nz, dz, SW, A,fklog)
     %----------------------------------------------------------
     % 2) Classify numerical free-convection case
     %----------------------------------------------------------
-    fk_case = classify_fk_case(Tcur(ids_mix), Tin, 0.5);  % dT_fully_mixed = 0.5 K
+    fk_case = classify_fk_case(Tcur(ids_mix), Tin, 1);  % dT_fully_mixed = 1 K
 
     %----------------------------------------------------------
     % 3) Apply appropriate free-convection operator
     %----------------------------------------------------------
-    Tcur = apply_fk_operator(Tcur, ids_mix, z_mix_idx, Tin, T_w_in_upper, T_w_in_lower, fk_case, dt_mix, params,fklog);
+    Tcur = apply_fk_operator(Tcur, ids_mix, z_mix_idx, Tin, T_w_in_upper, T_w_in_lower, fk_case, dt_mix, params, fklog);
 
     T_Sys(end,:) = Tcur.';
 
@@ -49,13 +49,16 @@ function params = init_fk_parameters(Nz, dz, SW, A, flow)
     params.replacement_bottom_idx = Nz(3)+Nz(8)+Nz(2)-1;
     params.replacement_mid_idx    = round((params.replacement_top_idx + ...
                                            params.replacement_bottom_idx)/2,0);
+    % static case okay, dynamic case: mid index changes with water levels
 
-    params.z_inlet_upper_idx = params.replacement_mid_idx;           % approx. middle of upper water height
-    params.z_inlet_lower_idx = Nz(3)+Nz(8)+round(Nz(2)*2/3,0);        % approx. 2/3 of lower water height
+    params.z_inlet_upper_idx = params.replacement_mid_idx+1;          % approx. middle of upper water height
+    params.z_inlet_lower_idx = Nz(3)+Nz(8)+round(Nz(2)*9/10,0);        % approx. 9/10 of lower water height
+
 
     % lower water bounds
     params.z_w_lower_start_idx = Nz(3)+Nz(8)+1;
-    params.z_w_lower_end_idx   = Nz(3)+Nz(8)+Nz(2)-1;
+    % params.z_w_lower_end_idx   = Nz(3)+Nz(8)+Nz(2)-1;
+    params.z_w_lower_end_idx = params.replacement_mid_idx-1;
 
     % upper water bounds
     params.z_w_upper_start_idx = Nz(3)+Nz(8)+Nz(2)+Nz(5)-2;
@@ -257,7 +260,11 @@ function Tcur = apply_fk_operator(Tcur, ids_mix, z_mix_idx, Tin, T_w_in_upper, T
             % (relative to the inlet-adjacent temperature) is distributed
             % linearly over the entire mixing zone.
             %--------------------------------------------------------------
-
+            fklog('---------------------------------------------------');
+            fklog('case: fully_mixed');
+            fklog(['T_mix_end_before_mixing        = ' num2str(Tcur(ids_mix(1)))]);
+            fklog(['T_mix_begin_before_mixing        = ' num2str(Tcur(ids_mix(end)))]);        
+            
             % Reference temperature at inlet height
             T_ref = Tcur(ids_mix(1));
 
@@ -275,9 +282,10 @@ function Tcur = apply_fk_operator(Tcur, ids_mix, z_mix_idx, Tin, T_w_in_upper, T
 
             % Apply uniform shift (positive or negative)
             Tcur(ids_mix) = Tcur(ids_mix) + dT;
-            fklog('---------------------------------------------------');
-            fklog('case: fully_mixed');
+            
             fklog(['dT uniform shift   = ' num2str(dT)]);
+            fklog(['T_mix_end_after_mixing        = ' num2str(Tcur(ids_mix(end)))]);
+            fklog(['T_mix_begin_after_mixing        = ' num2str(Tcur(ids_mix(1)))]);
             fklog('---------------------------------------------------');
     end
 
