@@ -19,10 +19,10 @@ data_no_fk = load(fullfile(DATA_SCEN1_BASE, ...
     'd18_h18_Res_Matlab_d18_18.mat'));
 
 data_fk_v6 = load(fullfile(DATA_SCEN1_OWN, ...
-    '260115_d18_h18_Res_Matlab_FK_v9.mat'));
+    '260116_d18_h18_Res_Matlab_FK_v11.mat'));
 
 data_fk_v7 = load(fullfile(DATA_SCEN1_OWN, ...
-    '260116_d18_h18_Res_Matlab_FK_v10.mat'));
+    '260116_d18_h18_Res_Matlab_FK_v12.mat'));
 
 %%%------------------------------------------%%%
 % 02. Spatial grid (MATLAB only)
@@ -31,6 +31,8 @@ data_fk_v7 = load(fullfile(DATA_SCEN1_OWN, ...
 dz_M = 0.005;                           % MATLAB resolution
 Nz   = size(data_no_fk.Res_System_d18_18,1) - 400;
 z_M  = flip((0:Nz-1)' * dz_M);
+inlet_idx = 4288;
+%%
 % z_lower_inlet = 
 %%%------------------------------------------%%%
 % 03. Extract full 14-min resolution (no reduction)
@@ -62,12 +64,12 @@ models(1).T     = T_noFK;
 models(1).style = '-';
 models(1).color = [0.8500 0.3250 0.0980];
 
-models(2).name  = 'MATLAB (FK v9)';
+models(2).name  = 'MATLAB (FK v11)';
 models(2).T     = T_fk6;
 models(2).style = '--';
 models(2).color = [0.4660 0.6740 0.1880];
 
-models(3).name  = 'MATLAB (FK v10)';
+models(3).name  = 'MATLAB (FK v12)';
 models(3).T     = T_fk7;
 models(3).style = '--';
 models(3).color = [0.4940 0.1840 0.5560];
@@ -92,6 +94,7 @@ for m = 1:length(p)
     grid on
     axis([40 80 min(z_M) max(z_M)])
     xticks([40 50 60 70 80])
+    yline(z_M(inlet_idx),'k--','LineWidth',1);
 
     title(sprintf('t = %.2f h', t_hours(p(m))), ...
         'Interpreter','Latex','FontSize',10)

@@ -144,7 +144,7 @@ T0init(7) = 11;                 % Initial insulation temperature
 % 06. Time Loop over Scenario (t_900/2 for 10 days)
 %%%------------------------------------------%%%
 
-version = 'v11';
+version = 'v13';
 dateTag = datestr(now, "yymmdd");
 
 FK_LOG_BASE = fullfile(DATA_SCEN1_FK, '01_logs');
@@ -161,13 +161,14 @@ fklog(sprintf([ ...
     'Description:\n' ...
     '  - Inlet at 9/10 of lower volume.\n' ...
     '  - Uniform shift until 1°C\n' ...
+    '  - Added new hybrid regime for boundary violating update'
 ]));
 fklog(sprintf('Date and Time: %s', dateTag));
 fklog(sprintf('Version: %s', version));
-fklog(sprintf('Position lower inlet: %d', Nz(3)+Nz(8)+round(Nz(2)*9/10,0)));
+fklog(sprintf('Position lower inlet: %d', Nz(3)+Nz(4)+round(Nz(2)*1/10,0)));
 
 
-for i = 1:(length(t_900)/2)
+for i = 1:(length(t_900))
     tic
 
     % Update vertical water discretization according to piston position

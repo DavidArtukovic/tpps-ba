@@ -1,5 +1,5 @@
 
-function T_Sys = apply_free_convection(T_Sys, dt_mix, flow, Nz, dz, SW, A,fklog)
+function T_Sys = apply_free_convection(T_Sys, dt_mix, flow, Nz, dz, SW, A, fklog)
 % Applies discrete free convection mixing operator
 % Sequential in time, conservative by construction
 
@@ -12,8 +12,6 @@ function T_Sys = apply_free_convection(T_Sys, dt_mix, flow, Nz, dz, SW, A,fklog)
     % Precompute geometric indices and physical parameters
     %--------------------------------------------------------------
     params = init_fk_parameters(Nz, dz, SW, A, flow);
-
-    % for tt = 2:size(T_Sys,1)
         
     % Use the already-updated previous state as baseline (sequential operator)
     Tcur = T_Sys(end,:).';
@@ -30,16 +28,20 @@ function T_Sys = apply_free_convection(T_Sys, dt_mix, flow, Nz, dz, SW, A,fklog)
     %----------------------------------------------------------
     % 2) Classify numerical free-convection case
     %----------------------------------------------------------
-    fk_case = classify_fk_case(Tcur(ids_mix), Tin, 1);  % dT_fully_mixed = 1 K
+    fk_case = classify_fk_case(Tcur(ids_mix), Tin, 1);  % last number indicates threshold for fully mixed [K]
 
     %----------------------------------------------------------
     % 3) Apply appropriate free-convection operator
     %----------------------------------------------------------
-    Tcur = apply_fk_operator(Tcur, ids_mix, z_mix_idx, Tin, T_w_in_upper, T_w_in_lower, fk_case, dt_mix, params, fklog);
+    Tcur_temp = apply_fk_operator(Tcur, ids_mix, z_mix_idx, Tin, T_w_in_upper, T_w_in_lower, fk_case, dt_mix, params, fklog);
 
-    T_Sys(end,:) = Tcur.';
+    %----------------------------------------------------------
+    % 4) FK boundary check + lambda hybrid (if needed)
+    %----------------------------------------------------------
+    Tcur_new = apply_fk_lambda_hybrid(Tcur, Tcur_temp, Tin, ids_mix, params, fk_case, dt_mix, fklog);
 
-    % end
+    T_Sys(end,:) = Tcur_new.';
+
 end
 
 function params = init_fk_parameters(Nz, dz, SW, A, flow)
@@ -223,8 +225,8 @@ function Tcur = apply_fk_operator(Tcur, ids_mix, z_mix_idx, Tin, T_w_in_upper, T
             fklog(['last mixing node = '  num2str(z_dist(end))]);
             fklog(['T_mix_end_before_mixing        = ' num2str(Tmix(end))]);
             fklog(['T_mix_begin_before_mixing        = ' num2str(Tmix(1))]);
-            fklog(['T_mix_end_after_mixing        = ' num2str(Tcur(ids_mix(1)))]);
-            fklog(['T_mix_begin_after_mixing        = ' num2str(Tcur(ids_mix(end)))]);
+            fklog(['T_mix_end_after_mixing        = ' num2str(Tcur(ids_mix(end)))]);
+            fklog(['T_mix_begin_after_mixing        = ' num2str(Tcur(ids_mix(1)))]);
             fklog('---------------------------------------------------');
 
         case 'extrapolated_zmix'
@@ -262,9 +264,9 @@ function Tcur = apply_fk_operator(Tcur, ids_mix, z_mix_idx, Tin, T_w_in_upper, T
             %--------------------------------------------------------------
             fklog('---------------------------------------------------');
             fklog('case: fully_mixed');
-            fklog(['T_mix_end_before_mixing        = ' num2str(Tcur(ids_mix(1)))]);
-            fklog(['T_mix_begin_before_mixing        = ' num2str(Tcur(ids_mix(end)))]);        
-            
+            fklog(['T_mix_end_before_mixing        = ' num2str(Tcur(ids_mix(end)))]);
+            fklog(['T_mix_begin_before_mixing        = ' num2str(Tcur(ids_mix(1)))]);        
+
             % Reference temperature at inlet height
             T_ref = Tcur(ids_mix(1));
 
@@ -275,7 +277,7 @@ function Tcur = apply_fk_operator(Tcur, ids_mix, z_mix_idx, Tin, T_w_in_upper, T
             Q_add = Qdot_mix * dt_mix;
 
             % Volume / mass of mixing zone
-            M_mix = params.rho_w * params.A_hws * params.dz * numel(ids_mix);
+            M_mix = params.rho_w * params.A_hws * params.dz * (numel(ids_mix)-1);
 
             % Uniform temperature shift
             dT = Q_add / (M_mix * params.c_w);
@@ -323,56 +325,42 @@ function Tcur = fk_extrapolated_zmix_Qscaled(Tcur, ids_mix, z_mix_idx, Tin, T_w_
     dz_star = abs((Tin - Tmix(end)) / dTdz);   % [m]
 
     %--------------------------------------------------------------
-    % 4) Integral over EXTRAPOLATED mixing interval
-    %     (analytical for linear extrapolation)
+    % 4) Geometric integral over extrapolated mixing zone
     %--------------------------------------------------------------
-    % Additional triangular area from extrapolation
-    I_extra = 0.5 * abs(Tin - Tmix(end)) * dz_star; % [K*m]
+    z_in  = 0;
+    z_mix = (numel(ids_mix)-1) * params.dz;
+    z_mix_star = z_mix + dz_star;
 
-    I_star = I_num + I_extra;   % total extrapolated integral (always >0)
-
-    %--------------------------------------------------------------
-    % 5) Energy scaling factor eta and effective heat input
-    %--------------------------------------------------------------
-    eta = I_num / I_star;               % < 1
-    eta = max(eta, 1e-6);               % avoid division by zero
-    Qdot_in  = params.mdot * params.c_w * ...
-               abs(T_w_in_upper - T_w_in_lower);  % [W]
-
-    Qdot_eff = Qdot_in / eta;            % scaled heat input
+    G = 0.5*(z_mix^2 - z_in^2) - z_mix_star*(z_mix - z_in);
 
     %--------------------------------------------------------------
-    % 6) Recompute bracket term with Q_eff and other parameters
+    % 5) Calculate Inlet Energy rate Qdot_in
     %--------------------------------------------------------------
-    bracket = I_star - (Qdot_eff * dt_mix) / ...
-              (params.rho_w * params.c_w * params.A_hws); % [K*m]
+    Qdot_in = params.mdot * params.c_w * ...
+          (T_w_in_upper - T_w_in_lower);
 
-    % Effective extrapolated mixing length
-    L_num  = (numel(ids_mix)-1) * params.dz;         % [m] numerical mixing length
-    L_eff  = abs(L_num) + abs(dz_star);              % [m] extrapolated length
-
-    % Distances to extrapolated mixing point z_mix*
-    z_dist_eff = (ids_mix - z_mix_idx) * params.dz - dz_star;  % [m]
-
-    % Geometric factor relative to z_mix*
-    geom = 2 * z_dist_eff / (L_eff^2);          % [1/m]
+    E = (Qdot_in * dt_mix) / ...
+        (params.rho_w * params.c_w * params.A_hws);
 
     %--------------------------------------------------------------
-    % 7) Apply closed-form update in NUMERICAL zone only
+    % 6) Caculate new Slope a
     %--------------------------------------------------------------
-    Tcur(ids_mix) = Tin + geom .* bracket;
+    a = (E - I_num) / G;
+
+    %--------------------------------------------------------------
+    % 7) Apply closed-form update
+    %--------------------------------------------------------------
+    z = (ids_mix - z_mix_idx) * params.dz;   % physical z
+    Tcur(ids_mix) = Tin + a * (z - dz_star);
 
     fklog('---------------------------------------------------');
     fklog('case: extrapolated_zmix');         
-    fklog(['bracket            = ' num2str(bracket)]);
-    fklog(['geom factor_begin     = ' num2str(geom(1))]);
-    fklog(['geom factor_end       = ' num2str(geom(end))]);
-    fklog(['Qdot_eff       = ' num2str(Qdot_eff)]);
-    fklog(['Qdot_in       = ' num2str(Qdot_in)]);
-    fklog(['dz_star          = ' num2str(dz_star)]);
-    fklog(['z_dist_eff_end          = ' num2str(z_dist_eff(end))]);
-    fklog(['z_dist_eff_begin          = ' num2str(z_dist_eff(1))]);
-    fklog(['L_eff             = ' num2str(L_eff)]);
+    fklog(['a                 = ' num2str(a)]);
+    fklog(['I_num             = ' num2str(I_num)]);
+    fklog(['G                 = ' num2str(G)]);
+    fklog(['E                 = ' num2str(E)]);
+    fklog(['dz_star           = ' num2str(dz_star)]);
+    fklog(['mix_height       = ' num2str(mix_height)]);
     fklog(['T_in         = ' num2str(Tin)]);
     fklog(['T_mix_end_before_mixing        = ' num2str(Tmix(end))]);
     fklog(['T_mix_begin_before_mixing        = ' num2str(Tmix(1))]);
@@ -381,6 +369,81 @@ function Tcur = fk_extrapolated_zmix_Qscaled(Tcur, ids_mix, z_mix_idx, Tin, T_w_
     fklog('---------------------------------------------------');
 
 end
+
+function Tnew = apply_fk_lambda_hybrid(Told, Tfk, Tin, ids_mix, params, fk_case, dt_mix, fklog)
+    % Applies lambda-weighted FK/FM hybrid if FK violates boundary conditions
+
+    Tnew = Tfk;   % default: accept FK result
+
+    % --- only for relevant linear approaches cases ---
+    if ~ismember(fk_case, {'internal_zmix','extrapolated_zmix'})   
+        return
+    end
+
+    % --- indices ---
+    idx_zin  = ids_mix(1);
+    idx_zmix = ids_mix(end);
+
+    % --- boundary values ---
+    Told_in  = Told(idx_zin);
+    Told_mix = Told(idx_zmix);
+
+    Tfk_in   = Tfk(idx_zin);
+    Tfk_mix  = Tfk(idx_zmix);
+
+    % --- check violation ---
+    tol = 0.2;   % temperature tolerance [°C]
+
+    violates = (Tfk_in  < Told_in  - tol) || ...
+            (Tfk_mix < Told_mix - tol);
+
+    if ~violates
+        return
+    end
+
+    fklog('--- FK boundary violation detected: applying FK/FM hybrid ---');
+    % Thermal energy rate introduced by inlet
+    Qdot_mix = params.mdot * params.c_w * (Tin - Told_in);
+    
+    % Total energy added over dt
+    Q_add = Qdot_mix * dt_mix;
+
+    % Volume / mass of mixing zone
+    M_mix = params.rho_w * params.A_hws * params.dz * (numel(ids_mix)-1);
+
+    % Uniform temperature shift
+    dT_fm = Q_add / (M_mix * params.c_w);
+
+    Tfm = Told;
+    Tfm(ids_mix) = Told(ids_mix) + dT_fm;
+
+    % --- lambda from boundary constraints ---
+    epsT = 1e-12;
+    lambda_in  = (Tfm(idx_zin)  - Told_in ) / ...
+                (Tfm(idx_zin)  - Tfk_in + epsT);
+
+    lambda_mix = (Tfm(idx_zmix) - Told_mix) / ...
+                (Tfm(idx_zmix) - Tfk_mix + epsT);
+
+    lambda = min([lambda_in, lambda_mix, 1]);
+    lambda = max(lambda,0);
+
+    % --- apply lambda blend in mixing zone ---
+    Tnew(ids_mix) = ...
+        lambda * Tfk(ids_mix) + ...
+        (1-lambda) * Tfm(ids_mix);
+
+    % --- logging ---
+    fklog(sprintf('FK limited by lambda = %.3f (case: %s)', lambda, fk_case));
+    fklog(['T_in_before_hybrid       = ' num2str(Tfk_in)]);
+    fklog(['T_in_after_hybrid        = ' num2str(Tnew(idx_zin))]);
+    fklog(['T_mix_before_hybrid      = ' num2str(Tfk_mix)]);
+    fklog(['T_mix_after_hybrid       = ' num2str(Tnew(idx_zmix))]);
+    fklog(sprintf('FK hybrid applied: lambda=%.3f, T_in %.3f→%.3f, T_mix %.3f→%.3f', ...
+    lambda, Tfk_in, Tnew(idx_zin), Tfk_mix, Tnew(idx_zmix)));
+
+end
+
 
 
 

@@ -1496,7 +1496,7 @@ modified approach of Section 3.7 (virtual boundary at $z_{\mathrm{mix}}^*$,
 but energy balance only over the physical zone $[z_{\mathrm{in}},z_{\mathrm{mix}}]$).
 
 <p align="center">
-  <img src="../sketches/illustration_fk_extrapolation_concave.png" alt="Description" width="600">
+  <img src="../sketches/illustration_fk_extrapolation_concave.png" alt="Description" width="800">
 </p>
 
 **Given (from the sketch):**
@@ -1627,3 +1627,7 @@ $$
 
 So the modified approach reproduces the example consistently and enforces
 the full inflow energy in the *physical* mixing zone by construction.
+
+### 3.8. Problems with Unphysical Temperature Profiles
+
+#### 3.8.1 Solution via linear combination of uniform-shift and linear-profile approach
