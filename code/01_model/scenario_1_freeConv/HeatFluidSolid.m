@@ -282,7 +282,9 @@ function dTdt = HeatFluidSolid(t,T,Nz,dz,flow,T0init,SW,A,z_RE)
             dTdt(i) = SW(1,5) * (T(i+1) - 2*T(i) + T(i-1)) / dz^2 ...
                     - flow * (T(i+1) - T(i-1)) / (2*dz) ...
                     + SW(4,3) * DT(radial_idx);
-                
+            if i== (Nz(3)+Nz(8)+Nz(2)-1)
+                disp(sprintf('Temperature difference due to flow: %f', T(i+1) - T(i-1)));
+            end
         elseif i >= Nz(3)+Nz(8)+Nz(2)+Nz(5)-2
             % Water segment above the piston
             radial_idx = i - (Nz(5)+Nz(8)-1);

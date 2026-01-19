@@ -23,8 +23,8 @@ DATA_SCEN1_OWN  = fullfile(DATA_BASE, 'scenario1_freeConv');
 load(fullfile(DATA_SCEN1_BASE, 'd18_h18.mat'));
 data_no_fk = load(fullfile(DATA_SCEN1_BASE, 'd18_h18_Res_Matlab_d18_18.mat'));    % Matlab reference (no FK)
 data_comsol = load(fullfile(DATA_SCEN1_BASE, '1D_05_TPPS_18_18.mat'));             % COMSOL reference
-data_fk_v1 = load(fullfile(DATA_SCEN1_OWN,  '260109_d18_h18_Res_Matlab_FK_v6.mat')); % Matlab FK v3
-data_fk_v2 = load(fullfile(DATA_SCEN1_OWN,  '260115_d18_h18_Res_Matlab_FK_v9.mat')); % Matlab FK v4
+data_fk_v1 = load(fullfile(DATA_SCEN1_OWN,  '260116_d18_h18_Res_Matlab_FK_v12.mat')); % Matlab FK v3
+data_fk_v2 = load(fullfile(DATA_SCEN1_OWN,  '260117_d18_h18_Res_Matlab_FK_v13.mat')); % Matlab FK v4
 
 %%
 %%%------------------------------------------%%%
@@ -126,13 +126,13 @@ models(2).z     = z_M;
 models(2).style = '-';
 models(2).color = [0.8500 0.3250 0.0980];
 
-models(3).name  = 'MATLAB (FK v6)';
+models(3).name  = 'MATLAB (FK v12)';
 models(3).T     = T_M_fk_v1;
 models(3).z     = z_M;
 models(3).style = '--';
 models(3).color = [0.4660 0.6740 0.1880];
 
-models(4).name  = 'MATLAB (FK v7)';
+models(4).name  = 'MATLAB (FK v13)';
 models(4).T     = T_M_fk_v2;
 models(4).z     = z_M;
 models(4).style = '--';
@@ -157,7 +157,7 @@ for m = 1:length(p)
 
     % Physical piston position (lower edge)
     z_piston = data_comsol.z_p(end,p(m));
-
+    disp(z_piston);
     rectangle('Position', [40, z_piston, 40, 18], ...
               'FaceColor', [1 1 1 0.1], ...
               'EdgeColor', [0 0 0]);

@@ -144,7 +144,7 @@ T0init(7) = 11;                 % Initial insulation temperature
 % 06. Time Loop over Scenario (t_900/2 for 10 days)
 %%%------------------------------------------%%%
 
-version = 'v13';
+version = 'v14';
 dateTag = datestr(now, "yymmdd");
 
 FK_LOG_BASE = fullfile(DATA_SCEN1_FK, '01_logs');
@@ -161,7 +161,8 @@ fklog(sprintf([ ...
     'Description:\n' ...
     '  - Inlet at 9/10 of lower volume.\n' ...
     '  - Uniform shift until 1°C\n' ...
-    '  - Added new hybrid regime for boundary violating update'
+    '  - Added new hybrid regime for boundary violating update'...
+    '  - Small testings regarding temp diff'
 ]));
 fklog(sprintf('Date and Time: %s', dateTag));
 fklog(sprintf('Version: %s', version));

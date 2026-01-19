@@ -1,7 +1,28 @@
-
 function T_Sys = apply_free_convection(T_Sys, dt_mix, flow, Nz, dz, SW, A, fklog)
-% Applies discrete free convection mixing operator
-% Sequential in time, conservative by construction
+% ---------------------------------------------------------------
+% SUMMARY:
+%   Applies the discrete free-convection (FK) mixing operator to the
+%   1D system temperature state in a sequential and energy-conservative way.
+%
+% DESCRIPTION:
+%   - Detects the free-convection mixing region depending on flow direction.
+%   - Classifies the numerical FK regime (internal, extrapolated, fully mixed).
+%   - Applies the corresponding FK temperature update.
+%   - Enforces physical boundary consistency via FK/FM lambda hybrid.
+%
+% INPUT:
+%   T_Sys   - system temperature history [Nt x Nstates]
+%   dt_mix  - FK time step size [s]
+%   flow    - flow flag (0: none, >0: discharge, <0: charge)
+%   Nz      - number of grid points per subdomain
+%   dz      - vertical grid spacing [m]
+%   SW      - material and model parameter matrix
+%   A       - cross-sectional and geometric parameters
+%   fklog   - logging function handle
+%
+% OUTPUT:
+%   T_Sys   - updated system temperature history
+% ---------------------------------------------------------------
 
     if flow==0
         % No flow -> no free convection mixing
@@ -45,6 +66,20 @@ function T_Sys = apply_free_convection(T_Sys, dt_mix, flow, Nz, dz, SW, A, fklog
 end
 
 function params = init_fk_parameters(Nz, dz, SW, A, flow)
+% ---------------------------------------------------------------
+% SUMMARY:
+%   Initializes geometric indices and physical parameters for FK modeling.
+%
+% INPUT:
+%   Nz    - number of grid points per subdomain
+%   dz    - vertical grid spacing [m]
+%   SW    - material parameters
+%   A     - geometric parameters
+%   flow  - flow flag
+%
+% OUTPUT:
+%   params - struct containing FK-related indices and physical constants
+% ---------------------------------------------------------------
 
     % Indices 
     params.replacement_top_idx    = Nz(3)+Nz(8)+Nz(2)+Nz(5)-2;
@@ -79,6 +114,27 @@ function params = init_fk_parameters(Nz, dz, SW, A, flow)
 end
 
 function [ids_mix, Tin, z_mix_idx, T_w_in_upper, T_w_in_lower] = detect_fk_region(Tcur, flow, params, fklog)
+% ---------------------------------------------------------------
+% SUMMARY:
+%   Detects the free-convection mixing region and inlet conditions.
+%
+% DESCRIPTION:
+%   Determines the active FK region, inlet temperature and numerical
+%   mixing boundary based on flow direction and stratification.
+%
+% INPUT:
+%   Tcur    - current system temperature vector
+%   flow    - flow flag
+%   params  - FK parameter struct
+%   fklog   - logging function handle
+%
+% OUTPUT:
+%   ids_mix        - indices of the FK mixing region
+%   Tin            - inlet temperature driving free convection
+%   z_mix_idx      - index of numerical mixing boundary
+%   T_w_in_upper   - inlet-adjacent upper water temperature
+%   T_w_in_lower   - inlet-adjacent lower water temperature
+% ---------------------------------------------------------------
 
     T_w_in_upper = Tcur(params.z_inlet_upper_idx);
     T_w_in_lower = Tcur(params.z_inlet_lower_idx);
@@ -153,11 +209,19 @@ function [ids_mix, Tin, z_mix_idx, T_w_in_upper, T_w_in_lower] = detect_fk_regio
 end
 
 function fk_case = classify_fk_case(Tmix, Tin, dT_fully_mixed)
-    % Classifies free convection regime
-    %
-    % Tmix            : temperature vector in mixing region
-    % Tin             : inlet temperature
-    % dT_fully_mixed  : threshold for fully mixed assumption [K]
+% ---------------------------------------------------------------
+% SUMMARY:
+%   Classifies the numerical free-convection regime.
+%
+% INPUT:
+%   Tmix            - temperature vector in mixing region
+%   Tin             - inlet temperature
+%   dT_fully_mixed  - threshold for fully mixed assumption [K]
+%
+% OUTPUT:
+%   fk_case         - FK regime identifier:
+%                     'internal_zmix' | 'extrapolated_zmix' | 'fully_mixed'
+% ---------------------------------------------------------------
 
     Tmin = min(Tmix);
     Tmax = max(Tmix);
@@ -177,9 +241,29 @@ function fk_case = classify_fk_case(Tmix, Tin, dT_fully_mixed)
 end
 
 function Tcur = apply_fk_operator(Tcur, ids_mix, z_mix_idx, Tin, T_w_in_upper, T_w_in_lower, fk_case, dt_mix, params,fklog)
-    % Applies free convection operator depending on classified FK case
-    %
-    % fk_case : 'internal_zmix' | 'extrapolated_zmix' | 'fully_mixed'
+% ---------------------------------------------------------------
+% SUMMARY:
+%   Applies the FK temperature update for the classified regime.
+%
+% DESCRIPTION:
+%   Dispatches to the appropriate closed-form FK operator depending on
+%   the detected numerical free-convection case.
+%
+% INPUT:
+%   Tcur            - current system temperature vector
+%   ids_mix         - mixing region indices
+%   z_mix_idx       - numerical mixing boundary index
+%   Tin             - inlet temperature
+%   T_w_in_upper    - upper inlet-adjacent temperature
+%   T_w_in_lower    - lower inlet-adjacent temperature
+%   fk_case         - classified FK regime
+%   dt_mix          - FK time step size [s]
+%   params          - FK parameter struct
+%   fklog           - logging function handle
+%
+% OUTPUT:
+%   Tcur            - updated temperature vector after FK operator
+% ---------------------------------------------------------------
     switch fk_case
 
         case 'internal_zmix'
@@ -294,8 +378,22 @@ function Tcur = apply_fk_operator(Tcur, ids_mix, z_mix_idx, Tin, T_w_in_upper, T
 end
 
 function Tcur = fk_extrapolated_zmix_Qscaled(Tcur, ids_mix, z_mix_idx, Tin, T_w_in_upper, T_w_in_lower, dt_mix, params, fklog)
-    % Free convection with extrapolated z_mix and Q-scaling
-    % Ensures that full Q_in*dt is allocated in the actual numerical mixing zone
+% ---------------------------------------------------------------
+% SUMMARY:
+%   Applies FK update with extrapolated mixing height and energy scaling.
+%
+% DESCRIPTION:
+%   Uses a virtual mixing boundary outside the physical domain and
+%   rescales the linear temperature reconstruction to conserve energy
+%   over the actual numerical mixing zone.
+%
+% INPUT / OUTPUT:
+%   Tcur    - system temperature vector
+%
+% ADDITIONAL INPUT:
+%   ids_mix, z_mix_idx, Tin, T_w_in_upper, T_w_in_lower,
+%   dt_mix, params, fklog
+% ---------------------------------------------------------------
     
     %--------------------------------------------------------------
     % 1) Current temperatures in numerical mixing zone
@@ -371,7 +469,27 @@ function Tcur = fk_extrapolated_zmix_Qscaled(Tcur, ids_mix, z_mix_idx, Tin, T_w_
 end
 
 function Tnew = apply_fk_lambda_hybrid(Told, Tfk, Tin, ids_mix, params, fk_case, dt_mix, fklog)
-    % Applies lambda-weighted FK/FM hybrid if FK violates boundary conditions
+% ---------------------------------------------------------------
+% SUMMARY:
+%   Enforces physical boundary constraints via FK/FM lambda hybrid.
+%
+% DESCRIPTION:
+%   Detects boundary violations in linear FK updates and blends the
+%   FK result with a fully mixed solution using a lambda limiter.
+%
+% INPUT:
+%   Told     - temperature vector before FK update
+%   Tfk      - temperature vector after FK update
+%   Tin      - inlet temperature
+%   ids_mix  - mixing region indices
+%   params   - FK parameter struct
+%   fk_case  - classified FK regime
+%   dt_mix   - FK time step size [s]
+%   fklog    - logging function handle
+%
+% OUTPUT:
+%   Tnew     - physically consistent hybrid temperature vector
+% ---------------------------------------------------------------
 
     Tnew = Tfk;   % default: accept FK result
 

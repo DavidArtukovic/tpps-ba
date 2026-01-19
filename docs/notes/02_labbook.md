@@ -9,10 +9,16 @@ Hier werden To Do's, Erkentnisse, Fragen sowie Protokolle zu den Treffen mit den
 - [x] To-Do - Aufräumen des dt terms in heattransferSzen und HeatFluidSolid
 - [x] Fix difference between own and Dominic Code (until 27.12.2025)
 - [x] Understand the made-up of the coupling terms (until 30.12.2025)
-- [ ] Integrate free convection via mixing term into the existing Matlab code (differential form) (until 03.01.2026)
+- [x] Integrate free convection via mixing term into the existing Matlab code (closed form) (until 03.01.2026)
 - [ ] Propadeaticum related literature on free convection big systems, pace of one paper per day (until 06.01.2026)
     - Especially from the Xiang (2022) Paper the Comsol examples of Dahash and several 1D Water + 2D Soil examples should be discussed.
 - [x] Understand relevance of Froude, Reynolds and Richardson number as well as their calculation. Calculate for the present case (08.01.2026)
+
+## 23.01.26 Meeting Dominic
+- Frage zur Kopplung des Ersatzvolumens mit dem Kolben. Warum Kolbenoberseite mit Ersatzvolumenoberseite?
+- HeattransferSzen 1D->2D mapping Zeile 155
+- HeatFluidSolid z.B. Zeile 126-132. Warum unterscheidung zwischen lade/entlade Fall. Beim Laden verlässt Wasser oberes Volumen. Warum wird nicht immer der unterste Wasserknoten genommen?
+- Frage auch an mich, wie kommt aktuell warmes Wasser nach unten? Was passiert genau zwischen den Zeitschritten?
 
 ## 09.01.26 Meeting Dominic
 - Ask why BCs between piston and water are differently treated than water-insulation and water-soil.

@@ -1628,6 +1628,235 @@ $$
 So the modified approach reproduces the example consistently and enforces
 the full inflow energy in the *physical* mixing zone by construction.
 
-### 3.8. Problems with Unphysical Temperature Profiles
 
-#### 3.8.1 Solution via linear combination of uniform-shift and linear-profile approach
+## 3.8 Problems with Unphysical Temperature Profiles in the Extrapolated FK Update
+
+In rare but relevant configurations, the modified extrapolated free-convection
+(FK) update derived in Section 3.7 can lead to **locally unphysical temperature
+changes**, despite being **globally energy-conservative**.
+
+<p align="center">
+  <img src="../sketches/illustration_fk_extrapolation_concave_small_Q_in.png" alt="Unphysical FK update despite energy conservation" width="800">
+</p>
+
+This section formalizes the problem and introduces a robust hybrid correction
+that preserves energy conservation while enforcing physical monotonicity.
+
+---
+
+### 3.8.1 Problem Description
+
+We consider the case
+
+$$
+T_{w,\mathrm{in}} > \max_z T_w(z),
+$$
+
+with a **concave or weakly sloped temperature profile** in the physical mixing
+zone and a **small inflow energy** $ \dot Q_{\mathrm{in}}\,dt $.
+
+The extrapolated FK update uses the linear ansatz with virtual boundary condition
+(Section 3.7):
+
+$$
+T_w^*(z)
+=
+T_{w,\mathrm{in}} + a\,(z - z_{\mathrm{mix}}^*),
+\tag{3.8-1}
+$$
+
+where the slope $a$ is computed from the energy balance enforced over the
+*physical* mixing zone:
+
+$$
+a = \frac{E - I}{G},
+\quad
+E = \frac{\dot Q_{\mathrm{in}}\,dt}{\rho_w c_w A_{\mathrm{hws}}},
+\tag{3.8-2}
+$$
+
+with $I$ and $G$ defined as in Section 3.7.
+
+---
+
+### 3.8.2 Energy Consistency of the Problematic Case
+
+Even in the problematic configuration illustrated in the left panel of
+Fig. 3.8-1, the **energy equation is strictly satisfied**:
+
+$$
+\int_{z_{\mathrm{in}}}^{z_{\mathrm{mix}}}
+\left(T_w^*(z) - T_w(z)\right)\,dz
+=
+E.
+\tag{3.8-3}
+$$
+
+Graphically, the added inflow energy exactly equals the area difference between
+the updated and original temperature profiles inside the physical mixing zone.
+Thus, the issue is **not an energy violation**.
+
+---
+
+### 3.8.3 Nature of the Unphysical Behavior
+
+The problem is **local and structural**, not integral:
+
+- The extrapolated linear profile may yield
+  $$
+  T_w^*(z_{\mathrm{in}}) < T_w(z_{\mathrm{in}}),
+  \tag{3.8-4}
+  $$
+  i.e. a temperature drop at the inlet-adjacent cell.
+- Similarly, the temperature at the upper end of the mixing zone may decrease
+  relative to the pre-mixing state.
+
+This contradicts the physical interpretation of buoyancy-driven mixing:
+free convection cannot cool the warmest accessible water layers.
+
+---
+
+### 3.8.4 Fully Mixed Reference Solution
+
+As a physically admissible fallback, a **uniform-shift (fully mixed) update**
+is constructed from the *old* temperature profile $T_w(z)$:
+
+$$
+T_w^{\mathrm{FM}}(z)
+=
+T_w(z) + \Delta T,
+\tag{3.8-5}
+$$
+
+where the uniform temperature increment is obtained from energy conservation:
+
+$$
+\Delta T
+=
+\frac{\dot Q_{\mathrm{in}}\,dt}
+{\rho_w c_w A_{\mathrm{hws}}(z_{\mathrm{mix}}-z_{\mathrm{in}})}.
+\tag{3.8-6}
+$$
+
+Properties of the fully mixed solution:
+- strictly monotone and physically admissible,
+- exactly energy-conservative,
+- but overly diffusive if applied alone.
+
+---
+
+### 3.8.5 λ-Weighted Hybrid Correction
+
+To minimally correct the extrapolated FK solution, a **convex combination**
+between the linear FK profile and the fully mixed profile is introduced:
+
+$$
+T_w^{\mathrm{new}}(z)
+=
+\lambda\,T_w^{\mathrm{FK}}(z)
++
+(1-\lambda)\,T_w^{\mathrm{FM}}(z),
+\quad
+\lambda \in [0,1].
+\tag{3.8-7}
+$$
+
+Because both constituent profiles are energy-conservative, the hybrid profile
+is energy-conservative for any $\lambda$.
+
+---
+
+### 3.8.6 Determination of the Limiting Factor $ \lambda $
+
+The value of $ \lambda $ is chosen as large as possible while enforcing
+monotonicity at the boundaries of the mixing zone.
+
+At the inlet-adjacent point:
+$$
+T_w^{\mathrm{new}}(z_{\mathrm{in}})
+\ge
+T_w(z_{\mathrm{in}}),
+\tag{3.8-8}
+$$
+
+and at the upper mixing boundary:
+$$
+T_w^{\mathrm{new}}(z_{\mathrm{mix}})
+\ge
+T_w(z_{\mathrm{mix}}).
+\tag{3.8-9}
+$$
+
+Solving both constraints yields candidate values
+
+$$
+\lambda_{\mathrm{in}}
+=
+\frac{
+T_w^{\mathrm{FM}}(z_{\mathrm{in}})-T_w(z_{\mathrm{in}})
+}{
+T_w^{\mathrm{FM}}(z_{\mathrm{in}})-T_w^{\mathrm{FK}}(z_{\mathrm{in}})
+},
+\tag{3.8-10}
+$$
+
+$$
+\lambda_{\mathrm{mix}}
+=
+\frac{
+T_w^{\mathrm{FM}}(z_{\mathrm{mix}})-T_w(z_{\mathrm{mix}})
+}{
+T_w^{\mathrm{FM}}(z_{\mathrm{mix}})-T_w^{\mathrm{FK}}(z_{\mathrm{mix}})
+}.
+\tag{3.8-11}
+$$
+
+The applied limiter is
+
+$$
+\boxed{
+\lambda
+=
+\max\!\left(0,\;
+\min\!\left(1,\;\lambda_{\mathrm{in}},\;\lambda_{\mathrm{mix}}\right)
+\right).
+}
+\tag{3.8-12}
+$$
+
+<p align="center">
+  <img src="../sketches/illustration_fk_hybrid.png" alt="Lambda-weighted hybrid between linear FK and uniform shift" width="800">
+</p>
+
+---
+
+### 3.8.7 Algorithmic Summary
+
+**Hybrid FK update with physical limiter:**
+
+1. Compute extrapolated linear FK profile $T_w^{\mathrm{FK}}$.
+2. Check boundary monotonicity at $z_{\mathrm{in}}$ and $z_{\mathrm{mix}}$.
+3. If no violation occurs:  
+   $$
+   T_w^{\mathrm{new}} = T_w^{\mathrm{FK}}.
+   $$
+4. Otherwise:
+   - compute fully mixed reference profile $T_w^{\mathrm{FM}}$,
+   - determine $\lambda$ from (3.8-12),
+   - apply the convex blend (3.8-7).
+
+This procedure guarantees:
+- strict energy conservation,
+- physically admissible monotonic temperature profiles,
+- minimal deviation from the linear FK solution.
+
+---
+
+### 3.8.8 Interpretation
+
+The λ-weighted hybrid does **not** introduce additional diffusion by default.
+It acts purely as a **limiter**, activated only in configurations where the
+linear extrapolated FK update violates basic physical constraints.
+
+In the limit $\lambda \to 1$, the method recovers the pure FK formulation;
+in the limit $\lambda \to 0$, it reduces to a fully mixed update.

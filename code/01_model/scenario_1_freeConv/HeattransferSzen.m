@@ -101,7 +101,7 @@ function [T_Sys,T_REf] = HeattransferSzen(t2,IC_Sys,Nz,dz,flow,T0init,SW,A,z_RE,
     % 04: Coupling conditions between 1D domains
     %%%------------------------------------------%%%
 
-    % 3.1: Water (Volumen Saugrohr) / piston coupling at top and bottom (Dirichlet BC)
+    % 3.1: Water (Volumen Saugrohr) / piston coupling at top and bottom (Robin BC)
     if flow == 0
         % Thermal standstill
         % Top: piston / upper water replacement volume
