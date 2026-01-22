@@ -55,7 +55,7 @@ t_hours = (0:size(T_noFK,2)-1) * dt_min / 60;
 % 05. Select operating points (indices!)
 %%%------------------------------------------%%%
 % Example: every 6 hours
-p = round([31.75 32.75 33.75 34.75 35.75] * 60 / dt_min);
+p = round([32.75 33.75 34.75 35.75 36.75] * 60 / dt_min);
 
 %%%------------------------------------------%%%
 % 06. Model container
@@ -75,7 +75,7 @@ models(3).name  = 'MATLAB (FK v13)';
 models(3).T     = T_fk7;
 models(3).style = '--';
 models(3).color = [0.4940 0.1840 0.5560];
-
+%%
 %%%------------------------------------------%%%
 % 07. Plot
 %%%------------------------------------------%%%
@@ -119,7 +119,7 @@ for m = 1:length(p)
     if m == length(p)
         legend({models.name}, ...
             'Interpreter','Latex','FontSize',9, ...
-            'Location','best')
+            'Location','southwest')
     end
 end
 

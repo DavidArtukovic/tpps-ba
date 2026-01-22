@@ -13,16 +13,21 @@ Hier werden To Do's, Erkentnisse, Fragen sowie Protokolle zu den Treffen mit den
 - [ ] Propadeaticum related literature on free convection big systems, pace of one paper per day (until 06.01.2026)
     - Especially from the Xiang (2022) Paper the Comsol examples of Dahash and several 1D Water + 2D Soil examples should be discussed.
 - [x] Understand relevance of Froude, Reynolds and Richardson number as well as their calculation. Calculate for the present case (08.01.2026)
+- [ ] Integrate the shift term after free convection (until 22.01.26)
+- [ ] Singnaling in the time-series plot, where free convection is happening (until 22.01.26)
+- [x] Uderstand where the temperature increase in the lower replacement volume comes from in the base model (until 22.01.26)
+- [ ] set inlet to a fix position (until 25.01.26)
+
 
 ## 23.01.26 Meeting Dominic
-- Frage zur Kopplung des Ersatzvolumens mit dem Kolben. Warum Kolbenoberseite mit Ersatzvolumenoberseite?
+- Frage zur Kopplung des Ersatzvolumens (Ringspalt) mit dem Kolben. Warum Kolbenoberseite mit Ersatzvolumenoberseite?
 - HeattransferSzen 1D->2D mapping Zeile 155
 - HeatFluidSolid z.B. Zeile 126-132. Warum unterscheidung zwischen lade/entlade Fall. Beim Laden verlässt Wasser oberes Volumen. Warum wird nicht immer der unterste Wasserknoten genommen?
 - Frage auch an mich, wie kommt aktuell warmes Wasser nach unten? Was passiert genau zwischen den Zeitschritten?
-
-## 09.01.26 Meeting Dominic
 - Ask why BCs between piston and water are differently treated than water-insulation and water-soil.
     - Temperature gradients at water-soil and water-insulation are zero, they become set every time the ODE is solved for one iteration step.
+- Ersatzvolumen des Ringspalts wird aktuell nicht geplottet
+- Warum hat die obere Totzone ebenfalls ein Kuppelvolumen [init.m Zeile 193 -> 2+H(7), aber H(7) ist 1.665m]?
 
 ## 25.12.25 To Be Discussed in Literature
 Dahash (2017) gives idea of temperature gradient specific thermal conductivity.  

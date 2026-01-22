@@ -1,4 +1,4 @@
-function T_Sys = apply_free_convection(T_Sys, dt_mix, flow, Nz, dz, SW, A, fklog)
+function [T_Sys, fk_code] = apply_free_convection(T_Sys, dt_mix, flow, Nz, dz, SW, A, fklog)
 % ---------------------------------------------------------------
 % SUMMARY:
 %   Applies the discrete free-convection (FK) mixing operator to the
@@ -22,7 +22,9 @@ function T_Sys = apply_free_convection(T_Sys, dt_mix, flow, Nz, dz, SW, A, fklog
 %
 % OUTPUT:
 %   T_Sys   - updated system temperature history
+%   fk_code - FK regime code applied in this step
 % ---------------------------------------------------------------
+    fk_code = 0;
 
     if flow==0
         % No flow -> no free convection mixing
@@ -40,7 +42,7 @@ function T_Sys = apply_free_convection(T_Sys, dt_mix, flow, Nz, dz, SW, A, fklog
     %----------------------------------------------------------
     % 1) Detect free-convection region and inflow temperature
     %----------------------------------------------------------
-    [ids_mix, Tin, z_mix_idx, T_w_in_upper, T_w_in_lower] = detect_fk_region(Tcur, flow, params, fklog);
+    [ids_mix, Tin, z_mix_idx, T_w_in_upper, T_w_in_lower, fk_code] = detect_fk_region(Tcur, flow, params, fklog);
 
     if isempty(ids_mix)
         return  ; % no mixing region detected
@@ -113,7 +115,7 @@ function params = init_fk_parameters(Nz, dz, SW, A, flow)
     params.dz = dz;
 end
 
-function [ids_mix, Tin, z_mix_idx, T_w_in_upper, T_w_in_lower] = detect_fk_region(Tcur, flow, params, fklog)
+function [ids_mix, Tin, z_mix_idx, T_w_in_upper, T_w_in_lower, fk_code] = detect_fk_region(Tcur, flow, params, fklog)
 % ---------------------------------------------------------------
 % SUMMARY:
 %   Detects the free-convection mixing region and inlet conditions.
@@ -134,8 +136,9 @@ function [ids_mix, Tin, z_mix_idx, T_w_in_upper, T_w_in_lower] = detect_fk_regio
 %   z_mix_idx      - index of numerical mixing boundary
 %   T_w_in_upper   - inlet-adjacent upper water temperature
 %   T_w_in_lower   - inlet-adjacent lower water temperature
+%   fk_code        - FK regime code identifier
 % ---------------------------------------------------------------
-
+    fk_code = 0;
     T_w_in_upper = Tcur(params.z_inlet_upper_idx);
     T_w_in_lower = Tcur(params.z_inlet_lower_idx);
 
@@ -160,7 +163,7 @@ function [ids_mix, Tin, z_mix_idx, T_w_in_upper, T_w_in_lower] = detect_fk_regio
             end
             ids_mix = params.z_inlet_lower_idx:z_mix_idx;
             fklog('Upward mixing in lower volume detected');
-
+            fk_code = -2;
         else
             % downward direction in lower volume (decreasing index)
             while (Tin < Tcur(z_mix_idx)) && (z_mix_idx > params.z_w_lower_start_idx)
@@ -168,7 +171,7 @@ function [ids_mix, Tin, z_mix_idx, T_w_in_upper, T_w_in_lower] = detect_fk_regio
             end
             ids_mix = params.z_inlet_lower_idx:-1:z_mix_idx;
             fklog('Downward mixing in lower volume detected');
-
+            fk_code = -1;
         end
 
     elseif flow > 0
@@ -189,18 +192,19 @@ function [ids_mix, Tin, z_mix_idx, T_w_in_upper, T_w_in_lower] = detect_fk_regio
             end
             ids_mix = params.z_inlet_upper_idx:z_mix_idx;
             fklog('Upward mixing in upper volume detected');
+            fk_code = +2;
         else
             % downward direction in upper volume (decreasing index)
             while (Tin < Tcur(z_mix_idx)) && (z_mix_idx > params.z_w_upper_start_idx)
                 z_mix_idx = z_mix_idx - 1;
             end
-            ids_mix = (params.z_inlet_upper_idx-1):-1:z_mix_idx;
+            ids_mix = params.z_inlet_upper_idx:-1:z_mix_idx;
             fklog('Downward mixing in upper volume detected');
+            fk_code = +1;
         end
-        
-        
+     
     end
-   
+    fklog(['fk_code    = ' num2str(fk_code)]);
     fklog(['Tin        = ' num2str(Tin)]);
     fklog(['T_w_in_upper      = ' num2str(T_w_in_upper)]);
     fklog(['T_w_in_lower      = ' num2str(T_w_in_lower)]);

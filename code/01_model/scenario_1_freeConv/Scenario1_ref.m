@@ -144,7 +144,9 @@ T0init(7) = 11;                 % Initial insulation temperature
 % 06. Time Loop over Scenario (t_900/2 for 10 days)
 %%%------------------------------------------%%%
 
-version = 'v14';
+
+% Initialize logging
+version = 'v15';
 dateTag = datestr(now, "yymmdd");
 
 FK_LOG_BASE = fullfile(DATA_SCEN1_FK, '01_logs');
@@ -161,17 +163,23 @@ fklog(sprintf([ ...
     'Description:\n' ...
     '  - Inlet at 9/10 of lower volume.\n' ...
     '  - Uniform shift until 1°C\n' ...
-    '  - Added new hybrid regime for boundary violating update'...
-    '  - Small testings regarding temp diff'
+    '  - Added new hybrid regime for boundary violating update\n'...
+    '  - Small testings regarding temp diff\n'...
+    '  - Added logging of temperature in middle of ring gap\n'...
 ]));
 fklog(sprintf('Date and Time: %s', dateTag));
 fklog(sprintf('Version: %s', version));
 fklog(sprintf('Position lower inlet: %d', Nz(3)+Nz(4)+round(Nz(2)*1/10,0)));
 
+% create fk code history vector
+fk_code_hist = zeros(1, length(t_900)/2);
 
-for i = 1:(length(t_900))
+for i = 1:(length(t_900)/2)
     tic
-
+    fklog('|||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||')
+    fklog(sprintf('t = %.2f h', i * 15 / 60))
+    fklog(sprintf('Temperature in middle of ring gap:  %.2f °C', T_Sys(end, Nz(3)+Nz(8)+Nz(2)+round(Nz(5)/2))));
+    
     % Update vertical water discretization according to piston position
     Nz(2) = Res_900(7, i+1);   % Number of cells in lower pressure zone
     Nz(4) = Res_900(8, i+1);   % Number of cells in upper pressure zone
@@ -181,7 +189,7 @@ for i = 1:(length(t_900))
     disp(['flow        = ' num2str(flow)]);
     disp(['Nz replacement height    = ' num2str(Nz(5)*0.005) ' m']);
     % Compute heat transfer and mass transport for the current 15-min step
-    [T_Sys, T_REf] = HeattransferSzen(t2, IC_Sys, Nz, dz, flow, ...
+    [T_Sys, T_REf, fk_code] = HeattransferSzen(t2, IC_Sys, Nz, dz, flow, ...
                                       T0init, SW, A, z_RE, T_REf, Nt2,fklog);
 
     % Update initial condition for the next procedure step
@@ -238,10 +246,9 @@ for i = 1:(length(t_900))
         Res_hour(10, idx_hr) = Res_900(10,1+i);   % Discharging velocity [m/s]
         Res_hour(11,idx_hr)  = Res_900(11,1+i);   % Exergy in the water volume
     end
-
+    fk_code_hist(i) = fk_code;
     disp(i * 15 / 60);   % Elapsed simulation time in hours
-    fklog('|||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||')
-    fklog(sprintf('t = %.2f h', i * 15 / 60))
+    fk_code_hist(i) = fk_code;
     toc
 end
 
@@ -257,6 +264,7 @@ if fk
     Res_hour_d18_18_FK  = Res_hour;
     Res_Wasser_d18_18_FK = T_W_900;
     Res_System_d18_18_FK = T_V_900;
+    logging_fk_code = fk_code_hist;
 
   filenameSIM = [ ...
                   dateTag '_d' num2str(d_ST) '_h' num2str(H(3)) ...
@@ -265,7 +273,7 @@ if fk
 
     % Save simulation results (commented out for safety)
     save(fullpathSIM, "Res_900_d18_18_FK", "Res_hour_d18_18_FK", ...
-         "Res_Wasser_d18_18_FK", "Res_System_d18_18_FK")
+         "Res_Wasser_d18_18_FK", "Res_System_d18_18_FK", "logging_fk_code")
 else
     Res_900_d18_18_noFK   = Res_900;
     Res_hour_d18_18_noFK  = Res_hour;

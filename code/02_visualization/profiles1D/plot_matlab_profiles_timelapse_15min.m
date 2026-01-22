@@ -37,8 +37,7 @@ load(fullfile(DATA_BASE, 'scenario1/SzenarioComsol.mat'));
 
 % MATLAB results (same as plot_matlab_profiles.m)
 data_no_fk = load(fullfile(DATA_SCEN1_BASE, 'd18_h18_Res_Matlab_d18_18.mat'));
-data_fk_v11 = load(fullfile(DATA_SCEN1_OWN, '260116_d18_h18_Res_Matlab_FK_v11.mat'));
-data_fk_v13 = load(fullfile(DATA_SCEN1_OWN, '260117_d18_h18_Res_Matlab_FK_v13.mat'));
+data_fk = load(fullfile(DATA_SCEN1_OWN, '260122_d18_h18_Res_Matlab_FK_v15.mat'));
 
 %%%------------------------------------------%%%
 % 02. Spatial grid (MATLAB only)
@@ -60,10 +59,9 @@ z_inlet   = z_M(inlet_idx);
 %%%------------------------------------------%%%
 
 T_noFK = data_no_fk.Res_System_d18_18(401:end,:);
-T_fk11 = data_fk_v11.Res_System_d18_18_FK(401:end,:);
-T_fk13 = data_fk_v13.Res_System_d18_18_FK(401:end,:);
+T_fk = data_fk.Res_System_d18_18_FK(401:end,:);
 
-n_steps = size(T_noFK,2);
+n_steps = size(T_fk, 2)-1;
 
 %%%------------------------------------------%%%
 % 04. Time axis (15 min per step)
@@ -82,8 +80,7 @@ if size(t_900,2) < n_steps
     warning('t_900 has fewer time steps (%d) than temperature data (%d). Using min length.', size(t_900,2), n_steps);
     n_steps = min(size(t_900,2), n_steps);
     T_noFK = T_noFK(:,1:n_steps);
-    T_fk11 = T_fk11(:,1:n_steps);
-    T_fk13 = T_fk13(:,1:n_steps);
+    T_fk = T_fk(:,1:n_steps);
     t_hours = t_hours(1:n_steps);
 end
 
@@ -97,25 +94,21 @@ models(1).name  = 'MATLAB (no FK)';
 models(1).T     = T_noFK;
 models(1).z     = z_M;
 models(1).style = '-';
-models(1).color = [0.8500 0.3250 0.0980];
+models(1).color = [0 0 0];          % black
 
-models(2).name  = 'MATLAB (FK v11)';
-models(2).T     = T_fk11;
+models(2).name  = 'MATLAB (FK v15)';
+models(2).T     = T_fk;
 models(2).z     = z_M;
-models(2).style = '--';
-models(2).color = [0.4660 0.6740 0.1880];
+models(2).style = '-';
+models(2).color = [0.0 0.6 0.0];    % green
 
-models(3).name  = 'MATLAB (FK v13)';
-models(3).T     = T_fk13;
-models(3).z     = z_M;
-models(3).style = '--';
-models(3).color = [0.4940 0.1840 0.5560];
 
 %%%------------------------------------------%%%
 % 07. Video writer
 %%%------------------------------------------%%%
-
-videoname = fullfile(RESULTS_TIMELAPSE, 'timelapse_1D_temperature_profiles_15min_matlab_only.mp4');
+dateTag = datestr(now,'yyyymmdd');
+videoname = fullfile(RESULTS_TIMELAPSE, ...
+    [dateTag '_timelapse_1D_temperature_profiles_15min_matlab_only.mp4']);
 
 v = VideoWriter(videoname,'MPEG-4');
 % Keep it readable; increase if you want a faster video
@@ -158,6 +151,14 @@ h_rect = rectangle('Position',[40 z_piston 40 h_piston], ...
 % Put rectangle behind lines
 uistack(h_rect,'bottom');
 
+% FK highlight rectangle (whole volume)
+h_fk_rect = rectangle('Position',[40 0 40 0], ...
+    'EdgeColor','none', ...
+    'LineWidth',3, ...
+    'FaceColor','none');
+
+uistack(h_fk_rect,'bottom');
+
 % Title handle
 h_title = title('', 'Interpreter','Latex');
 
@@ -167,6 +168,35 @@ h_title = title('', 'Interpreter','Latex');
 
 for i = 1:n_steps
 
+    % --- FK visualization (whole volume) ---
+    fk_code = data_fk.logging_fk_code(i);   % choose FK dataset
+    
+    if fk_code == 0
+        set(h_fk_rect,'EdgeColor','none');
+    else
+        % Color: warm in = red, cold in = blue
+        if abs(fk_code) == 2
+            fk_color = [0.85 0.1 0.1];   % red
+        else
+            fk_color = [0.1 0.3 0.85];   % blue
+        end
+    
+        if fk_code > 0
+            % --- upper water volume ---
+            y0 = z_inlet;
+            height_fk  = max(z_M) - z_inlet;
+        else
+            % --- lower water volume ---
+            y0 = min(z_M);
+            height_fk  = z_piston - min(z_M);
+        end
+    
+        set(h_fk_rect, ...
+            'Position',[40 y0 40 height_fk], ...
+            'EdgeColor',fk_color);
+    end
+
+    % Load models   
     for mm = 1:numel(models)
         set(h(mm), 'XData', models(mm).T(:,i), ...
                    'YData', models(mm).z);
