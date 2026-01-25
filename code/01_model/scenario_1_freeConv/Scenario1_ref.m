@@ -30,6 +30,9 @@ clear
 % Load local paths (per-machine config)
 run(fullfile('..','..','..', 'configs', 'paths_local.m'));
 
+% relative paths, needed for fk modules
+run(fullfile('..','..','..', 'configs','paths_relative.m'));
+
 % Build data subfolder for this configuration
 DATA_SCEN1 = fullfile(DATA_BASE, 'scenario1');
 DATA_SCEN1_FK = fullfile(DATA_BASE, 'scenario1_freeConv');
@@ -146,7 +149,7 @@ T0init(7) = 11;                 % Initial insulation temperature
 
 
 % Initialize logging
-version = 'v15';
+version = 'v16';
 dateTag = datestr(now, "yymmdd");
 
 FK_LOG_BASE = fullfile(DATA_SCEN1_FK, '01_logs');
@@ -166,6 +169,7 @@ fklog(sprintf([ ...
     '  - Added new hybrid regime for boundary violating update\n'...
     '  - Small testings regarding temp diff\n'...
     '  - Added logging of temperature in middle of ring gap\n'...
+    '  - Short test to check whether new fk structure funtions'...
 ]));
 fklog(sprintf('Date and Time: %s', dateTag));
 fklog(sprintf('Version: %s', version));

@@ -277,7 +277,7 @@ function dTdt = HeatFluidSolid(t,T,Nz,dz,flow,T0init,SW,A,z_RE)
     for i = Nz(3)+Nz(8)+1 : sys_top_no_ins_idx-1
         
         if i <= Nz(3)+Nz(8)+Nz(2)-1
-            % Water segment below the piston
+            % Water segment below< the piston
             radial_idx = i - (Nz(3)+Nz(8)-1);
             dTdt(i) = SW(1,5) * (T(i+1) - 2*T(i) + T(i-1)) / dz^2 ...
                     - flow * (T(i+1) - T(i-1)) / (2*dz) ...
