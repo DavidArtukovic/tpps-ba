@@ -17,7 +17,8 @@ Hier werden To Do's, Erkentnisse, Fragen sowie Protokolle zu den Treffen mit den
 - [x] Singnaling in the time-series plot, where free convection is happening (until 22.01.26)
 - [x] Uderstand where the temperature increase in the lower replacement volume comes from in the base model (until 22.01.26)
 - [ ] set inlet to a fix position (until 25.01.26)
-- [ ] lambda hybrid in beide richtungen kompatibel (bis 25.01.26)
+- [x] lambda hybrid in beide richtungen kompatibel (bis 25.01.26)
+- [ ] Wasservolumen berechnen was pro Zeitschritt zugeführt wird. (bis 26.01.26)
 
 
 ## 23.01.26 Meeting Dominic
