@@ -1,5 +1,75 @@
+%% Test script: Extrapolated free convection only
+% ---------------------------------------------------------------
+% Tests FK extrapolation for:
+%  (A) Tin < min(Tmix)
+%  (B) Tin > max(Tmix)
+%
+% No internal mixing, no fully mixed case.
+% Geometry and energy scaling only.
+% ---------------------------------------------------------------
+clear; clc; close all;
 
-function Tcur = fk_extrapolated_zmix_Qscaled(Tcur, ids_mix, z_mix_idx, Tin, T_w_in_upper, T_w_in_lower, dt_mix, params, fklog)
+%% Spatial grid
+z  = linspace(0,10,2000)';     % [m]
+dz = z(2) - z(1);
+
+%% Initial stratified temperature profile (monotonic)
+T0 = 40 + z;               % 40°C → 48°C
+
+%% Mixing region definition (entire column)
+ids_mix = (z >= 0 & z <= 10);
+z_mix_idx = find(z == 0, 1, 'first');   % numerical inlet at bottom
+
+%% Physical parameters (toy-consistent)
+params.dz    = dz;
+params.rho_w = 1000;           % [kg/m^3]
+params.c_w   = 4180;           % [J/(kg K)]
+params.A_hws = 1.0;            % [m^2]
+params.mdot  = 0.15;           % [kg/s]
+
+dt_mix = 2*3600;               % 2 h FK step
+
+%% Two extrapolated inlet temperatures
+Tin_list = [ ...
+    min(T0(ids_mix)) - 5;   % colder than entire profile
+    max(T0(ids_mix)) + 5];  % hotter than entire profile
+
+labels = ["Tin < Tmin(Tmix)", "Tin > Tmax(Tmix)"];
+colors = lines(2);
+
+figure; hold on; grid on;
+
+%% Loop over extrapolated cases
+for k = 1:2
+
+    T = T0;
+    Tin = Tin_list(k);
+
+    % inlet-adjacent temperatures (only magnitude matters here)
+    T_w_in_upper = T(ids_mix(end));
+    T_w_in_lower = T(ids_mix(1));
+
+    % ---- Apply extrapolated FK operator ----
+    T = fk_extrapolated_zmix_Qscaled( ...
+        T, ids_mix, z_mix_idx, Tin, ...
+        T_w_in_upper, T_w_in_lower, ...
+        dt_mix, params, @(s)[] );
+
+    plot(T, z, 'LineWidth', 2, 'Color', colors(k,:));
+end
+
+%% Reference plot
+plot(T0, z, 'k--', 'LineWidth', 1.5);
+
+xlabel('Temperature [°C]');
+ylabel('z [m]');
+title('FK extrapolated mixing test (Tin outside temperature range)');
+legend([labels, "initial"], 'Location','best');
+set(gca,'FontSize',14);
+
+
+
+function Tcur = fk_extrapolated_zmix_Qscaled(Tcur, ids_mix, z_mix_idx, Tin, T_w_in_upper, T_w_in_lower, dt_mix, params, ~)
 % ---------------------------------------------------------------
 % SUMMARY:
 %   Applies FK update with extrapolated mixing height and energy scaling.
@@ -25,9 +95,7 @@ function Tcur = fk_extrapolated_zmix_Qscaled(Tcur, ids_mix, z_mix_idx, Tin, T_w_
     %--------------------------------------------------------------
     % 2) Numerical integral over ACTUAL mixing zone
     %--------------------------------------------------------------
-    dT_node = Tin - Tmix;  % nodal difference
-    % Use trapezoid sum for integral
-    I_num = abs( sum( 0.5 * (dT_node(1:end-1) + dT_node(2:end)) ) * params.dz );  % [K*m]
+    I_num = abs(sum((Tin - Tmix) * params.dz));   % [K*m]
 
     %--------------------------------------------------------------
     % 3) Determine extrapolated z_mix* via GLOBAL linear regression
@@ -44,14 +112,14 @@ function Tcur = fk_extrapolated_zmix_Qscaled(Tcur, ids_mix, z_mix_idx, Tin, T_w_
     end
 
     % Distance needed to reach Tin by extrapolation (positive in upward, negative in downward direction)
-    dz_star = (Tin - Tmix(end)) / abs(dTdz);   % [m]
+    dz_star = abs((Tin - Tmix(end)) / dTdz);   % [m]
 
     %--------------------------------------------------------------
     % 4) Geometric integral over extrapolated mixing zone
     %--------------------------------------------------------------
     z_in  = 0;
     z_mix = (numel(ids_mix)-1) * params.dz;
-    z_mix_star = z_mix + abs(dz_star);
+    z_mix_star = z_mix + dz_star;
 
     G = 0.5*(z_mix^2 - z_in^2) - z_mix_star*(z_mix - z_in);
 
@@ -73,19 +141,5 @@ function Tcur = fk_extrapolated_zmix_Qscaled(Tcur, ids_mix, z_mix_idx, Tin, T_w_
     z = (ids_mix - z_mix_idx) * params.dz;   % physical z
     Tcur(ids_mix) = Tin + a * (z - dz_star);
 
-    fklog('---------------------------------------------------');
-    fklog('case: extrapolated_zmix');         
-    fklog(['a                 = ' num2str(a)]);
-    fklog(['I_num             = ' num2str(I_num)]);
-    fklog(['G                 = ' num2str(G)]);
-    fklog(['E                 = ' num2str(E)]);
-    fklog(['dz_star           = ' num2str(dz_star)]);
-    fklog(['mix_height       = ' num2str(mix_height)]);
-    fklog(['T_in         = ' num2str(Tin)]);
-    fklog(['T_mix_end_before_mixing        = ' num2str(Tmix(end))]);
-    fklog(['T_mix_begin_before_mixing        = ' num2str(Tmix(1))]);
-    fklog(['T_mix_end_after_mixing        = ' num2str(Tcur(ids_mix(end)))]);
-    fklog(['T_mix_begin_after_mixing        = ' num2str(Tcur(ids_mix(1)))]);
-    fklog('---------------------------------------------------');
 
 end

@@ -13,10 +13,11 @@ Hier werden To Do's, Erkentnisse, Fragen sowie Protokolle zu den Treffen mit den
 - [ ] Propadeaticum related literature on free convection big systems, pace of one paper per day (until 06.01.2026)
     - Especially from the Xiang (2022) Paper the Comsol examples of Dahash and several 1D Water + 2D Soil examples should be discussed.
 - [x] Understand relevance of Froude, Reynolds and Richardson number as well as their calculation. Calculate for the present case (08.01.2026)
-- [ ] Integrate the shift term after free convection (until 22.01.26)
-- [ ] Singnaling in the time-series plot, where free convection is happening (until 22.01.26)
+- [ ] Integrate the shift term after free convection (until 23.01.26)
+- [x] Singnaling in the time-series plot, where free convection is happening (until 22.01.26)
 - [x] Uderstand where the temperature increase in the lower replacement volume comes from in the base model (until 22.01.26)
 - [ ] set inlet to a fix position (until 25.01.26)
+- [ ] lambda hybrid in beide richtungen kompatibel (bis 25.01.26)
 
 
 ## 23.01.26 Meeting Dominic

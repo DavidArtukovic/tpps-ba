@@ -41,14 +41,22 @@ function Tnew = apply_fk_lambda_hybrid(Told, Tfk, Tin, ids_mix, params, fk_case,
     Tfk_mix  = Tfk(idx_zmix);
 
     % --- check violation ---
-    tol = 0.2;   % temperature tolerance [°C]
+    tol = 1e-3;   % temperature tolerance [°C]
 
-    violates = (Tfk_in  < Told_in  - tol) || ...
-            (Tfk_mix < Told_mix - tol);
+    % case upward mixing: idx_zmix>idx_zin
+    if idx_zin<idx_zmix
+        violates = (Tfk_in  < Told_in  - tol) || ...
+                        (Tfk_mix < Told_mix - tol);
 
+    else % case downward mixing: idx_zmix<idx_zin
+        violates = (Tfk_in  > Told_in  + tol) || ...
+                        (Tfk_mix > Told_mix + tol);
+    end
+        
     if ~violates
         return
     end
+
 
     fklog('--- FK boundary violation detected: applying FK/FM hybrid ---');
     % Thermal energy rate introduced by inlet
@@ -68,19 +76,17 @@ function Tnew = apply_fk_lambda_hybrid(Told, Tfk, Tin, ids_mix, params, fk_case,
 
     % --- lambda from boundary constraints ---
     epsT = 1e-12;
-    lambda_in  = (Tfm(idx_zin)  - Told_in ) / ...
-                (Tfm(idx_zin)  - Tfk_in + epsT);
+    lambda_in  = abs(Tfm(idx_zin)  - Told_in ) / ...
+                (abs(Tfm(idx_zin)  - Tfk_in ) + epsT);
 
-    lambda_mix = (Tfm(idx_zmix) - Told_mix) / ...
-                (Tfm(idx_zmix) - Tfk_mix + epsT);
+    lambda_mix = abs(Tfm(idx_zmix) - Told_mix) / ...
+                (abs(Tfm(idx_zmix) - Tfk_mix) + epsT);
 
     lambda = min([lambda_in, lambda_mix, 1]);
     lambda = max(lambda,0);
 
     % --- apply lambda blend in mixing zone ---
-    Tnew(ids_mix) = ...
-        lambda * Tfk(ids_mix) + ...
-        (1-lambda) * Tfm(ids_mix);
+    Tnew(ids_mix) = lambda * Tfk(ids_mix) + (1-lambda) * Tfm(ids_mix);
 
     % --- logging ---
     fklog(sprintf('FK limited by lambda = %.3f (case: %s)', lambda, fk_case));

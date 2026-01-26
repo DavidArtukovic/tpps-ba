@@ -1629,7 +1629,7 @@ So the modified approach reproduces the example consistently and enforces
 the full inflow energy in the *physical* mixing zone by construction.
 
 
-## 3.8 Problems with Unphysical Temperature Profiles in the Extrapolated FK Update
+### 3.8 Problems with Unphysical Temperature Profiles in the Extrapolated FK Update
 
 In rare but relevant configurations, the modified extrapolated free-convection
 (FK) update derived in Section 3.7 can lead to **locally unphysical temperature

@@ -43,7 +43,10 @@ function Tcur = apply_fk_operator(Tcur, ids_mix, z_mix_idx, Tin, T_w_in_upper, T
             % Energy conservation is enforced via integral scaling.
             %--------------------------------------------------------------
             Tmix = Tcur(ids_mix);                               % current temperatures in the mixing zone
-            I_mix = abs(sum((Tin - Tmix) * params.dz));         % [K*m]
+
+            dT_node = Tin - Tmix;  % nodal difference
+            % Use trapezoid sum for integral
+            I_mix = abs( sum( 0.5 * (dT_node(1:end-1) + dT_node(2:end)) ) * params.dz );  % [K*m]
 
             Qdot_mix = params.mdot * params.c_w * abs(T_w_in_upper - T_w_in_lower);        % [W]
 

@@ -20,10 +20,10 @@ data_no_fk = load(fullfile(DATA_SCEN1_BASE, ...
     'd18_h18_Res_Matlab_d18_18.mat'));
 
 data_fk_v6 = load(fullfile(DATA_SCEN1_OWN, ...
-    '260122_d18_h18_Res_Matlab_FK_v15.mat'));
+    '260116_d18_h18_Res_Matlab_FK_v11.mat'));
 
 data_fk_v7 = load(fullfile(DATA_SCEN1_OWN, ...
-    '260124_d18_h18_Res_Matlab_FK_v16.mat'));
+    '260117_d18_h18_Res_Matlab_FK_v13.mat'));
 
 %%%------------------------------------------%%%
 % 02. Spatial grid (MATLAB only)
@@ -55,8 +55,7 @@ t_hours = (0:size(T_noFK,2)-1) * dt_min / 60;
 % 05. Select operating points (indices!)
 %%%------------------------------------------%%%
 % Example: every 6 hours
-% p = round([32.75 33.75 34.75 35.75 36.75] * 60 / dt_min);
-p = round([36.75 50 60 70 80] * 60 / dt_min);
+p = round([31 31.25 31.5 38.5 54] * 60 / dt_min);
 
 %%%------------------------------------------%%%
 % 06. Model container
@@ -67,16 +66,16 @@ models(1).T     = T_noFK;
 models(1).style = '-';
 models(1).color = [0.8500 0.3250 0.0980];
 
-models(2).name  = 'MATLAB (FK v15)';
+models(2).name  = 'MATLAB (FK v11)';
 models(2).T     = T_fk6;
 models(2).style = '--';
 models(2).color = [0.4660 0.6740 0.1880];
 
-models(3).name  = 'MATLAB (FK v16)';
+models(3).name  = 'MATLAB (FK v13)';
 models(3).T     = T_fk7;
 models(3).style = '--';
 models(3).color = [0.4940 0.1840 0.5560];
-%%
+
 %%%------------------------------------------%%%
 % 07. Plot
 %%%------------------------------------------%%%
@@ -120,7 +119,7 @@ for m = 1:length(p)
     if m == length(p)
         legend({models.name}, ...
             'Interpreter','Latex','FontSize',9, ...
-            'Location','southwest')
+            'Location','best')
     end
 end
 
