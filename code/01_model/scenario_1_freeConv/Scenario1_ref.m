@@ -149,7 +149,7 @@ T0init(7) = 11;                 % Initial insulation temperature
 
 
 % Initialize logging
-version = 'v16';
+version = 'v1';
 dateTag = datestr(now, "yymmdd");
 
 FK_LOG_BASE = fullfile(DATA_SCEN1_FK, '01_logs');
@@ -162,14 +162,11 @@ fid_fk = fopen(fk_logfile,'w');
 fklog = @(s) fprintf(fid_fk,'%s\n',string(s));
 
 fklog(sprintf([ ...
-    '=== Scenario 1 Free Convection Simulation ===\n' ...
+    '=== Scenario 1 Basic Simulation ===\n' ...
     'Description:\n' ...
-    '  - Inlet at 9/10 of lower volume.\n' ...
-    '  - Uniform shift until 1°C\n' ...
-    '  - Added new hybrid regime for boundary violating update\n'...
-    '  - Small testings regarding temp diff\n'...
-    '  - Added logging of temperature in middle of ring gap\n'...
-    '  - Short test to check whether new fk structure funtions'...
+    'Purely basic no fk \n'...
+    'Added upwind scheme in water \n'...
+
 ]));
 fklog(sprintf('Date and Time: %s', dateTag));
 fklog(sprintf('Version: %s', version));
@@ -190,8 +187,8 @@ for i = 1:(length(t_900)/2)
 
     % Flow velocity in the storage system [m/s] (charging or discharging)
     flow = Res_900(9, i+1) + Res_900(10, i+1);
-    disp(['flow        = ' num2str(flow)]);
-    disp(['Nz replacement height    = ' num2str(Nz(5)*0.005) ' m']);
+    % disp(['flow        = ' num2str(flow)]);
+    % disp(['Nz replacement height    = ' num2str(Nz(5)*0.005) ' m']);
     % Compute heat transfer and mass transport for the current 15-min step
     [T_Sys, T_REf, fk_code] = HeattransferSzen(t2, IC_Sys, Nz, dz, flow, ...
                                       T0init, SW, A, z_RE, T_REf, Nt2,fklog);
@@ -261,7 +258,7 @@ fclose(fid_fk);
 %%%------------------------------------------%%%c
 % 07. Store Scenario Results
 %%%------------------------------------------%%%
-fk = true;
+fk = false;
 
 if fk
     Res_900_d18_18_FK   = Res_900;
@@ -279,19 +276,19 @@ if fk
     save(fullpathSIM, "Res_900_d18_18_FK", "Res_hour_d18_18_FK", ...
          "Res_Wasser_d18_18_FK", "Res_System_d18_18_FK", "logging_fk_code")
 else
-    Res_900_d18_18_noFK   = Res_900;
-    Res_hour_d18_18_noFK  = Res_hour;
-    Res_Wasser_d18_18_noFK = T_W_900;
-    Res_System_d18_18_noFK = T_V_900;
+    Res_900_d18_18   = Res_900;
+    Res_hour_d18_18  = Res_hour;
+    Res_Wasser_d18_18 = T_W_900;
+    Res_System_d18_18 = T_V_900;
 
     filenameSIM = [ ...
                     dateTag '_d' num2str(d_ST) '_h' num2str(H(3)) ...
                     '_Res_Matlab_noFK_' version '.mat' ];
-    fullpathSIM = fullfile(DATA_SCEN1_FK, filenameSIM);
+    fullpathSIM = fullfile(DATA_SCEN1, filenameSIM);
 
     % Save simulation results (commented out for safety)
-    save(fullpathSIM, "Res_900_d18_18_noFK", "Res_hour_d18_18_noFK", ...
-         "Res_Wasser_d18_18_noFK", "Res_System_d18_18_noFK")
+    save(fullpathSIM, "Res_900_d18_18", "Res_hour_d18_18", ...
+         "Res_Wasser_d18_18", "Res_System_d18_18")
 end
 
 %%

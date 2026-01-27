@@ -71,9 +71,9 @@ function [T_Sys,T_REf, fk_code] = HeattransferSzen(t2,IC_Sys,Nz,dz,flow,T0init,S
     %%%------------------------------------------%%%
 
     % dt_mix = t2(2) - t2(1); % time step size for mixing operator [s]
-    dt_mix = 900; % time step size for mixing operator [s]
-    [T_Sys, fk_code] = apply_free_convection(T_Sys, dt_mix, flow, Nz, dz, SW, A, fklog);
-
+    % dt_mix = 900; % time step size for mixing operator [s]
+    % [T_Sys, fk_code] = apply_free_convection(T_Sys, dt_mix, flow, Nz, dz, SW, A, fklog);
+    fk_code = 0;
 
     %%%------------------------------------------%%%
     % 03: Define frequently used indices

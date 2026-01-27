@@ -17,8 +17,8 @@ end
 
 % Build data subfolder for this configuration
 DATA_SCEN1_BASE = fullfile(DATA_BASE, 'Modellvergleich1D');
-DATA_SCEN1_OWN  = fullfile(DATA_BASE, 'scenario1_freeConv');
-
+DATA_SCEN1_FK  = fullfile(DATA_BASE, 'scenario1_freeConv');
+DATA_SCEN1  = fullfile(DATA_BASE, 'scenario1v');
 %%%------------------------------------------%%%
 % 02. Load relevant data sets
 %%%------------------------------------------%%%

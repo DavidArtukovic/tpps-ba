@@ -27,7 +27,8 @@ if ~exist(RESULTS_TIMELAPSE, "dir")
 end
 
 DATA_SCEN1_BASE = fullfile(DATA_BASE, 'Modellvergleich1D');
-DATA_SCEN1_OWN  = fullfile(DATA_BASE, 'scenario1_freeConv');
+DATA_SCEN1_FK  = fullfile(DATA_BASE, 'scenario1_freeConv');
+DATA_SCEN1_NOFK  = fullfile(DATA_BASE, 'scenario1');
 
 % Scenario/time information
 load(fullfile(DATA_SCEN1_BASE, 'd18_h18.mat'));
@@ -37,7 +38,8 @@ load(fullfile(DATA_BASE, 'scenario1/SzenarioComsol.mat'));
 
 % MATLAB results (same as plot_matlab_profiles.m)
 data_no_fk = load(fullfile(DATA_SCEN1_BASE, 'd18_h18_Res_Matlab_d18_18.mat'));
-data_fk = load(fullfile(DATA_SCEN1_OWN, '260122_d18_h18_Res_Matlab_FK_v15.mat'));
+data_fk = load(fullfile(DATA_SCEN1_FK, '260124_d18_h18_Res_Matlab_FK_v16.mat'));
+data_upwind = load(fullfile(DATA_SCEN1_NOFK, '260126_d18_h18_Res_Matlab_noFK_v1.mat'));
 
 %%%------------------------------------------%%%
 % 02. Spatial grid (MATLAB only)
@@ -60,6 +62,7 @@ z_inlet   = z_M(inlet_idx);
 
 T_noFK = data_no_fk.Res_System_d18_18(401:end,:);
 T_fk = data_fk.Res_System_d18_18_FK(401:end,:);
+T_upwind = data_upwind.Res_System_d18_18(401:end,:);
 
 n_steps = size(T_fk, 2)-1;
 
@@ -96,12 +99,17 @@ models(1).z     = z_M;
 models(1).style = '-';
 models(1).color = [0 0 0];          % black
 
-models(2).name  = 'MATLAB (FK v15)';
+models(2).name  = 'MATLAB (FK v16)';
 models(2).T     = T_fk;
 models(2).z     = z_M;
 models(2).style = '-';
 models(2).color = [0.0 0.6 0.0];    % green
 
+models(3).name  = 'MATLAB (no FK upwind)';
+models(3).T     = T_upwind;
+models(3).z     = z_M;
+models(3).style = '-';
+models(3).color = [0.6 0.0 0.0];    % blue
 
 %%%------------------------------------------%%%
 % 07. Video writer
