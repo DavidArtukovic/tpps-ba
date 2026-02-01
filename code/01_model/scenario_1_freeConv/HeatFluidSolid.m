@@ -323,21 +323,21 @@ function dTdt = HeatFluidSolid(t, T, Nz, dz, idx_bypass_lower, idx_bypass_upper,
         end
     end
 
-    % % --- Non-local bypass coupling + explicit inflow/outflow (charging only) ---
-    % if flow < 0
-    %     coeff = abs(flow) / dz; % [1/s] (consistent with your advection scaling)
+    % --- Non-local bypass coupling + explicit inflow/outflow (charging only) ---
+    if flow < 0
+        coeff = abs(flow) / dz; % [1/s] (consistent with your advection scaling)
 
-    %     % (2a) Heat source at top water node (replace Dirichlet-type behavior)
-    %     dTdt(idx_w_top) = dTdt(idx_w_top) + coeff * (T0init(2) - T(idx_w_top));
+        % (2a) Heat source at top water node (replace Dirichlet-type behavior)
+        dTdt(idx_w_top) = dTdt(idx_w_top) + coeff * (T0init(2) - T(idx_w_top));
 
-    %     % (2b) Heat sink at upper bypass node (energy leaves upper segment)
-    %     dTdt(idx_bypass_upper) = dTdt(idx_bypass_upper) - coeff * (T(idx_bypass_upper) - T(idx_bypass_upper-1));
-    % end
+        % (2b) Heat sink at upper bypass node (energy leaves upper segment)
+        dTdt(idx_bypass_upper) = dTdt(idx_bypass_upper) - coeff * (T(idx_bypass_upper) - T(idx_bypass_upper-1));
+    end
 
-    % if flow < 0
-    % % (3) Heat source at lower bypass node: inject bypass fluid with T(idx_bypass_upper)
-    %     dTdt(idx_bypass_lower) = dTdt(idx_bypass_lower) + coeff * (T(idx_bypass_upper) - T(idx_bypass_lower));
-    % end
+    if flow < 0
+    % (3) Heat source at lower bypass node: inject bypass fluid with T(idx_bypass_upper)
+        dTdt(idx_bypass_lower) = dTdt(idx_bypass_lower) + coeff * (T(idx_bypass_upper) - T(idx_bypass_lower));
+    end
 
     %%%------------------------------------------%%%
     % 09 Additional piston loss terms into the water nodes

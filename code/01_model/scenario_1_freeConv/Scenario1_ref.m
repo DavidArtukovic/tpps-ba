@@ -81,7 +81,7 @@ A(2) = r_pist^2 * pi;    % Area of the piston
 A(3) = A(1) - A(2);      % Area of the annulus (ring gap)
 
 % Initialize positions indices of bypass inlets
-[idx_bypass_lower_vec, idx_bypass_upper_vec] = compute_bypass_indices(t_900(2,:), H(3), H(11), Nz, dz);
+[idx_bypass_lower_vec, idx_bypass_upper_vec, idx_membrane_vec] = compute_bypass_indices(t_900(2,:), H(3), H(11), Nz, dz);
 
 %%
 %%%------------------------------------------%%%
@@ -167,12 +167,10 @@ fid_fk = fopen(fk_logfile,'w');
 fklog = @(s) fprintf(fid_fk,'%s\n',string(s));
 
 fklog(sprintf([ ...
-    '=== Scenario 1 Basic Simulation ===\n' ...
+    '=== Scenario 1 Free Convection Simulation ===\n' ...
     'Description:\n' ...
     'Purely basic no fk \n'...
     'Added upwind scheme in water \n'...
-    'Added selective advection regions\n'...
-'Replaced Dirichlet top, wich Heat flux \n'...
 
 ]));
 fklog(sprintf('Date and Time: %s', dateTag));
@@ -195,8 +193,8 @@ for i = 1:(length(t_900))
 
     % Flow velocity in the storage system [m/s] (charging or discharging)
     flow = Res_900(9, i+1) + Res_900(10, i+1);
-    % disp(['flow        = ' num2str(flow)]);
-    % disp(['Nz replacement height    = ' num2str(Nz(5)*0.005) ' m']);
+    disp(['flow        = ' num2str(flow)]);
+    disp(['Nz replacement height    = ' num2str(Nz(5)*0.005) ' m']);
     % Compute heat transfer and mass transport for the current 15-min step
     [T_Sys, T_REf, fk_code] = HeattransferSzen(t2, IC_Sys, Nz, dz, idx_bypass_lower_vec(i), idx_bypass_upper_vec(i),...
                                                flow, T0init, SW, A, z_RE, T_REf, Nt2,fklog);
@@ -267,7 +265,6 @@ fclose(fid_fk);
 % 07. Store Scenario Results
 %%%------------------------------------------%%%
 fk = false;
-index_bypass = [idx_bypass_lower_vec; idx_bypass_upper_vec]; % store bypass indices
 
 if fk
     Res_900_d18_18_FK   = Res_900;
@@ -285,19 +282,19 @@ if fk
     save(fullpathSIM, "Res_900_d18_18_FK", "Res_hour_d18_18_FK", ...
          "Res_Wasser_d18_18_FK", "Res_System_d18_18_FK", "logging_fk_code", "index_bypass")
 else
-    Res_900_d18_18   = Res_900;
-    Res_hour_d18_18  = Res_hour;
-    Res_Wasser_d18_18 = T_W_900;
-    Res_System_d18_18 = T_V_900;
+    Res_900_d18_18_noFK   = Res_900;
+    Res_hour_d18_18_noFK  = Res_hour;
+    Res_Wasser_d18_18_noFK = T_W_900;
+    Res_System_d18_18_noFK = T_V_900;
 
     filenameSIM = [ ...
                     dateTag '_d' num2str(d_ST) '_h' num2str(H(3)) ...
                     '_Res_Matlab_noFK_' version '.mat' ];
-    fullpathSIM = fullfile(DATA_SCEN1, filenameSIM);
+    fullpathSIM = fullfile(DATA_SCEN1_FK, filenameSIM);
 
     % Save simulation results (commented out for safety)
     save(fullpathSIM, "Res_900_d18_18", "Res_hour_d18_18", ...
-         "Res_Wasser_d18_18", "Res_System_d18_18", "index_bypass")
+         "Res_Wasser_d18_18", "Res_System_d18_18")
 end
 
 %%
@@ -443,11 +440,11 @@ function [Heat_insu, Heat_Wasser, Heat_piston, Heat_Vsoil, ...
         (sum(wEX(1,2:end-1)) + 0.5 * (wEX(1,1) + wEX(1,end)));
 end
 
-function [idx_bypass_lower_vec, idx_bypass_upper_vec] = compute_bypass_indices(soc_vec, h_pist, h_lift, Nz, dz)
+function [idx_bypass_lower_vec, idx_bypass_upper_vec, idx_membrane_vec] = compute_bypass_indices(soc_vec, h_pist, h_lift, Nz, dz)
     % COMPUTE_BYPASS_INDICES
     % --------------------------------------------------------------
-    % Computes lower and upper bypass inlet indices based on piston
-    % position, following the piecewise definition from the sketch.
+    % Computes lower and upper bypass inlet indices and mebrane index
+    % based on piston position, following the piecewise definition from the sketch.
     %
     % INPUT:
     %   soc_vec          - normalized vector of piston position in [0,1]
@@ -460,6 +457,7 @@ function [idx_bypass_lower_vec, idx_bypass_upper_vec] = compute_bypass_indices(s
     % OUTPUT:
     %   idx_bypass_lower - global index of lower bypass inlet
     %   idx_bypass_upper - global index of upper bypass inlet
+    %   idx_mebrane_vec  - global index of mebrane node
     %
     % NOTES:
     %   - Lower bypass always remains inside replacement volume.
@@ -495,4 +493,13 @@ function [idx_bypass_lower_vec, idx_bypass_upper_vec] = compute_bypass_indices(s
     delta_s = s_crit - soc_vec(mask_up);
     idx_bypass_upper_vec(mask_up) = idx_upper_begin + round(delta_s .* h_lift ./ dz);
 
+    % ----------------------------------------------------------
+    % Membrane index
+    % ----------------------------------------------------------
+
+    idx_membrane_vec = idx_rep_begin ...
+    + round( ...
+        Nrep/2 ...                          % mid at = 1
+      + (1 - soc_vec) .* (h_lift/h_pist) .* (Nrep/2) ...
+    );
 end

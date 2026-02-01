@@ -301,6 +301,37 @@ $$
 
 ---
 
+###  2.5 Treatment of Advective Interfaces and Energy Conservation
+
+Advective heat transport in the TPPS model occurs not only at external inlet and outlet boundaries, but also across internal bypass connections between spatially separated water volumes.  
+The numerical treatment of these interfaces is crucial for ensuring global energy conservation.
+
+Two conceptually different approaches can be distinguished.
+
+#### 2.5.1 Method A: Interface temperature approach.
+In the interface temperature approach, advective coupling between domains is realized by prescribing an algebraic interface temperature, which is used as a boundary value for the downstream control volume.
+The interface itself is assumed to have no thermal mass, and no explicit energy flux is associated with the mass transport.
+
+While this formulation is consistent with the algebraic treatment of conductive water--solid interfaces (cf.\ Section~2.3), it does not represent a conservative control-volume formulation for advective transport.
+The enthalpy carried by the mass flow is not explicitly removed from the upstream volume and added to the downstream volume.
+As a result, global energy conservation is not guaranteed and may only be satisfied approximately.
+
+#### 2.5.2 Method B: Flux-based advective coupling.
+In the flux-based approach, advective transport across an interface is interpreted as an enthalpy flux,
+
+$$\dot{E}_{\mathrm{adv}} = \dot{m}\,c_p\,T,$$
+
+which appears as an energy sink in the upstream control volume and as an energy source in the downstream control volume.
+The interface itself remains massless and does not store energy.
+
+The downstream temperature evolution depends only on the imposed inlet temperature and mass flow rate, independent of whether the inflowing energy originates from another domain or from an external source.
+Global energy conservation is therefore satisfied by construction; any remaining deviations are solely due to numerical discretization errors.
+
+#### 2.5.3 Current implementation.
+In the present TPPS model, advective coupling between water volumes is currently implemented according to Method A by prescribing interface temperatures at internal hydraulic connections.
+While this approach is numerically convenient and consistent with the existing conductive coupling formulation, it does not ensure strict energy conservation for advective processes.
+The flux-based formulation (Method B) provides a physically more consistent framework for modeling internal mass transport in stratified thermal storage systems.
+
 ## 3. Extension: Natural Convection (Thesis Objective)
 Natural convection will be introduced into the 1D water equation.
  Approach: No fluid transport via a flow but energy entrance per volume element, per incremental time unit.

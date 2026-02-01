@@ -27,8 +27,7 @@ if ~exist(RESULTS_TIMELAPSE, "dir")
 end
 
 DATA_SCEN1_BASE = fullfile(DATA_BASE, 'Modellvergleich1D');
-DATA_SCEN1_FK  = fullfile(DATA_BASE, 'scenario1_freeConv');
-DATA_SCEN1_NOFK  = fullfile(DATA_BASE, 'scenario1');
+DATA_SCEN1_OWN  = fullfile(DATA_BASE, 'scenario1_freeConv');
 
 % Scenario/time information
 load(fullfile(DATA_SCEN1_BASE, 'd18_h18.mat'));
@@ -100,7 +99,7 @@ models(1).z     = z_M;
 models(1).style = '-';
 models(1).color = [0 0 0];          % black
 
-models(2).name  = 'MATLAB (FK v16)';
+models(2).name  = 'MATLAB (FK v15)';
 models(2).T     = T_fk;
 models(2).z     = z_M;
 models(2).style = '-';
@@ -110,14 +109,7 @@ models(3).name  = 'MATLAB (no FK upwind)';
 models(3).T     = T_upwind;
 models(3).z     = z_M;
 models(3).style = '-';
-models(3).color = [ 0.0 0.0 0.8];    % blue
-
-models(4).name  = 'MATLAB (no FK upwind+selective advection)';
-models(4).T     = T_modified_advection;
-models(4).z     = z_M;
-models(4).style = '-';
-models(4).color = [0.6 0.0 0];    % red
-
+models(3).color = [0.6 0.0 0.0];    % blue
 
 %%%------------------------------------------%%%
 % 07. Video writer
