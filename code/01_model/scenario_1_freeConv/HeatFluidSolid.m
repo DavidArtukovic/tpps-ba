@@ -22,6 +22,8 @@
 %             insulation(1D); radial soil/insulation(2D -> flattened)]
 %   Nz     - vector with number of grid points in each sub-domain
 %   dz     - vertical grid spacing (m)
+%   idx_bypass_lower - index of the lower bypass inlet in the 1D system
+%   idx_bypass_upper - index of the upper bypass inlet in the 1D system
 %   flow   - signed water flow rate in the 1D water domain
 %            (m/s or consistent internal units). The sign determines
 %            charging / discharging direction.
@@ -41,7 +43,7 @@
 % ---------------------------------------------------------------
 
 
-function dTdt = HeatFluidSolid(t,T,Nz,dz,flow,T0init,SW,A,z_RE)
+function dTdt = HeatFluidSolid(t, T, Nz, dz, idx_bypass_lower, idx_bypass_upper, flow, T0init, SW, A, z_RE, fklog)
     % Pre-allocate temperature time derivative vector:
     %  - Nz(10) = number of 1D vertical nodes in piston, soil, water, air,
     %             and 1D insulation
@@ -274,14 +276,30 @@ function dTdt = HeatFluidSolid(t,T,Nz,dz,flow,T0init,SW,A,z_RE)
     % 08 Water region (1D) with axial conduction, convection and radial losses
     %%%------------------------------------------%%%
 
+
+    % Bypass indices
+
+    idx_w_top    = sys_top_no_ins_idx - 1;      % topmost interior water node
+    idx_w_bottom = Nz(3)+Nz(8) + 1;             % bottommost interior water node
+
+    % replacement_top_idx    = Nz(3)+Nz(8)+Nz(2)+Nz(5)-2;
+    % replacement_bottom_idx = Nz(3)+Nz(8)+Nz(2)-1;
+    % replacement_mid_idx    = round((replacement_top_idx + replacement_bottom_idx)/2, 0);
+
+    % idx_bypass_upper = replacement_mid_idx + 1;                  % "upper bypass node"
+    % idx_bypass_lower = Nz(3)+Nz(8) + round(Nz(2)*9/10, 0);       % "lower bypass node"
+
     for i = Nz(3)+Nz(8)+1 : sys_top_no_ins_idx-1
 
-        if flow > 0
-            adv = - flow * (T(i) - T(i-1)) / dz;
-        elseif flow < 0
-            adv = - flow * (T(i+1) - T(i)) / dz;
-        else
+        is_adv_segment = (i >= idx_bypass_upper && i <= idx_w_top) || ...
+                        (i >= idx_w_bottom    && i <= idx_bypass_lower);
+
+        if ~is_adv_segment || flow == 0
             adv = 0;
+        elseif flow > 0
+            adv = - flow * (T(i) - T(i-1)) / dz;
+        else % flow < 0
+            adv = - flow * (T(i+1) - T(i)) / dz;
         end
         
         if i <= Nz(3)+Nz(8)+Nz(2)-1
@@ -305,6 +323,22 @@ function dTdt = HeatFluidSolid(t,T,Nz,dz,flow,T0init,SW,A,z_RE)
         end
     end
 
+    % % --- Non-local bypass coupling + explicit inflow/outflow (charging only) ---
+    % if flow < 0
+    %     coeff = abs(flow) / dz; % [1/s] (consistent with your advection scaling)
+
+    %     % (2a) Heat source at top water node (replace Dirichlet-type behavior)
+    %     dTdt(idx_w_top) = dTdt(idx_w_top) + coeff * (T0init(2) - T(idx_w_top));
+
+    %     % (2b) Heat sink at upper bypass node (energy leaves upper segment)
+    %     dTdt(idx_bypass_upper) = dTdt(idx_bypass_upper) - coeff * (T(idx_bypass_upper) - T(idx_bypass_upper-1));
+    % end
+
+    % if flow < 0
+    % % (3) Heat source at lower bypass node: inject bypass fluid with T(idx_bypass_upper)
+    %     dTdt(idx_bypass_lower) = dTdt(idx_bypass_lower) + coeff * (T(idx_bypass_upper) - T(idx_bypass_lower));
+    % end
+
     %%%------------------------------------------%%%
     % 09 Additional piston loss terms into the water nodes
     %%%------------------------------------------%%%
@@ -321,4 +355,6 @@ function dTdt = HeatFluidSolid(t,T,Nz,dz,flow,T0init,SW,A,z_RE)
     idx_water_bottom_piston = Nz(3)+Nz(8)+Nz(2)-1;
     dTdt(idx_water_bottom_piston) = dTdt(idx_water_bottom_piston) ...
         - alpha_pw * (T(1) - T(2));
+
+    fklog(sprintf('Gradient at top water node adajecent to insulation: %.3e K/s', dTdt(sys_top_no_ins_idx)));
 end

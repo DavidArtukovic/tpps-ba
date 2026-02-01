@@ -40,7 +40,7 @@ load(fullfile(DATA_BASE, 'scenario1/SzenarioComsol.mat'));
 data_no_fk = load(fullfile(DATA_SCEN1_BASE, 'd18_h18_Res_Matlab_d18_18.mat'));
 data_fk = load(fullfile(DATA_SCEN1_FK, '260124_d18_h18_Res_Matlab_FK_v16.mat'));
 data_upwind = load(fullfile(DATA_SCEN1_NOFK, '260126_d18_h18_Res_Matlab_noFK_v1.mat'));
-
+data_modified_advection = load(fullfile(DATA_SCEN1_NOFK, '260128_d18_h18_Res_Matlab_noFK_v2.mat'));
 %%%------------------------------------------%%%
 % 02. Spatial grid (MATLAB only)
 %%%------------------------------------------%%%
@@ -63,8 +63,9 @@ z_inlet   = z_M(inlet_idx);
 T_noFK = data_no_fk.Res_System_d18_18(401:end,:);
 T_fk = data_fk.Res_System_d18_18_FK(401:end,:);
 T_upwind = data_upwind.Res_System_d18_18(401:end,:);
+T_modified_advection = data_modified_advection.Res_System_d18_18(401:end,:);
 
-n_steps = size(T_fk, 2)-1;
+n_steps = size(T_fk, 2)/2;
 
 %%%------------------------------------------%%%
 % 04. Time axis (15 min per step)
@@ -103,13 +104,20 @@ models(2).name  = 'MATLAB (FK v16)';
 models(2).T     = T_fk;
 models(2).z     = z_M;
 models(2).style = '-';
-models(2).color = [0.0 0.6 0.0];    % green
+models(2).color = [0.0 0.7 0.0];    % green
 
 models(3).name  = 'MATLAB (no FK upwind)';
 models(3).T     = T_upwind;
 models(3).z     = z_M;
 models(3).style = '-';
-models(3).color = [0.6 0.0 0.0];    % blue
+models(3).color = [ 0.0 0.0 0.8];    % blue
+
+models(4).name  = 'MATLAB (no FK upwind+selective advection)';
+models(4).T     = T_modified_advection;
+models(4).z     = z_M;
+models(4).style = '-';
+models(4).color = [0.6 0.0 0];    % red
+
 
 %%%------------------------------------------%%%
 % 07. Video writer

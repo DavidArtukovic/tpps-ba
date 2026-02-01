@@ -18,7 +18,14 @@ Hier werden To Do's, Erkentnisse, Fragen sowie Protokolle zu den Treffen mit den
 - [x] Uderstand where the temperature increase in the lower replacement volume comes from in the base model (until 22.01.26)
 - [ ] set inlet to a fix position (until 25.01.26)
 - [x] lambda hybrid in beide richtungen kompatibel (bis 25.01.26)
-- [ ] Wasservolumen berechnen was pro Zeitschritt zugeführt wird. (bis 26.01.26)
+- [x] Wasservolumen berechnen was pro Zeitschritt zugeführt wird. (bis 26.01.26)
+- [ ] MUSCL Verfahren für Advektion (bis 30.01.26)
+
+
+## 23.01.26 Meeting Micha/Dominic
+- Freie Konvektion in geschlossener Form als ex-post Update implementiert. Problem: Implementierung benötigt zugeströmte Energeimenge $Q_{add} \propto \Delta t ( T_{\text{upper bypass inlet}} - T_{\text{lower bypass inlet}})$. 
+    →  Diese muss vom oberen Volumen entnommen werden. Allerdings wird die zugeführte Energie nicht über einen Massenfluss realisiert sondern über eine Dirichlet-Randbedingung a.k.a "Top-Knoten wird auf 80 °C festgenagelt". Dirichlet kann beliebig viel Energie einspeisen/abziehen – abhängig davon, was der Solver gerade braucht, um den Knoten zu treffen.
+- Idee: Füge am Interface Knoten eine Energiequelle hinzu: $$\frac{dT_{\text{interface}}}{dt} += \frac{\text[flow]}{\Delta z}(T_{in}-T_{\text{interface}})$$
 
 
 ## 23.01.26 Meeting Dominic

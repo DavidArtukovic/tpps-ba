@@ -79,6 +79,10 @@ r_pist = r_ST - r_gap;   % Piston radius in m
 A(1) = d(1)^2 * pi/4;    % Area of the cylindrical storage
 A(2) = r_pist^2 * pi;    % Area of the piston
 A(3) = A(1) - A(2);      % Area of the annulus (ring gap)
+
+% Initialize positions indices of bypass inlets
+[idx_bypass_lower_vec, idx_bypass_upper_vec] = compute_bypass_indices(t_900(2,:), H(3), H(11), Nz, dz);
+
 %%
 %%%------------------------------------------%%%
 % 03. Preprocess Scenario: piston position and flow rates
@@ -149,13 +153,14 @@ T0init(7) = 11;                 % Initial insulation temperature
 
 
 % Initialize logging
-version = 'v1';
+version = 'v4';
 dateTag = datestr(now, "yymmdd");
 
 FK_LOG_BASE = fullfile(DATA_SCEN1_FK, '01_logs');
+NOFK_LOG_BASE = fullfile(DATA_SCEN1, '01_logs');
 
-fk_logfile = fullfile(FK_LOG_BASE, ...
-    [dateTag '_scenario1_FK_' version '.log']);
+fk_logfile = fullfile(NOFK_LOG_BASE, ...
+    [dateTag '_scenario1_noFK_' version '.log']);
 
 fid_fk = fopen(fk_logfile,'w');
 
@@ -166,21 +171,24 @@ fklog(sprintf([ ...
     'Description:\n' ...
     'Purely basic no fk \n'...
     'Added upwind scheme in water \n'...
+    'Added selective advection regions\n'...
+'Replaced Dirichlet top, wich Heat flux \n'...
 
 ]));
 fklog(sprintf('Date and Time: %s', dateTag));
 fklog(sprintf('Version: %s', version));
-fklog(sprintf('Position lower inlet: %d', Nz(3)+Nz(4)+round(Nz(2)*1/10,0)));
 
 % create fk code history vector
-fk_code_hist = zeros(1, length(t_900)/2);
+fk_code_hist = zeros(1, length(t_900));
 
-for i = 1:(length(t_900)/2)
+for i = 1:(length(t_900))
     tic
     fklog('|||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||')
     fklog(sprintf('t = %.2f h', i * 15 / 60))
     fklog(sprintf('Temperature in middle of ring gap:  %.2f °C', T_Sys(end, Nz(3)+Nz(8)+Nz(2)+round(Nz(5)/2))));
-    
+    fklog(sprintf('index lower bypass inlet:  %d', idx_bypass_lower_vec(i)));
+    fklog(sprintf('index upper bypass inlet:  %d', idx_bypass_upper_vec(i)));
+
     % Update vertical water discretization according to piston position
     Nz(2) = Res_900(7, i+1);   % Number of cells in lower pressure zone
     Nz(4) = Res_900(8, i+1);   % Number of cells in upper pressure zone
@@ -190,8 +198,8 @@ for i = 1:(length(t_900)/2)
     % disp(['flow        = ' num2str(flow)]);
     % disp(['Nz replacement height    = ' num2str(Nz(5)*0.005) ' m']);
     % Compute heat transfer and mass transport for the current 15-min step
-    [T_Sys, T_REf, fk_code] = HeattransferSzen(t2, IC_Sys, Nz, dz, flow, ...
-                                      T0init, SW, A, z_RE, T_REf, Nt2,fklog);
+    [T_Sys, T_REf, fk_code] = HeattransferSzen(t2, IC_Sys, Nz, dz, idx_bypass_lower_vec(i), idx_bypass_upper_vec(i),...
+                                               flow, T0init, SW, A, z_RE, T_REf, Nt2,fklog);
 
     % Update initial condition for the next procedure step
     IC_Sys = T_Sys(end, :);
@@ -259,6 +267,7 @@ fclose(fid_fk);
 % 07. Store Scenario Results
 %%%------------------------------------------%%%
 fk = false;
+index_bypass = [idx_bypass_lower_vec; idx_bypass_upper_vec]; % store bypass indices
 
 if fk
     Res_900_d18_18_FK   = Res_900;
@@ -274,7 +283,7 @@ if fk
 
     % Save simulation results (commented out for safety)
     save(fullpathSIM, "Res_900_d18_18_FK", "Res_hour_d18_18_FK", ...
-         "Res_Wasser_d18_18_FK", "Res_System_d18_18_FK", "logging_fk_code")
+         "Res_Wasser_d18_18_FK", "Res_System_d18_18_FK", "logging_fk_code", "index_bypass")
 else
     Res_900_d18_18   = Res_900;
     Res_hour_d18_18  = Res_hour;
@@ -288,7 +297,7 @@ else
 
     % Save simulation results (commented out for safety)
     save(fullpathSIM, "Res_900_d18_18", "Res_hour_d18_18", ...
-         "Res_Wasser_d18_18", "Res_System_d18_18")
+         "Res_Wasser_d18_18", "Res_System_d18_18", "index_bypass")
 end
 
 %%
@@ -432,4 +441,58 @@ function [Heat_insu, Heat_Wasser, Heat_piston, Heat_Vsoil, ...
     end
     WEX = Spz * dz * ...
         (sum(wEX(1,2:end-1)) + 0.5 * (wEX(1,1) + wEX(1,end)));
+end
+
+function [idx_bypass_lower_vec, idx_bypass_upper_vec] = compute_bypass_indices(soc_vec, h_pist, h_lift, Nz, dz)
+    % COMPUTE_BYPASS_INDICES
+    % --------------------------------------------------------------
+    % Computes lower and upper bypass inlet indices based on piston
+    % position, following the piecewise definition from the sketch.
+    %
+    % INPUT:
+    %   soc_vec          - normalized vector of piston position in [0,1]
+    %                     (soc=1: piston top, soc=0: piston bottom)
+    %   h_pist          - total piston stroke height [m]
+    %   h_lift          - height of maximum lift [m]
+    %   Nz              - grid size vector
+    %   dz              - vertical grid spacing [m]
+    %
+    % OUTPUT:
+    %   idx_bypass_lower - global index of lower bypass inlet
+    %   idx_bypass_upper - global index of upper bypass inlet
+    %
+    % NOTES:
+    %   - Lower bypass always remains inside replacement volume.
+    %   - Upper bypass is inside replacement volume for large s and
+    %     transitions into upper water volume once a threshold is crossed.
+    %   - No dead-zone correction applied (by design).
+
+
+    % Number of cells in replacement volume of ringgap
+    Nrep = Nz(5);
+    idx_rep_begin = Nz(3) + Nz(8) + Nz(2) - 1; % Start of replacement volume
+    idx_upper_begin = Nz(3) + Nz(8) + Nz(2) + Nz(5) -2 ; % Start of upper water volume
+
+    % ----------------------------------------------------------
+    % Lower bypass: always inside replacement volume
+    % ----------------------------------------------------------
+    idx_bypass_lower_vec = idx_rep_begin + round((1 - soc_vec) .* Nrep .* h_lift ./ h_pist);
+
+    % ----------------------------------------------------------
+    % Upper bypass: piecewise definition
+    % ----------------------------------------------------------
+
+    % Threshold for leaving replacement volume
+    s_crit = 1.0 - 0.5 * (h_lift / h_pist);    % h_lift / h_pist = 16/18
+
+    mask_rep = soc_vec >= s_crit;      % logical 1xN
+    mask_up  = ~mask_rep;
+
+    % Case 1: upper bypass still in replacement volume
+    idx_bypass_upper_vec(mask_rep) = idx_bypass_lower_vec(mask_rep) + round(Nrep / 2);
+
+    % Case 2: upper bypass in upper water volume
+    delta_s = s_crit - soc_vec(mask_up);
+    idx_bypass_upper_vec(mask_up) = idx_upper_begin + round(delta_s .* h_lift ./ dz);
+
 end
