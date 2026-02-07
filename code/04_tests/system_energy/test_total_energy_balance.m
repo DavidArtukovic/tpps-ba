@@ -43,7 +43,7 @@ data_no_fk = load(fullfile(DATA_SCEN1_BASE, ...
 %     '260122_d18_h18_Res_Matlab_FK_v15.mat'));
 
 data_fk_v16 = load(fullfile(DATA_SCEN1_OWN, ...
-    '260124_d18_h18_Res_Matlab_FK_v16.mat'));
+    '260207_d18_h18_Res_Matlab_FK_v18.mat'));
 %%
 %%%------------------------------------------%%%
 % 02. Physical parameters
@@ -76,7 +76,7 @@ compute_balance = @(Res_900) compute_energy_balance_run( ...
 
 [E_sys_noFK, E_flow_noFK] = compute_balance(data_no_fk.Res_900_d18_18);
 % [E_sys_v15,  E_flow_v15 ] = compute_balance(data_fk_v15.Res_900_d18_18_FK);
-[E_sys_v16,  E_flow_v16 ] = compute_balance(data_fk_v16.Res_900_d18_18_FK);
+[E_sys_v16,  E_flow_v16] = compute_balance(data_fk_v16.ResOut.res.series_900);
 %%
 %%%------------------------------------------%%%
 % 05. Plot results
@@ -90,7 +90,7 @@ plot(t_h(1:Nplot), E_sys_noFK(1:Nplot), 'k-',  'LineWidth',1.4)
 % plot(t_h(1:Nplot), E_sys_v15(1:Nplot),  'g-',  'LineWidth',1.4)
 plot(t_h(1:Nplot), E_sys_v16(1:Nplot),  'b-',  'LineWidth',1.4)
 
-plot(t_h(1:Nplot), E_flow_noFK(1:Nplot),'k--', 'LineWidth',1.2)
+plot(t_h(1:Nplot), E_flow_noFK(1:Nplot),'k--', 'LineWidth',2)
 % plot(t_h(1:Nplot), E_flow_v15(1:Nplot), 'g--', 'LineWidth',1.2)
 plot(t_h(1:Nplot), E_flow_v16(1:Nplot), 'b--', 'LineWidth',1.2)
 
@@ -110,13 +110,13 @@ legend( ...
 %%%------------------------------------------%%%
 
 res_noFK = E_flow_noFK - E_sys_noFK;
-res_v15  = E_flow_v15  - E_sys_v15;
+% res_v15  = E_flow_v15  - E_sys_v15;
 res_v16  = E_flow_v16  - E_sys_v16;
 
 fprintf('\n===== Energy balance residuals =====\n');
 fprintf('no FK : min = %.3e J | max = %.3e J\n', min(res_noFK), max(res_noFK));
 % fprintf('FK v15: min = %.3e J | max = %.3e J\n', min(res_v15 ), max(res_v15 ));
-fprintf('FK v16: min = %.3e J | max = %.3e J\n', min(res_v16 ), max(res_v16 ));
+fprintf('FK v16: min = %.3e J | max = %.3e J\n', min(res_v16 ), max(res_v16));
 
 %% ============================================================= %%
 %                        LOCAL FUNCTION

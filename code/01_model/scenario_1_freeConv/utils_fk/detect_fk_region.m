@@ -39,10 +39,11 @@ function [ids_mix, Tin, z_mix_idx, T_w_in_upper, T_w_in_lower, fk_code] = detect
         fklog('Thermal Charging detected (flow < 0)');
         Tin = T_w_in_upper;
         z_mix_idx = params.z_inlet_lower_idx; % set end of mix-zone to lower inlet
+        fklog(['z_inlet_lower_idx = ' num2str(params.z_inlet_lower_idx)]);
 
         if Tin > T_w_in_lower
             % upward direction in lower volume (increasing index)
-            while (Tin > Tcur(z_mix_idx)) && (z_mix_idx < params.z_w_lower_end_idx)
+            while (Tin > Tcur(z_mix_idx)) && (z_mix_idx < params.z_membrane_idx)
                 z_mix_idx = z_mix_idx + 1;
             end
             ids_mix = params.z_inlet_lower_idx:z_mix_idx;
@@ -68,7 +69,7 @@ function [ids_mix, Tin, z_mix_idx, T_w_in_upper, T_w_in_lower, fk_code] = detect
         fklog('Thermal Discharging detected (flow > 0)');
         Tin = T_w_in_lower;
         z_mix_idx = params.z_inlet_upper_idx;
-
+        fklog(['z_inlet_upper_idx = ' num2str(params.z_inlet_upper_idx)]);
         if Tin > T_w_in_upper
             % upward direction in upper volume (increasing index)
             while (Tin > Tcur(z_mix_idx)) && (z_mix_idx < params.z_w_upper_end_idx)
@@ -79,7 +80,7 @@ function [ids_mix, Tin, z_mix_idx, T_w_in_upper, T_w_in_lower, fk_code] = detect
             fk_code = +2;
         else
             % downward direction in upper volume (decreasing index)
-            while (Tin < Tcur(z_mix_idx)) && (z_mix_idx > params.z_w_upper_start_idx)
+            while (Tin < Tcur(z_mix_idx)) && (z_mix_idx > params.z_membrane_idx)
                 z_mix_idx = z_mix_idx - 1;
             end
             ids_mix = params.z_inlet_upper_idx:-1:z_mix_idx;
@@ -88,6 +89,7 @@ function [ids_mix, Tin, z_mix_idx, T_w_in_upper, T_w_in_lower, fk_code] = detect
         end
      
     end
+    fklog(['z_mix_zone_idx= '  num2str(z_mix_idx)]);
     fklog(['fk_code    = ' num2str(fk_code)]);
     fklog(['Tin        = ' num2str(Tin)]);
     fklog(['T_w_in_upper      = ' num2str(T_w_in_upper)]);

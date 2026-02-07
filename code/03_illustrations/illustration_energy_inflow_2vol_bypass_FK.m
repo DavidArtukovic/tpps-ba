@@ -42,7 +42,7 @@
 % -------------------------------------------------------------------------
 
 clear; clc;
-
+run(fullfile('..', '..', 'configs', 'paths_relative.m'));
 %%% ------------------------
 % 1. Geometry & discretization
 %%% ------------------------
@@ -113,9 +113,18 @@ T_in   = 80.0;
 % 5.  Time discretization
 %%% ------------------------
 dt = 1;
-t_end = 10*3600;
+t_end = 7*3600;
 t = 0:dt:t_end;
 Nt = numel(t);
+
+%  FK timing 
+dt_fk   = 900;                 % [s]
+N_fk    = round(dt_fk/dt);     % number of time steps per FK update
+
+% storage for inlet temperature averaging
+T_bypass_hist_upper = zeros(N_fk,1);
+T_bypass_hist_lower = zeros(N_fk,1);
+fk_cnt  = 0;
 
 %%% ------------------------
 % 6. Temperature matrices
@@ -176,6 +185,7 @@ for n = 1:Nt
     % --- top contact temperature (water1 <-> insulation, with T_in reference) ---
     T_contact_top = (thermal_eff_w*T_in + thermal_eff_i*T_i(2)) / ...
                     (thermal_eff_w + thermal_eff_i);
+
     T_i(1)  = T_contact_top;
     T_w1(1) = T_contact_top;
 
@@ -188,13 +198,17 @@ for n = 1:Nt
 
     % --- bypass coupling (lossless): inlet temperature into lower = outlet temp from upper ---
     T_bypass = T_w1(idx_b1);
-
+    
+    % --- collect bypass temperature for FK averaging ---
+    fk_cnt = fk_cnt + 1;
+    T_bypass_hist_upper(fk_cnt) = T_bypass;
+    
     %%% ------------------------
     % Upper water volume: advection only from top down to bypass, diffusion everywhere
     %%% ------------------------
 
     dTw1 = zeros(Nw1,1);
-    dTw1(1) = 2*alpha_w * (T_w1(2) - T_w1(1)) / dz^2;
+
     % cell 2..idx_b1: flowing segment
     for i = 2:idx_b1
         adv  = -flow * (T_w1(i) - T_w1(i-1)) / dz;
@@ -217,6 +231,9 @@ for n = 1:Nt
     %%% ------------------------
     % Lower water volume: advection only from bypass downwards, diffusion everywhere
     %%% ------------------------
+    
+    % store current temperature in lower volume at bypass
+    T_bypass_hist_lower(fk_cnt) = T_w2(idx_b2);
 
     dTw2 = zeros(Nw2,1);
 
@@ -230,8 +247,7 @@ for n = 1:Nt
     end
 
     % bypass inlet cell: enforce advective inlet from T_bypass (boundary-like)
-    dTw2(idx_b2) = -(flow/dz) * (T_w2(idx_b2) - T_bypass) + ...
-                   alpha_w * (T_w2(idx_b2+1) - 2*T_w2(idx_b2) + T_w2(idx_b2-1)) / dz^2;
+    dTw2(idx_b2) = alpha_w * (T_w2(idx_b2+1) - 2*T_w2(idx_b2) + T_w2(idx_b2-1)) / dz^2;
 
     % flowing interior below bypass
     for i = idx_b2+1:Nw2-1
@@ -241,7 +257,7 @@ for n = 1:Nt
     end
 
     % bottom cell already overwritten by contact; keep derivative zero
-    dTw2(Nw2) = 2*alpha_w * (T_w2(Nw2-1) - T_w2(Nw2)) / dz^2;
+    dTw2(Nw2) = 0;
 
     T_w2 = T_w2 + dt*dTw2;
 
@@ -250,9 +266,7 @@ for n = 1:Nt
     %%% ------------------------
 
     dTi = zeros(Ni,1);
-    % bottom insulation contact node: one-sided diffusion into insulation
-    dTi(1) = 2*alpha_i * (T_i(2) - T_i(1)) / dz^2;
-
+    dTi(1) = 0; % contact-enforced
     for j = 2:Ni-1
         dTi(j) = alpha_i * (T_i(j+1) - 2*T_i(j) + T_i(j-1)) / dz^2;
     end
@@ -264,14 +278,68 @@ for n = 1:Nt
     %%% ------------------------
 
     dTs = zeros(Ns,1);
-    dTs(1) = 2*alpha_s * (T_s(2) - T_s(1)) / dz^2;
-    
+    dTs(1) = 0; % contact-enforced
     for j = 2:Ns-1
         dTs(j) = alpha_s * (T_s(j+1) - 2*T_s(j) + T_s(j-1)) / dz^2;
     end
     dTs(Ns) = alpha_s * (T_s(Ns-1) - 2*T_s(Ns) + T_s(Ns-1)) / dz^2; % adiabatic at bottom
     T_s = T_s + dt*dTs;
 
+
+    % =================================================
+    % DISCRETE FK UPDATE (downward, extrapolated_zmix)
+    % =================================================
+    if fk_cnt == N_fk
+
+        % --- averaged inlet temperature (upper bypass) ---
+        T_w_in_upper = mean(T_bypass_hist_upper);
+        % disp(['FK update: T_w_in_upper = ', num2str(T_w_in_upper)]);
+        % --- lower reference temperature (current inlet-adjacent cell) ---
+        T_w_in_lower = mean(T_bypass_hist_lower);
+
+        % --- downward mixing zone (as in FK test) ---
+        z_mix_idx = Nw2;
+        ids_mix   = (Nw2-idx_b2):1:z_mix_idx;
+
+        % --- FK parameter struct (same semantics as tests) ---
+        params_fk.dz    = dz;
+        params_fk.rho_w = 1000;
+        params_fk.c_w   = 4200;
+        params_fk.A_hws = A;
+        v_flow = abs(flow);          % [m/s]
+        Vdot   = v_flow * params_fk.A_hws;
+        params_fk.mdot = params_fk.rho_w * Vdot; % kg/s
+        dt_mix = dt_fk;
+        fk_case = 'fully_mixed';
+        if abs(T_w2(1) -T_w2(idx_b2)) >1
+            fk_case = 'extrapolated_zmix';
+        end
+        disp('FK case: ' + string(fk_case));
+
+        
+        % --- before FK ---
+        E2_trap_before = A * rho_cp_w * trapz(z_w2, T_w2);
+        E2_sum_before  = A * rho_cp_w * dz * sum(T_w2);
+        
+        % --- apply FK operator ONLY to lower water volume ---
+        T_w2_rev = apply_fk_operator( ...
+            flipud(T_w2), ...
+            ids_mix, ...
+            z_mix_idx, ...
+            T_w_in_upper, ...
+            T_w_in_upper, ...
+            T_w_in_lower, ...
+            fk_case, ...
+            dt_mix, ...
+            params_fk, ...
+            @(s) [] );
+        T_w2 = flipud(T_w2_rev);
+        % --- reset FK buffers ---
+        fk_cnt = 0;
+        T_bypass_hist_upper(:) = 0;
+
+    end
+    
     % store
     Tw1_hist_A(:,n) = T_w1;
     Tw2_hist_A(:,n) = T_w2;
@@ -284,6 +352,8 @@ for n = 1:Nt
         rho_cp_w * trapz(z_w1, T_w1) + ...
         rho_cp_w * trapz(z_w2, T_w2) + ...
         rho_cp_s * trapz(z_s,  T_s) );
+
+
 end
 
 %%% ========================
@@ -309,7 +379,10 @@ for n = 1:Nt
 
     % --- bypass coupling (lossless): inlet temperature into lower = outlet temp from upper ---
     T_bypass = T_w1(idx_b1);
-
+    
+    % --- collect bypass temperature for FK averaging ---
+    fk_cnt = fk_cnt + 1;
+    T_bypass_hist_upper(fk_cnt) = T_bypass;
     %%% ------------------------
     % Top interface (water1 <-> insulation)
     %%% ------------------------
@@ -332,7 +405,7 @@ for n = 1:Nt
 
     % top water cell: inflow + diffusion (Neumann) + interface heat flux
     dTw1(1) = -2*(flow/dz) * (T_w1(1) - T_in) ...
-              + alpha_w * (2*(T_w1(2) - T_w1(1))) / dz^2 ...
+              + alpha_w * ((T_w1(2) - 2*T_w1(1)+T_w1(2))) / dz^2 ...
               - 2*q_wi / (rho_cp_w * dz);
 
     % flowing segment up to bypass
@@ -369,8 +442,7 @@ for n = 1:Nt
     end
 
     % bypass inlet cell: inflow from T_bypass + diffusion
-    dTw2(idx_b2) = -(flow/dz) * (T_w2(idx_b2) - T_bypass) ...
-                   + alpha_w * (T_w2(idx_b2+1) - 2*T_w2(idx_b2) + T_w2(idx_b2-1)) / dz^2;
+    dTw2(idx_b2) = alpha_w * (T_w2(idx_b2+1) - 2*T_w2(idx_b2) + T_w2(idx_b2-1)) / dz^2;
 
     % flowing interior
     for i = idx_b2+1:Nw2-1
@@ -410,6 +482,58 @@ for n = 1:Nt
     dTs(Ns) = alpha_s * (T_s(Ns-1) - 2*T_s(Ns) + T_s(Ns-1)) / dz^2; % adiabatic at bottom
     T_s = T_s + dt*dTs;
 
+
+    % =================================================
+    % DISCRETE FK UPDATE (downward, extrapolated_zmix)
+    % =================================================
+    if fk_cnt == N_fk
+
+        % --- averaged inlet temperature (upper bypass) ---
+        T_w_in_upper = mean(T_bypass_hist_upper);
+
+        % --- lower reference temperature (current inlet-adjacent cell) ---
+        T_w_in_lower = T_w2(idx_b2);
+
+        % --- downward mixing zone (as in FK test) ---
+        z_mix_idx = Nw2;
+        ids_mix   = (Nw2-idx_b2):1:z_mix_idx;
+
+        % --- FK parameter struct (same semantics as tests) ---
+        params_fk.dz    = dz;
+        params_fk.rho_w = 1000;
+        params_fk.c_w   = 4200;
+        params_fk.A_hws = A;
+        v_flow = abs(flow);          % [m/s]
+        Vdot   = v_flow * params_fk.A_hws;
+        params_fk.mdot = params_fk.rho_w * Vdot; % kg/s
+        dt_mix = dt_fk;
+        fk_case = 'fully_mixed';
+        if abs(T_w2(1) -T_w2(idx_b2)) >1
+            fk_case = 'extrapolated_zmix';
+        end
+        disp('FK case: ' + string(fk_case));
+        % --- apply FK operator ONLY to lower water volume ---
+        T_w2_rev = apply_fk_operator( ...
+            flipud(T_w2), ...
+            ids_mix, ...
+            z_mix_idx, ...
+            T_w_in_upper, ...
+            T_w_in_upper, ...
+            T_w_in_lower, ...
+            fk_case, ...
+            dt_mix, ...
+            params_fk, ...
+            @(s) [] );
+        T_w2 = flipud(T_w2_rev);
+        % --- reset FK buffers ---
+        fk_cnt = 0;
+        T_bypass_hist_upper(:) = 0;
+    end
+
+
+
+
+
     % store
     Tw1_hist_B(:,n) = T_w1;
     Tw2_hist_B(:,n) = T_w2;
@@ -430,9 +554,10 @@ end
 figure;
 plot(t/3600, E_old, 'r-', 'LineWidth', 1.5); hold on;
 plot(t/3600, E_new, 'b-', 'LineWidth', 1.5); hold on;
+plot(t/3600, E_gt_old, 'k:', 'LineWidth', 2);
 plot(t/3600, E_gt_new, 'k--', 'LineWidth', 2);
 xlabel('Time [h]'); ylabel('Total energy [arb.]');
-legend('Method A','Method B','Ground truth','Location','best');
+legend('Method A','Method B','Ground truth contact cell','Ground truth ghost cells','Location','best');
 grid on;
 
 figure; hold on;
@@ -516,7 +641,7 @@ text(min(T_A)+5, 0, ...
      'Interpreter','latex', ...
      'VerticalAlignment','bottom');
 
-text(min(T_A)+5, H_w1+H_w2, ...
+text(min(T_A)+20, H_w1+H_w2, ...
      '\textit{water - soil (external enthalpy sink}', ...
      'Interpreter','latex', ...
      'VerticalAlignment','bottom');

@@ -20,7 +20,7 @@ data_no_fk = load(fullfile(DATA_SCEN1_BASE, ...
     'd18_h18_Res_Matlab_d18_18.mat'));
 
 data_fk_v6 = load(fullfile(DATA_SCEN1_OWN, ...
-    '260122_d18_h18_Res_Matlab_FK_v15.mat'));
+    '260206_d18_h18_Res_Matlab_FK_v17.mat'));
 
 data_fk_v7 = load(fullfile(DATA_SCEN1_OWN, ...
     '260124_d18_h18_Res_Matlab_FK_v16.mat'));
@@ -33,8 +33,8 @@ dz_M = 0.005;                           % MATLAB resolution
 Nz   = size(data_no_fk.Res_System_d18_18,1) - 400;
 z_M_star  = flip((0:Nz-1)' * dz_M);
 z_M = -1*(37.33 - z_M_star)+0.665;
+
 inlet_idx = 4288;
-%%
  
 %%%------------------------------------------%%%
 % 03. Extract full 15-min resolution (no reduction)

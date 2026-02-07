@@ -1,4 +1,4 @@
-function [T_Sys, fk_code] = apply_free_convection(T_Sys, dt_mix, flow, Nz, dz, SW, A, fklog)
+function [T_Sys, fk_code] = apply_free_convection(T_Sys, dt_mix, flow, Nz, dz, SW, A, bypass_indices, fklog)
 % ---------------------------------------------------------------
 % SUMMARY:
 %   Applies the discrete free-convection (FK) mixing operator to the
@@ -18,6 +18,7 @@ function [T_Sys, fk_code] = apply_free_convection(T_Sys, dt_mix, flow, Nz, dz, S
 %   dz      - vertical grid spacing [m]
 %   SW      - material and model parameter matrix
 %   A       - cross-sectional and geometric parameters
+%   bypass_indices - indices of the lower/upper bypass inlet and membrane in the 1D system state vector
 %   fklog   - logging function handle
 %
 % OUTPUT:
@@ -34,7 +35,7 @@ function [T_Sys, fk_code] = apply_free_convection(T_Sys, dt_mix, flow, Nz, dz, S
     %--------------------------------------------------------------
     % Precompute geometric indices and physical parameters
     %--------------------------------------------------------------
-    params = init_fk_parameters(Nz, dz, SW, A, flow);
+    params = init_fk_parameters(Nz, dz, SW, A, bypass_indices, flow);
         
     % Use the already-updated previous state as baseline (sequential operator)
     Tcur = T_Sys(end,:).';

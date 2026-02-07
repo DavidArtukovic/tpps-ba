@@ -1,5 +1,5 @@
 
-function params = init_fk_parameters(Nz, dz, SW, A, flow)
+function params = init_fk_parameters(Nz, dz, SW, A, bypass_indices, flow)
 % ---------------------------------------------------------------
 % SUMMARY:
 %   Initializes geometric indices and physical parameters for FK modeling.
@@ -9,6 +9,7 @@ function params = init_fk_parameters(Nz, dz, SW, A, flow)
 %   dz    - vertical grid spacing [m]
 %   SW    - material parameters
 %   A     - geometric parameters
+
 %   flow  - flow flag
 %
 % OUTPUT:
@@ -16,20 +17,15 @@ function params = init_fk_parameters(Nz, dz, SW, A, flow)
 % ---------------------------------------------------------------
 
     % Indices 
-    params.replacement_top_idx    = Nz(3)+Nz(8)+Nz(2)+Nz(5)-2;
-    params.replacement_bottom_idx = Nz(3)+Nz(8)+Nz(2)-1;
-    params.replacement_mid_idx    = round((params.replacement_top_idx + ...
-                                           params.replacement_bottom_idx)/2,0);
-    % static case okay, dynamic case: mid index changes with water levels
 
-    params.z_inlet_upper_idx = params.replacement_mid_idx+1;          % approx. middle of upper water height
-    params.z_inlet_lower_idx = Nz(3)+Nz(8)+round(Nz(2)*9/10,0);        % approx. 9/10 of lower water height
+    params.z_inlet_lower_idx = bypass_indices(1);  
+    params.z_inlet_upper_idx = bypass_indices(2);
+    params.z_membrane_idx    = bypass_indices(3);      
 
 
     % lower water bounds
     params.z_w_lower_start_idx = Nz(3)+Nz(8)+1;
-    % params.z_w_lower_end_idx   = Nz(3)+Nz(8)+Nz(2)-1;
-    params.z_w_lower_end_idx = params.replacement_mid_idx-1;
+    params.z_w_lower_end_idx   = Nz(3)+Nz(8)+Nz(2)-1;
 
     % upper water bounds
     params.z_w_upper_start_idx = Nz(3)+Nz(8)+Nz(2)+Nz(5)-2;

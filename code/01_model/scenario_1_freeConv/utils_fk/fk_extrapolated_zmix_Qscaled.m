@@ -21,7 +21,6 @@ function Tcur = fk_extrapolated_zmix_Qscaled(Tcur, ids_mix, z_mix_idx, Tin, T_w_
     % 1) Current temperatures in numerical mixing zone
     %--------------------------------------------------------------
     Tmix = Tcur(ids_mix);
-
     %--------------------------------------------------------------
     % 2) Numerical integral over ACTUAL mixing zone
     %--------------------------------------------------------------
