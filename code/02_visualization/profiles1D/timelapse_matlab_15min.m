@@ -53,9 +53,14 @@ z_M_star = flip((0:Nz-1)' * dz_M);
 % Physical coordinate: top at +0.665 m, bottom at -36.665 m
 z_M = -1*(37.33 - z_M_star) + 0.665;
 
-% Inlet index (from your static script)
-inlet_idx = 4288;
-z_inlet   = z_M(inlet_idx);
+% --- geometric bypass positions (relative to z = 0) ---
+z_ps_up_geom  = -1 - 16/2;
+z_ps_low_geom = -3*1 - 0.05 - 16;
+
+% --- corresponding indices on z_M grid ---
+[~, idx_bypass_upper] = min(abs(z_M - z_ps_up_geom));
+[~, idx_bypass_lower] = min(abs(z_M - z_ps_low_geom));
+
 
 %%%------------------------------------------%%%
 % 03. Extract full 15-min resolution
@@ -167,6 +172,20 @@ figure('Color','w','Name','1D temperature profiles – time-lapse (15 min)');
 hold on
 grid on
 
+% --- right-side markers (short horizontal segments) ---
+x_mark = [78 80];
+
+h_ps_up  = plot(x_mark, [NaN NaN], 'k-', 'LineWidth',3);
+h_ps_low = plot(x_mark, [NaN NaN], 'k-', 'LineWidth',3);
+h_mem    = plot(x_mark, [NaN NaN], 'k-', 'LineWidth',3);
+
+x_txt = 80.3;   % slightly right of marker lines
+
+h_txt_up  = text(x_txt, NaN, 'upper bypass inlet', 'FontSize',9, 'Color','k', 'VerticalAlignment','middle');
+h_txt_mem = text(x_txt, NaN, 'membrane',           'FontSize',9, 'Color','k', 'VerticalAlignment','middle');
+h_txt_low = text(x_txt, NaN, 'lower bypass inlet', 'FontSize',9, 'Color','k', 'VerticalAlignment','middle');
+
+
 for mm = 1:numel(models)
     % Water-Piston system
     h_sys(mm) = plot(models(mm).T_sys(:,1), models(mm).z, ...
@@ -224,13 +243,27 @@ uistack(h_fk_rect,'bottom');
 
 % Title handle
 h_title = title('', 'Interpreter','Latex');
+set(h_ps_up ,  'YData', [z_M(idx_bypass_upper) z_M(idx_bypass_upper)]);
+set(h_ps_low, 'YData', [z_M(idx_bypass_lower) z_M(idx_bypass_lower)]);
+set(h_txt_up ,  'Position', [x_txt z_M(idx_bypass_upper) 0]);
+set(h_txt_low,  'Position', [x_txt z_M(idx_bypass_lower) 0]);
 
 %%%------------------------------------------%%%
 % 09. Animation loop
 %%%------------------------------------------%%%
 
+set(h_sys(2), 'Visible', 'off');
+
 for i = 1:n_steps
-    
+
+    SoC = t_900(2,i);   % state of charge in [0,1]
+
+    z_membrane = -2*1 - 16 * (1 - SoC/2);
+    [~, idx_membrane] = min(abs(z_M - z_membrane));
+
+    set(h_mem, 'YData', [z_M(idx_membrane) z_M(idx_membrane)], 'Color', [1 0.85 0]);
+    set(h_txt_mem, 'Position', [x_txt z_M(idx_membrane) 0]);
+
     z_piston = z_piston_ts(i);
     z_ring   = flip(z_piston + z_ring_norm * h_piston);
 
@@ -249,8 +282,8 @@ for i = 1:n_steps
     
         if fk_code > 0
             % --- upper water volume ---
-            y0 = z_inlet;
-            height_fk  = max(z_M) - z_inlet;
+            y0 = z_M(idx_bypass_upper);
+            height_fk  = abs(z_M(idx_bypass_upper) -max(z_M));
         else
             % --- lower water volume ---
             y0 = min(z_M);
