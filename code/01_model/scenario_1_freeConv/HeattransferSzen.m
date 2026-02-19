@@ -64,7 +64,7 @@ function [T_Sys,T_REf, fk_code] = HeattransferSzen(t2, IC_Sys, Nz, dz, bypass_in
     % 01: Integrate transient 1D TPPS model with flow (fluid + solid)
     %%%------------------------------------------%%%
 
-    [t2,T_Sys] = ode45(@HeatFluidSolid, t2, IC_Sys,[], Nz, dz, bypass_indices, flow, T0init, SW, A, z_RE, fklog);
+    [t2,T_Sys] = ode45(@HeatFluidSolid, t2, IC_Sys,[], Nz, dz, bypass_indices, flow, T0init, SW, A, z_RE);
 
 
     %%%------------------------------------------%%%
@@ -75,8 +75,7 @@ function [T_Sys,T_REf, fk_code] = HeattransferSzen(t2, IC_Sys, Nz, dz, bypass_in
     dt_mix = 900; % time step size for mixing operator [s]
     fklog(['temperature at membrane before FK= ' num2str(T_Sys(end, bypass_indices(3)))]);
     [T_Sys, fk_code] = apply_free_convection(T_Sys, dt_mix, flow, Nz, dz, SW, A, bypass_indices, fklog);
-    disp('temperature below membrane after FK= ' + string(T_Sys(end, bypass_indices(3)-3)) + ' °C');
-
+    
     %%%------------------------------------------%%%
     % 03: Define frequently used indices
     %%%------------------------------------------%%%

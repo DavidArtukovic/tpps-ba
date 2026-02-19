@@ -42,7 +42,7 @@
 % ---------------------------------------------------------------
 
 
-function dTdt = HeatFluidSolid(t, T, Nz, dz, bypass_indices, flow, T0init, SW, A, z_RE, fklog)
+function dTdt = HeatFluidSolid(t, T, Nz, dz, bypass_indices, flow, T0init, SW, A, z_RE)
     % Pre-allocate temperature time derivative vector:
     %  - Nz(10) = number of 1D vertical nodes in piston, soil, water, air,
     %             and 1D insulation
@@ -188,7 +188,7 @@ function dTdt = HeatFluidSolid(t, T, Nz, dz, bypass_indices, flow, T0init, SW, A
 
     % Extract vertical temperature profile in 1D insulation at system top
     sys_top_no_ins_idx = Nz(3)+Nz(8)+Nz(2)+Nz(5)+Nz(4)-3;
-    DTd(:,1) = T(sys_top_no_ins_idx :sys_top_idx);
+    DTd(:,1) = T(sys_top_no_ins_idx:sys_top_idx);
 
     % Indices for the top of the radial soil column (first radial ring)
     radial_soil_top_idx        = Nz(2)+Nz(3)+Nz(4)+Nz(9)-3;
@@ -327,11 +327,16 @@ function dTdt = HeatFluidSolid(t, T, Nz, dz, bypass_indices, flow, T0init, SW, A
                 % Standard Laplacian
                 diffusion = (T(i+1) - 2*T(i) + T(i-1)) / dz^2;
             end
+
+            % --- Ring gap: scale axial diffusivity due to replacement-volume compression ---
+            s_geom      = A(3) / A(1);              % = H(5)/H(3) because A1*H5 = A3*H3
+            alpha_ring  = SW(1,5) * s_geom^2;       % preserve diffusion time scale tau ~ L^2/alpha
+
             % Water segment inside the piston region (no direct radial coupling)
             % update with axial conduction + advection only
             % between bypass indices only difussion is active
             % at mebrane node dTdt = 0 (adiabatic)
-            dTdt(i) = SW(1,5) * diffusion ...
+            dTdt(i) = alpha_ring * diffusion ...
                     + adv;
         end
     end

@@ -154,7 +154,7 @@ T0init(7) = 11;                 % Initial insulation temperature
 
 
 % Initialize logging
-version = 'v18';
+version = 'v19';
 dateTag = datestr(now, "yymmdd");
 
 FK_LOG_BASE = fullfile(DATA_SCEN1_FK, '01_logs');
@@ -172,7 +172,7 @@ fklog(sprintf([ ...
     'Description:\n' ...
     'FK with shifting membrane adapted convection diffusion  \n'...
     'Added upwind scheme in water \n'...
-
+    'First time modified diffusion coefficient in ring gap' ...
 ]));
 fklog(sprintf('Date and Time: %s', dateTag));
 fklog(sprintf('Version: %s', version));
@@ -207,7 +207,6 @@ for i = 1:(length(t_900))
 
     % Updated water temperature profile
     T_W(1, :) = T_Sys(end, Nz(3)+Nz(8):Nz(3)+Nz(8)+Nz(2)+Nz(5)+Nz(4)-3);
-    disp(['temperature below membrane: ' num2str(T_Sys(end, bypass_indices(3,i)-3)) ' °C']);
     
     % Recompute energy and exergy balances using helper function
     [Heat_insu, Heat_Wasser, Heat_piston, Heat_Vsoil, ...
