@@ -309,8 +309,6 @@ function dTdt = HeatFluidSolid(t, T, Nz, dz, bypass_indices, flow, T0init, SW, A
     e_start = Nz(2);
     e_end   = Nz(2)+Nz(3)-1;
 
-    % water-side coupling coefficient [1/s]
-    k_wp_w = h_wp * A_int / (SW(1,2)*SW(1,3)*A(3)*dz);  
 
     for i = Nz(3)+Nz(8)+1 : idx_w_top
 
@@ -379,23 +377,12 @@ function dTdt = HeatFluidSolid(t, T, Nz, dz, bypass_indices, flow, T0init, SW, A
             % mean radial gradient
             mean_DT = mean( DT(e_low:e_high,1) );
 
-
-            % coupling to piston (block-averaged)
-            
-            ip_low  = 1 + floor((j-1)/Nz(5) * Nz(3));
-            ip_high = 1 + floor(j/Nz(5)     * Nz(3)) - 1;
-
-            ip_low  = max(ip_low,  1);
-            ip_high = min(ip_high, Nz(3));
-
-            T_p_mean = mean( T(ip_low:ip_high));
-
             % Water segment inside the piston region (no direct radial coupling)
             % update with advection + scaled diffusion and  radial loss to outer soil
             % at mebrane node dTdt = 0 (adiabatic)
             dTdt(i) = alpha_ring * diffusion ...
                     + adv ...
-                    + k_rad_ring * mean_DT ...          % soil coupling
+                    + k_rad_ring * mean_DT;          % soil coupling
         end
     end
 
