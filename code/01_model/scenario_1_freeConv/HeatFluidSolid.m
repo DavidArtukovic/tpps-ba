@@ -155,9 +155,35 @@ function dTdt = HeatFluidSolid(t, T, Nz, dz, bypass_indices, flow, T0init, SW, A
     % Mixed contact temperature at piston bottom
     T(1) = (SW(1,4)*TK_WKU+SW(2,4)*TK_KWU)/((SW(1,4)+SW(2,4)));
 
+    % Water–piston mantle coupling (ring gap)
+    delta_eff = 0.15;                     % [m] effective thermal boundary layer thickness (tunable)
+    h_wp      = SW(1,1) / delta_eff;      % [W/m2K] conduction-based heat transfer coefficient
+
+    r_int = sqrt(A(2)/pi);          % inner radius for ring-gap coupling (for geometric scaling of h)
+    A_int = 2*pi*r_int*dz;          % [m^2] mantle area per axial cell
+
+    % piston-side coupling coefficient [1/s]
+    k_wp_p = h_wp * A_int / (SW(2,2)*SW(2,3)*A(2)*dz);
+
+
+
     % 1D heat conduction inside the piston
     for i = 2:Nz(3)-1
         dTdt(i) =  SW(2,5)*(T(i+1)-2*T(i)+T(i-1))/(dz^2); 
+
+        % coupling to ring-gap water
+
+        % relative vertical position in piston
+        rel = (i-1) / (Nz(3)-1);
+
+        % corresponding ring-gap index (1 ... Nz(5))
+        j = floor(rel * (Nz(5)-1)) + 1;
+
+        % ring-gap water temperature
+        T_w_ring = T(Nz(3)+Nz(8)+Nz(2)-1 + j);
+
+        % add symmetric heat exchange term
+        dTdt(i) = dTdt(i) + k_wp_p * (T_w_ring - T(i));
     end
 
     %%%------------------------------------------%%%
@@ -396,6 +422,7 @@ function dTdt = HeatFluidSolid(t, T, Nz, dz, bypass_indices, flow, T0init, SW, A
             dTdt(i) = alpha_ring * diffusion ...
                     + adv ...
                     + k_rad_ring * mean_DT ...          % soil coupling
+                    + k_wp_w     * (T_p_mean - T(i));  % piston coupling
         end
     end
 

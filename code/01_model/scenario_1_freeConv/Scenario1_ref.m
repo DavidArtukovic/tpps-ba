@@ -154,7 +154,7 @@ T0init(7) = 11;                 % Initial insulation temperature
 
 
 % Initialize logging
-version = 'v19';
+version = 'v20';
 dateTag = datestr(now, "yymmdd");
 
 FK_LOG_BASE = fullfile(DATA_SCEN1_FK, '01_logs');
@@ -172,11 +172,21 @@ fklog(sprintf([ ...
     'Description:\n' ...
     'FK with shifting membrane adapted convection diffusion  \n'...
     'Added upwind scheme in water \n'...
-    'First time modified diffusion coefficient in ring gap' ...
+    'First time modified diffusion coefficient in ring gap \n' ...
+    'Added radial-coupling to soil and piston inside ring-gap volume'...
 ]));
 fklog(sprintf('Date and Time: %s', dateTag));
 fklog(sprintf('Version: %s', version));
 
+% Water–piston mantle coupling (ring gap)
+delta_eff = 5e-3;                     % [m] effective thermal boundary layer thickness (tunable)
+h_wp      = SW(1,1) / delta_eff;      % [W/m2K] conduction-based heat transfer coefficient
+
+A_int = A(2)*dz;               % interface area per axial cell
+
+% piston-side coupling coefficient [1/s]
+k_wp_p = h_wp * A_int / (SW(2,2)*SW(2,3)*A(2)*dz);
+fklog(sprintf('Piston coupling coefficient k_wp_p: %.4f 1/s', k_wp_p));
 % create fk code history vector
 fk_code_hist = zeros(1, length(t_900));
 

@@ -38,8 +38,8 @@ load(fullfile(DATA_BASE, 'scenario1/SzenarioComsol.mat'));
 
 % MATLAB results (same as plot_matlab_profiles.m)
 data_1 = load(fullfile(DATA_SCEN1_NOFK, 'd18_h18_Res_Matlab_d18_18.mat'));
-data_2 = load(fullfile(DATA_SCEN1_NOFK, '260131_d18_h18_Res_Matlab_noFK_v3.mat'));
-data_3 = load(fullfile(DATA_SCEN1_FK, '260207_d18_h18_Res_Matlab_FK_v18.mat'));
+data_2 = load(fullfile(DATA_SCEN1_FK, '260207_d18_h18_Res_Matlab_FK_v18.mat'));
+data_3 = load(fullfile(DATA_SCEN1_FK, '260219_d18_h18_Res_Matlab_FK_v20.mat'));
 
 %%
 %%%------------------------------------------%%%
@@ -67,7 +67,7 @@ z_ps_low_geom = -3*1 - 0.05 - 16;
 %%%------------------------------------------%%%
 
 T_1 = data_1.Res_System_d18_18(401:end,:);
-T_2 = data_2.Res_System_d18_18(401:end,:);
+T_2 = data_2.ResOut.temperature.system(401:end,:);
 T_3 = data_3.ResOut.temperature.system(401:end,:);
 
 n_steps = size(T_1, 2);
@@ -89,12 +89,12 @@ A        = data_1.Res_Wasser_d18_18(:,1:n_steps);     % [Nz x Nt]
 linInd = sub2ind(size(A), rows, colsMat);
 T_ring_1 = A(linInd);                % [389 x Nt_reduced]
 
-%%% No FK %%%
-A        = data_2.Res_Wasser_d18_18(:,1:n_steps);     % [Nz x Nt]
+%%% FK %%%
+A        = data_2.ResOut.temperature.water(:,1:n_steps);     % [Nz x Nt]
 linInd = sub2ind(size(A), rows, colsMat);
 T_ring_2 = A(linInd);                % [389 x Nt_reduced]
 
-%%% No FK %%%
+%%% FK %%%
 A        = data_3.ResOut.temperature.water(:,1:n_steps);     % [Nz x Nt]
 linInd = sub2ind(size(A), rows, colsMat);
 T_ring_3 = A(linInd);                % [389 x Nt_reduced]
@@ -136,14 +136,14 @@ models(1).z      = z_M;
 models(1).style  = '-';
 models(1).color  = [0 0 0];          % black
 
-models(2).name   = 'no FK - upwind';
+models(2).name   = 'FK ';
 models(2).T_sys  = T_2;
 models(2).T_ring = T_ring_2;
 models(2).z      = z_M;
 models(2).style  = '-';
 models(2).color  = [0.0 0.7 0.0];    % green
 
-models(3).name   = 'FK';
+models(3).name   = 'FK - adapted diffusion + radial coupling';
 models(3).T_sys  = T_3;
 models(3).T_ring = T_ring_3;
 models(3).z      = z_M;
@@ -157,7 +157,7 @@ z_ring_norm = linspace(0,1,blockLen)';   % normalized vertical coordinate
 %%%------------------------------------------%%%
 dateTag = datestr(now,'yyyymmdd');
 videoname = fullfile(RESULTS_TIMELAPSE, ...
-    [dateTag '_timelapse_1D_temperature_profiles_15min_matlab_only.mp4']);
+    [dateTag '_timelapse_1D_temperature_profiles_15min_matlab_only_v2.mp4']);
 
 v = VideoWriter(videoname,'MPEG-4');
 % Keep it readable; increase if you want a faster video
@@ -193,9 +193,9 @@ for mm = 1:numel(models)
     'Color', models(mm).color, ...
     'LineWidth',1.5);
 
-    if mm==3 % only third ringgap for modelling
-        % Ring-gap plot handles (dashed, same colors)
-        h_ring  = plot(nan, nan, '--', ...
+    % --- Ring-gap handles for model 2 and 3 ---
+    if mm >= 2
+        h_ring(mm) = plot(nan, nan, '--', ...
             'Color', models(mm).color, ...
             'LineWidth',1.5);
     end
@@ -213,9 +213,12 @@ for mm = 1:numel(models)
     legend_handles(end+1) = h_sys(mm);
     legend_labels{end+1}  = [models(mm).name ' – system'];
 
+    if mm >= 2
+        legend_handles(end+1) = h_ring(mm);
+        legend_labels{end+1}  = [models(mm).name ' – ring gap'];
+    end
 end
-legend_handles(end+1) = h_ring;
-legend_labels{end+1}  = [models(3).name ' – ring gap'];
+
 
 legend(legend_handles, legend_labels, 'Interpreter','none', 'Location','best')
 
@@ -252,7 +255,7 @@ set(h_txt_low,  'Position', [x_txt z_M(idx_bypass_lower) 0]);
 % 09. Animation loop
 %%%------------------------------------------%%%
 
-set(h_sys(2), 'Visible', 'off');
+% set(h_sys(2), 'Visible', 'off');
 
 for i = 1:n_steps
 
@@ -304,8 +307,11 @@ for i = 1:n_steps
 
     end
     % Ring-gap profile mapped to piston height
-    set(h_ring, 'XData', models(3).T_ring(:,i), ...
-                'YData', z_ring);
+    for mm = 2:numel(models)
+        set(h_ring(mm), ...
+            'XData', models(mm).T_ring(:,i), ...
+            'YData', z_ring);
+    end
 
     set(h_rect, 'Position', [40 z_piston 40 h_piston]);
 
