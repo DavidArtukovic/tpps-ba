@@ -1891,3 +1891,476 @@ linear extrapolated FK update violates basic physical constraints.
 
 In the limit $\lambda \to 1$, the method recovers the pure FK formulation;
 in the limit $\lambda \to 0$, it reduces to a fully mixed update.
+
+
+## 4. Modified Ring-Gap Modelling
+
+The real TPPS ring-gap is an annular 3D volume surrounding the piston.  
+In the numerical model it is replaced by a **1D equivalent volume** with identical
+water mass and energy content but reduced geometric height.
+
+This requires:
+
+1. geometric remapping of inlet positions,  
+2. introduction of an adiabatic membrane node,  
+3. rescaling of axial diffusion,  
+4. consistent radial coupling to soil and piston.
+
+
+### 4.1 Inclusion of Fixed Inlets
+
+The lower and upper bypass inlets are fixed in space, while the piston moves.
+Therefore, their grid indices must be updated as a function of the normalized
+state of charge
+
+$$
+s \in [0,1],
+\qquad
+s=1:\text{ piston top}, \quad s=0:\text{ piston bottom}.
+$$
+
+The real annular ring-gap volume is
+
+$$
+V_{\mathrm{gap}} = A_3 H_{\mathrm{pist}},
+$$
+
+with
+
+- $A_3$ ring-gap cross section,
+- $H_{\mathrm{pist}}$ piston height.
+
+In the 1D model the same volume is represented with cylinder cross section $A_1$:
+
+$$
+V_{\mathrm{gap}} = A_1 H_{\mathrm{ringgap}}
+\quad \Rightarrow \quad
+H_{\mathrm{ringgap}} = \frac{A_3}{A_1} H_{\mathrm{pist}}.
+\tag{4.1-1}
+$$
+
+Thus, piston motion in physical height must be mapped into the compressed
+replacement height. The bypass indices follow directly from this geometric scaling.
+
+No energetic correction is necessary, since only index positions change,
+not volume or mass.
+
+
+### 4.2 Inclusion of Adiabatic Membrane
+
+The membrane divides the ring-gap into two vertical segments.
+
+It is modeled as a purely adiabatic internal boundary:
+
+$$
+\left.\frac{\partial T}{\partial z}\right|_{\text{membrane}} = 0.
+\tag{4.2-1}
+$$
+
+Numerically this is implemented by removing axial coupling across the membrane:
+
+$$
+\frac{\partial^2 T}{\partial z^2}
+\;\longrightarrow\;
+\frac{2(T_{i-1}-T_i)}{dz^2}
+\quad \text{or} \quad
+\frac{2(T_{i+1}-T_i)}{dz^2},
+\tag{4.2-2}
+$$
+
+which corresponds to a mirrored ghost-cell formulation enforcing zero heat flux.
+
+The membrane therefore splits the ring-gap thermally while preserving energy.
+
+### 4.3 Adaptation of Diffusion Strength
+
+Inside the ring-gap replacement volume, axial heat transport is modeled by the
+1D heat equation
+
+$$
+\frac{\partial T}{\partial t}
+=
+\alpha\,\frac{\partial^2 T}{\partial z^2},
+\tag{4.3-1}
+$$
+
+with thermal diffusivity
+
+$$
+\alpha=\frac{\lambda}{\rho c}.
+\tag{4.3-2}
+$$
+
+#### 4.3.1 Units of the involved quantities
+
+- Temperature: $[T] = \mathrm{K}$
+- Time: $[t] = \mathrm{s}$
+- Length: $[z] = \mathrm{m}$
+- Thermal diffusivity:
+$$
+[\alpha] = \frac{[\lambda]}{[\rho][c]}
+= \frac{\mathrm{W/(m\,K)}}{\mathrm{kg/m^3}\,\mathrm{J/(kg\,K)}}
+= \frac{\mathrm{J/(s\,m\,K)}}{\mathrm{J/(m^3\,K)}}
+= \mathrm{m^2/s}.
+\tag{4.3-3}
+$$
+
+For the derivatives in (4.3-1):
+
+$$
+\left[\frac{\partial T}{\partial t}\right] = \frac{\mathrm{K}}{\mathrm{s}},
+\qquad
+\left[\frac{\partial^2 T}{\partial z^2}\right] = \frac{\mathrm{K}}{\mathrm{m^2}}.
+\tag{4.3-4}
+$$
+
+Thus the right-hand side has
+
+$$
+\left[\alpha\,\frac{\partial^2 T}{\partial z^2}\right]
+=
+\frac{\mathrm{m^2}}{\mathrm{s}} \cdot \frac{\mathrm{K}}{\mathrm{m^2}}
+=
+\frac{\mathrm{K}}{\mathrm{s}},
+\tag{4.3-5}
+$$
+
+which matches the left-hand side. Therefore, $\alpha$ must have units
+$\mathrm{m^2/s}$.
+
+#### 4.3.2 Derivation of the diffusion time scale $\tau$
+
+Let $L$ be the characteristic axial length scale over which temperature varies.
+A characteristic temperature variation is $\Delta T$.
+Then the derivatives scale as
+
+$$
+\frac{\partial T}{\partial t} \sim \frac{\Delta T}{\tau},
+\qquad
+\frac{\partial^2 T}{\partial z^2} \sim \frac{\Delta T}{L^2}.
+\tag{4.3-6}
+$$
+
+Insert these scalings into (4.3-1):
+
+$$
+\frac{\Delta T}{\tau}
+\sim
+\alpha \frac{\Delta T}{L^2}.
+\tag{4.3-7}
+$$
+
+Cancel $\Delta T \neq 0$:
+
+$$
+\frac{1}{\tau} \sim \frac{\alpha}{L^2}
+\quad\Rightarrow\quad
+\boxed{\tau \sim \frac{L^2}{\alpha}.}
+\tag{4.3-8}
+$$
+
+This shows directly that diffusion time scales **quadratically** with length.
+
+A pure dimensional check confirms this:
+
+$$
+[\tau] = \frac{[L]^2}{[\alpha]}
+=
+\frac{\mathrm{m^2}}{\mathrm{m^2/s}}
+=
+\mathrm{s}.
+\tag{4.3-9}
+$$
+
+#### 4.3.3 Application to the ring-gap replacement volume
+
+The real ring-gap height is $H_{\mathrm{pist}}$, but in the 1D replacement model
+it is compressed to
+
+$$
+H_{\mathrm{ringgap}} = \frac{A_3}{A_1} H_{\mathrm{pist}}.
+\tag{4.3-10}
+$$
+
+If $\alpha$ were left unchanged, the diffusion time scale would change from
+
+$$
+\tau_{\mathrm{phys}} \sim \frac{H_{\mathrm{pist}}^2}{\alpha}
+\quad\to\quad
+\tau_{\mathrm{ringgap}} \sim \frac{H_{\mathrm{ringgap}}^2}{\alpha},
+\tag{4.3-11}
+$$
+
+which is too small since $H_{\mathrm{ringgap}} \ll H_{\mathrm{pist}}$.
+
+To preserve the physical time scale, we enforce
+
+$$
+\tau_{\mathrm{phys}} = \tau_{\mathrm{ringgap}}
+\quad\Rightarrow\quad
+\frac{H_{\mathrm{pist}}^2}{\alpha}
+=
+\frac{H_{\mathrm{ringgap}}^2}{\alpha_{\mathrm{ringgap}}}.
+\tag{4.3-12}
+$$
+
+Solving for the replacement diffusivity yields
+
+$$
+\boxed{
+\alpha_{\mathrm{ringgap}}
+=
+\alpha\left(\frac{H_{\mathrm{ringgap}}}{H_{\mathrm{pist}}}\right)^2
+=
+\alpha\left(\frac{A_3}{A_1}\right)^2.
+}
+\tag{4.3-13}
+$$
+
+Hence the axial diffusion coefficient must be scaled by the **square** of the
+geometric compression factor to maintain the same diffusion time constant.
+
+### 4.4 Radial Coupling to Soil and Piston
+
+The ring-gap exchanges heat radially
+
+1. outward into the surrounding soil,
+2. inward into the piston.
+
+#### 4.4.1 Radial coupling to soil
+
+For a cylindrical geometry, radial conductive heat flux is
+
+$$
+\dot q_r
+=
+\frac{2\pi \lambda_{\mathrm{soil}} H}
+{\ln\left(\frac{R+dr}{R}\right)}
+\left(T_{\mathrm{soil}} - T_w\right).
+\tag{4.4-1}
+$$
+
+Dividing by the water heat capacity
+
+$$
+\rho_w c_w A_1 H,
+$$
+
+leads to a first-order loss term
+
+$$
+\frac{dT_w}{dt}
+=
+k_{\mathrm{rad}}
+\left(T_{\mathrm{soil}} - T_w\right),
+\tag{4.4-2}
+$$
+
+with
+
+$$
+k_{\mathrm{rad}}
+=
+\frac{2 \lambda_{\mathrm{soil}}}
+{R^2 \rho_w c_w \ln\left(\frac{R+dr}{R}\right)}.
+\tag{4.4-3}
+$$
+
+Since the ring-gap water volume is smaller by $A_3/A_1$, the effective
+cooling rate increases proportionally:
+
+$$
+k_{\mathrm{rad,ring}}
+=
+k_{\mathrm{rad}}
+\frac{A_1}{A_3}.
+\tag{4.4-4}
+$$
+
+
+#### 4.4.2 Radial coupling to piston – modelling of the heat transfer coefficient
+
+The heat exchange between ring-gap water and piston is fundamentally
+different from the radial soil coupling.
+
+While the soil coupling is derived from a cylindrical steady-state
+conduction solution (logarithmic resistance), the piston coupling
+occurs across a **thin radial water layer** separating the piston
+surface from the surrounding ring-gap water.
+
+##### Physical situation
+
+In the ring-gap:
+
+- Flow velocities are very small.
+- Forced convection is negligible.
+- The dominant resistance is conductive transport
+  across a thin thermal boundary layer in the water.
+
+Therefore, the heat flux is approximated as **pure conduction**
+through an effective radial thickness $\delta$:
+
+$$
+\dot q = -\lambda_w \frac{T_p - T_w}{\delta}.
+\tag{4.4-11}
+$$
+
+This corresponds to a classical 1D conduction law.
+
+Rewriting in the common heat-transfer form:
+
+$$
+\dot q = h (T_p - T_w),
+\tag{4.4-12}
+$$
+
+yields
+
+$$
+\boxed{
+h = \frac{\lambda_w}{\delta}.
+}
+\tag{4.4-13}
+$$
+
+This is **not a convective heat transfer coefficient**, but a
+conduction-based effective coefficient.
+
+##### Why this approach is justified
+
+Because:
+
+1. The ring-gap flow is nearly stagnant.
+2. No turbulence-enhanced transport is present.
+3. The dominant resistance lies in the water layer itself.
+4. The piston material conductivity is higher than water,
+   so the temperature drop occurs primarily in the water.
+
+Thus the interface behaves as a thin conductive layer.
+
+##### Why this differs from soil coupling
+
+For the surrounding soil, radial heat transport is explicitly resolved
+in the numerical model. The soil domain is discretized in radial direction,
+so the temperature gradient
+
+$$
+\partial_r T
+$$
+
+is directly computed from neighboring radial nodes.  
+This leads to the classical cylindrical conduction resistance
+
+$$
+R_{\mathrm{soil}}
+=
+\frac{\ln(R_2/R_1)}{2\pi \lambda_{\mathrm{soil}} H}.
+\tag{4.4-14}
+$$
+
+In contrast, the piston is resolved only in axial direction.
+No radial discretization exists for the piston–water interface.
+Therefore, the radial temperature gradient at the interface cannot
+be computed explicitly.
+
+The radial conduction problem is thus reduced to a lumped
+interface flux model of the form
+
+$$
+\dot q = h (T_p - T_w),
+$$
+
+which represents a model reduction of the unresolved radial
+heat transfer between piston and ring-gap water.
+##### Implementation in the ODE system
+
+Starting from the conductive interface flux
+
+$$
+\dot q = h (T_p - T_w),
+$$
+
+the heat flow per axial cell is
+
+$$
+\dot Q = h A_{\mathrm{int}} (T_p - T_w),
+$$
+
+where the interfacial area per axial cell is
+
+$$
+A_{\mathrm{int}} = A_2 \, dz.
+$$
+
+Dividing the heat flow by the thermal capacity of the respective control volume
+yields the ODE contribution.
+
+For the water in the ring-gap:
+
+$$
+\frac{dT_w}{dt}
+=
+\frac{h A_{\mathrm{int}}}
+{\rho_w c_w V_w}
+(T_p - T_w),
+\qquad
+V_w = A_3 \, dz,
+\tag{4.4-15}
+$$
+
+which directly corresponds to the coefficient implemented in the code:
+
+$$
+k_{wp,w}
+=
+\frac{h A_{\mathrm{int}}}
+{\rho_w c_w A_3 dz}.
+$$
+
+Analogously for the piston:
+
+$$
+\frac{dT_p}{dt}
+=
+\frac{h A_{\mathrm{int}}}
+{\rho_p c_p V_p}
+(T_w - T_p),
+\qquad
+V_p = A_2 \, dz,
+\tag{4.4-16}
+$$
+
+which leads to
+
+$$
+k_{wp,p}
+=
+\frac{h A_{\mathrm{int}}}
+{\rho_p c_p A_2 dz}.
+$$
+
+In the implementation this results in
+
+```matlab
+delta_eff = 5e-3;
+h_wp      = SW(1,1) / delta_eff;
+
+A_int     = A(2)*dz;
+
+k_wp_p = h_wp * A_int / (SW(2,2)*SW(2,3)*A(2)*dz);
+k_wp_w = h_wp * A_int / (SW(1,2)*SW(1,3)*A(3)*dz);
+```
+
+The piston–water heat transfer coefficient $h_{wp}$ is not an empirical convective coefficient, but a conduction-based effective parameter.  
+Since radial temperature gradients are not explicitly resolved in the 1D axial model, the radial heat conduction problem is reduced to a lumped interface flux formulation.  
+Starting from Fourier’s law, $\dot q = -\lambda_w \Delta T / \delta$, the equivalent heat-transfer form $\dot q = h_{wp}(T_p - T_w)$ yields $h_{wp} = \lambda_w / \delta$.  
+The parameter $\delta_{\mathrm{eff}}$ represents the unresolved thermal boundary layer thickness in the nearly stagnant ring-gap water and is therefore a modelling parameter rather than the geometric gap width.  
+A value of $\delta_{\mathrm{eff}} = 5\,\mathrm{mm}$ provides a physically plausible magnitude for conductive heat exchange in weakly convective water and serves as a tunable parameter for sensitivity analysis.
+
+### 4.5.  Distributed Piston–Water Coupling outside the PDE Operator
+
+The thermal interaction between piston and water is not restricted to a single adjacent control volume. 
+Instead, the piston heat loss is distributed over a finite interaction zone of 0.1\,m (20 grid cells at $\Delta z = 0.005\,\mathrm{m}$), representing the thermally influenced boundary layer beneath the piston. 
+This coupling is implemented outside the PDE operator as a weighted source term acting on multiple water nodes, while conserving total exchanged energy. 
+The weighting follows an exponential decay with characteristic length $\ell = 4\,\Delta z = 0.02\,\mathrm{m}$, leading to a smooth reduction of interaction strength with increasing distance from the piston interface. 
+This approach avoids unrealistically sharp inverse temperature gradients while maintaining physical consistency of the global energy balance.
