@@ -342,19 +342,32 @@ function dTdt = HeatFluidSolid(t, T, Nz, dz, bypass_indices, flow, T0init, SW, A
     end
 
     %%%------------------------------------------%%%
-    % 09 Additional piston loss terms into the water nodes
+    % 09 Additional piston loss terms into the water nodes (distributed)
     %%%------------------------------------------%%%
 
-    % Heat flux from piston top into upper water node
     alpha_pw = (SW(2,1) * A(2)) / (A(1) * SW(1,2) * SW(1,3) * dz^2);
 
-    % Upper water node adjacent to piston
-    idx_water_top_piston = Nz(3)+Nz(8)+Nz(2)+Nz(5)-2;
-    dTdt(idx_water_top_piston) = dTdt(idx_water_top_piston) ...
-        - alpha_pw * (T(Nz(3)) - T(Nz(3)-1));
+    % Water nodes energy is distributed to
+    Nspread = 20;                  % tune
+    ell     = 4*dz;               % [m] decay length scale (controls smoothness)
 
-    % Lower water node adjacent to piston
+    % Exponential weights, normalized to sum=1
+    k  = (0:Nspread-1).';
+    wk = exp(-(k*dz)/ell);
+    wk = wk / sum(wk);
+
+    % Upper water nodes adjacent to piston
+    idx_water_top_piston = Nz(3)+Nz(8)+Nz(2)+Nz(5)-2;
+    for j = 0:Nspread-1
+        idx = idx_water_top_piston + j;            
+        dTdt(idx) = dTdt(idx) - wk(j+1) * alpha_pw * (T(Nz(3)) - T(Nz(3)-1));
+    end
+
+    % Lower water nodes adjacent to piston
     idx_water_bottom_piston = Nz(3)+Nz(8)+Nz(2)-1;
-    dTdt(idx_water_bottom_piston) = dTdt(idx_water_bottom_piston) ...
-        - alpha_pw * (T(1) - T(2));
+    for j = 0:Nspread-1
+        idx = idx_water_bottom_piston - j;    
+        dTdt(idx) = dTdt(idx) - wk(j+1) * alpha_pw * (T(1) - T(2));
+    end
+
 end
