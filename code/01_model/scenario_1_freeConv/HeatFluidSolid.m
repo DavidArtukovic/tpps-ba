@@ -224,6 +224,28 @@ function dTdt = HeatFluidSolid(t, T, Nz, dz, bypass_indices, flow, T0init, SW, A
             (SW(1,4)*T(Nz(8)+Nz(5)+e-1) + SW(2,4)*Tf(e,2)) / (SW(1,4)+SW(2,4));
     end
 
+    % Coupling 1D water (ring-gap) with 2D radial soil
+    e_start = Nz(2);
+    e_end   = Nz(2) + Nz(3) - 1;
+
+    N_soil = Nz(3);
+    N_ring = Nz(5);
+
+    for e = e_start:e_end
+
+        % relative position in soil column (0 ... 1)
+        rel = (e - e_start) / (N_soil-1);
+
+        % corresponding ring-gap index (1 ... Nz(5))
+        j = floor(rel * (N_ring-1)) + 1;
+
+        Tf(e,1) = ...
+            (SW(1,4) * T(Nz(3)+Nz(8)+Nz(2)-1 + j) ...
+            + SW(2,4) * Tf(e,2)) ...
+            / (SW(1,4) + SW(2,4));
+    end
+
+
     %%%------------------------------------------%%%
     % 06 Temperature gradients in radial soil / insulation (2D)
     %%%------------------------------------------%%%
@@ -276,12 +298,19 @@ function dTdt = HeatFluidSolid(t, T, Nz, dz, bypass_indices, flow, T0init, SW, A
     %%%------------------------------------------%%%
 
     idx_w_top    = sys_top_no_ins_idx - 1;      % topmost interior water node
-    idx_w_bottom = Nz(3)+Nz(8) + 1;             % bottommost interior water node
+    idx_w_bottom = Nz(3) + Nz(8) + 1;             % bottommost interior water node
 
     % Bypass indices for the current time step
     idx_bypass_lower = bypass_indices(1);
     idx_bypass_upper = bypass_indices(2);
     idx_membrane = bypass_indices(3);
+
+    % begin of piston for radial soil
+    e_start = Nz(2);
+    e_end   = Nz(2)+Nz(3)-1;
+
+    % water-side coupling coefficient [1/s]
+    k_wp_w = h_wp * A_int / (SW(1,2)*SW(1,3)*A(3)*dz);  
 
     for i = Nz(3)+Nz(8)+1 : idx_w_top
 
@@ -314,7 +343,7 @@ function dTdt = HeatFluidSolid(t, T, Nz, dz, bypass_indices, flow, T0init, SW, A
             % Now we are in the ring gap / piston region
             % Check wether we are at the membrane position
             if i == idx_membrane
-                % Membrane node: do not exchange axially with neighbors (adiabatic)
+                % Membrane node: do not exchange axially and radially with neighbors (adiabatic)
                 dTdt(i) = 0; 
                 continue
             elseif i == idx_membrane - 1
@@ -328,16 +357,45 @@ function dTdt = HeatFluidSolid(t, T, Nz, dz, bypass_indices, flow, T0init, SW, A
                 diffusion = (T(i+1) - 2*T(i) + T(i-1)) / dz^2;
             end
 
-            % --- Ring gap: scale axial diffusivity due to replacement-volume compression ---
+            % Ring gap: scale axial diffusivity due to replacement-volume compression
             s_geom      = A(3) / A(1);              % = H(5)/H(3) because A1*H5 = A3*H3
             alpha_ring  = SW(1,5) * s_geom^2;       % preserve diffusion time scale tau ~ L^2/alpha
 
+            % Ring-gap radial loss: same soil gradient, but normalized by ring-gap water volume
+            k_rad_ring = SW(4,3) * (A(1)/A(3));          % [1/s] faster cooling due to smaller water volume
+
+            % Compute mean radial gradient based on current node position in the ring gap
+            % ring-gap local index (1 ... Nz(5))
+            j = i - (Nz(3)+Nz(8)+Nz(2)-1);
+
+            % determine corresponding soil index interval
+            e_low  = e_start + floor((j-1)/Nz(5) * Nz(3));
+            e_high = e_start + floor(j/Nz(5)     * Nz(3)) - 1;
+
+            % safety clamp
+            e_low  = max(e_low,  e_start);
+            e_high = min(e_high, e_end);
+
+            % mean radial gradient
+            mean_DT = mean( DT(e_low:e_high,1) );
+
+
+            % coupling to piston (block-averaged)
+            
+            ip_low  = 1 + floor((j-1)/Nz(5) * Nz(3));
+            ip_high = 1 + floor(j/Nz(5)     * Nz(3)) - 1;
+
+            ip_low  = max(ip_low,  1);
+            ip_high = min(ip_high, Nz(3));
+
+            T_p_mean = mean( T(ip_low:ip_high));
+
             % Water segment inside the piston region (no direct radial coupling)
-            % update with axial conduction + advection only
-            % between bypass indices only difussion is active
+            % update with advection + scaled diffusion and  radial loss to outer soil
             % at mebrane node dTdt = 0 (adiabatic)
             dTdt(i) = alpha_ring * diffusion ...
-                    + adv;
+                    + adv ...
+                    + k_rad_ring * mean_DT ...          % soil coupling
         end
     end
 
