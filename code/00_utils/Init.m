@@ -229,7 +229,7 @@ z_ZE = 0:dz:H(13);                        % Vertical coordinate soil-only domain
 
 
 %--------------------------------------------------------------
-% 6.2. Radial Geometry
+% 6.2. Radial Geometry Soil
 %--------------------------------------------------------------
 
 Nz(12) = 13;                              % Number of radial nodes
@@ -245,7 +245,7 @@ z_RE(1,:) = [d(1)/2 , ...
 
 
 %--------------------------------------------------------------
-% 6.3. Area of Single Circular Ring Segments 
+% 6.3. Area of Single Circular Ring Segments Soil
 %--------------------------------------------------------------
 
 z_RE(2,1) = round(pi*(z_RE(1,2)-z_RE(1,1)) * ((z_RE(1,2)-z_RE(1,1))/4 + z_RE(1,1)), 10); 
@@ -270,14 +270,59 @@ end
 
 dr = d(2);                                % Radial grid spacing [m]
 
+%--------------------------------------------------------------
+% 6.4 Radial Geometry – Piston (half domain)
+%--------------------------------------------------------------
+
+n_radial_piston_cells = 10;                     % 10 cells
+n_radial_piston_nodes = n_radial_piston_cells + 1;
+
+Nz(14) = n_radial_piston_nodes+1;                 % store node count pölus interface cell
+
+% geometric progression (doubling inward)
+dr0_piston = r_pist / (2^n_radial_piston_nodes - 1);
+
+dr_vec = dr0_piston * 2.^(0:n_radial_piston_nodes-1);   % cell widths
+
+% radial node positions (0 ... R)
+r_nodes = [0, cumsum(flip(dr_vec))];                  % length = 11, first = 0, last = r_pist
+
+% --- store like soil grid
+z_RP = zeros(4, Nz(14));
+z_RP(1,:) = r_nodes;                            % nodes radial positions
 
 %--------------------------------------------------------------
-% 6.4. Temporal Discreization
+% 6.5. Area of Circular Ring Segments Piston
+%--------------------------------------------------------------
+
+% Area of first circular ring segment [m²]
+z_RP(2,1) = round(pi*(z_RP(1,2)-z_RP(1,1))*((z_RP(1,2)-z_RP(1,1))/4 + z_RP(1,1)), 10); 
+
+% Area of last circular ring segment [m²]                                            
+z_RP(2,end) = round(-pi*(z_RP(1,end-1)-z_RP(1,end)) * ((z_RP(1,end-1)-z_RP(1,end))/4 + z_RP(1,end)), 10);
+                                             
+% Area of intermediate ring segments [m²]
+for i = 2:Nz(14)-1
+    z_RP(2,i) = round(pi*(z_RP(1,i+1)-z_RP(1,i-1)) * ...
+                     (z_RP(1,i-1) + 0.5*((z_RP(1,i+1)-z_RP(1,i-1))/2 ...
+                      + z_RP(1,i) - z_RP(1,i-1))) ...
+                      ,10);                                     
+end
+
+for i = 2:Nz(14)-1
+    z_RP(3,i) = round(z_RP(1,i+1) - z_RP(1,i-1), 10);  % symmetric spacing to next/previous node
+    z_RP(4,i) = round(z_RP(1,i+1) - z_RP(1,i),   10); % forward spacing to next node
+    z_RP(5,i) = round(z_RP(1,i)   - z_RP(1,i-1), 10); % backward spacing to previous node
+end
+
+
+
+%--------------------------------------------------------------
+% 6.6. Temporal Discreization
 %--------------------------------------------------------------
 
 dt  = 900;                                 % Time step size [s]
-Nt2 = 2;                                    % Number of sub-steps per procedure
-t2  = (0:dt/Nt2:dt);                        % Time discretization for a single procedure
+t2  = [0 900];                             % time interval
 
 
 
@@ -317,9 +362,12 @@ T0init(7) = 11;                      % Initial insulation temperature
 % Initialization of 1D temperature field
 %--------------------------------------------------------------
 
-IC_Sys = T0init(1) * ones(1, Nz(10) + Nz(12)*Nz(13));      % Initial temperature for full 1D system
+% Initial temperature for full 1D system +2D soil/piston
+IC_Sys = T0init(1) * ones(1, Nz(10) + Nz(12)*Nz(13) + Nz(14)*Nz(3));     
 
+% Legacy Code not needed anymore
 IC_Sys(1:Nz(3)) = T0init(5);                               % Initial piston temperature
+
 IC_Sys(Nz(3)+1 : Nz(3)+Nz(8)) = T0init(5);                 % Initial soil temperature below the storage
 
 IC_Sys(Nz(3)+Nz(8)+Nz(2)+Nz(5)+Nz(4)+Nz(9)-4) = T0init(4); 
@@ -329,19 +377,20 @@ IC_Sys(Nz(3)+Nz(8)+Nz(2)+Nz(5)+Nz(4)-2 : ...
        Nz(3)+Nz(8)+Nz(2)+Nz(5)+Nz(4)+Nz(9)-5) = T0init(7); % Initial insulation temperature
 
 IC_Sys(Nz(3)+Nz(8)+Nz(2)+Nz(5)+Nz(4)+Nz(9)-3 : end) = T0init(5);
-                                                           % Initial temperature in radial soil domain
+                                                           % Initial temperature in radial soil domain +piston
 
 
 % Helper matrices for post-processing
 T_V   = zeros(1, Nz(10));                                   % Vertical system temperature profile
 T_W   = zeros(1, Nz(6));                                    % Water volume temperature profile
 T_REf = T0init(5) * ones(Nz(13), Nz(12));                   % Radial soil temperature field (vertical x radial nodes)
+T_RPf = T0init(5) * ones(Nz(3), Nz(14));                    % Radial piston temperature field (vertical x radial nodes)
 
 
 %--------------------------------------------------------------
 % Time loop: conductive pre-initialization
 %--------------------------------------------------------------
-
+%%
 filenameSIM = ['Init_d' num2str(d_ST) '_h' num2str(h_pist) '_g' num2str(r_gap) '.mat'];
 o = 1;
 
@@ -357,8 +406,8 @@ for i = 1:length(time_long)
     T0init(6) = T(3,i) - 273.15;                        % Updated ground boundary temperature [°C]
 
     % Compute transient heat conduction and heat transfer
-    [T_Sys, T_REf] = HeattransferInit( ...
-        t2, IC_Sys, Nz, dz, flow, T0init, SW, A, z_RE, T_REf, Nt2);
+    [T_Sys, T_REf, T_RPf] = HeattransferInit( ...
+        t2, IC_Sys, Nz, dz, flow, T0init, SW, A, z_RE, T_REf, T_RPf);
 
     % Update initial condition for next time step (use last time level)
     IC_Sys = T_Sys(end,:);
@@ -384,8 +433,8 @@ for i = 1:length(time_long)
 
         % Save current simulation state
         save(filenameSIM, "H", "z_OD", "z_UD", "z_W", "z_Pist", ...
-                         "z_SSys", "z_Sys", "IC_Sys", "T_REf", ...
-                         "d", "SW", "Nz", "T", "z_RE", "T_V")
+                         "z_SSys", "z_Sys", "IC_Sys", "T_REf", "T_RPf", ...
+                         "d", "SW", "Nz", "T", "z_RE", "z_RP", "T_V")
 
         o = o + 1;
     end
