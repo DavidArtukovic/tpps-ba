@@ -407,7 +407,7 @@ for i = 1:length(time_long)
 
     % Compute transient heat conduction and heat transfer
     [T_Sys, T_REf, T_RPf] = HeattransferInit( ...
-        t2, IC_Sys, Nz, dz, flow, T0init, SW, A, z_RE, T_REf, T_RPf);
+        t2, IC_Sys, Nz, dz, flow, T0init, SW, A, z_RE);
 
     % Update initial condition for next time step (use last time level)
     IC_Sys = T_Sys(end,:);
