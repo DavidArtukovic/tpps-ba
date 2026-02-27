@@ -16,11 +16,15 @@ Hier werden To Do's, Erkentnisse, Fragen sowie Protokolle zu den Treffen mit den
 - [ ] Integrate the shift term after free convection (until 23.01.26)
 - [x] Singnaling in the time-series plot, where free convection is happening (until 22.01.26)
 - [x] Uderstand where the temperature increase in the lower replacement volume comes from in the base model (until 22.01.26)
-- [ ] set inlet to a fix position (until 25.01.26)
+- [x] set inlet to a fix position (until 25.01.26)
 - [x] lambda hybrid in beide richtungen kompatibel (bis 25.01.26)
 - [x] Wasservolumen berechnen was pro Zeitschritt zugeführt wird. (bis 26.01.26)
-- [ ] MUSCL Verfahren für Advektion (bis 30.01.26)
 
+## 02.03.26 Meeting Dominic
+- Frage, warum wird beim Init.m file nicht die exakte Fläche der Kreissegmente berechnet?
+$$A_{\text{exact}} = \pi \left( r_2^2 - r_1^2 \right)$$
+$$A_{\text{FD}} \approx \pi \,\Delta r \left( r_1 + \frac{\Delta r}{4} \right), \quad \text{mit } \Delta r = r_2 - r_1$$
+- Loop über Nt2 ist mir nicht gaz klar.
 
 ## 23.01.26 Meeting Micha/Dominic
 - Freie Konvektion in geschlossener Form als ex-post Update implementiert. Problem: Implementierung benötigt zugeströmte Energeimenge $Q_{add} \propto \Delta t ( T_{\text{upper bypass inlet}} - T_{\text{lower bypass inlet}})$. 

@@ -1,9 +1,7 @@
 #  01 - Code Info 
 This notebook collects specific information on code junks, calculations within the matlab files and related stuff.
 
-
-
-## scenario_1/timesteps.m
+## utils/timesteps.m
 
 ### Meaning of t_900
 
@@ -11,7 +9,7 @@ This notebook collects specific information on code junks, calculations within t
 - `t_900(2,:)` indicates the piston position (potential energy), one implies the piston is at the top and zero implies the piston is completely at the bottom (no potential energy remaining).
 
 
-## scenario_1/Init.m
+## utils/Init.m
 
 ### Translation of Dome Zone into Cylinder
 At the upper and lower end are dead zones (1m) and domes of height one meter. This volume is treated as it would be within a cylinder, thus effectively reducing the **vertical number of gridpoints** of the dome.
@@ -23,6 +21,238 @@ h_tot_2 = (V_Kupp - V_PP)/(d_ST^2*pi/4) % height of dome volume if treated as cy
 h_1D_tot = h_tot + h_tot_2;             % Total 1D height of dead-zone.
 ```
 Thu, instead of two meters deadzone the model assumes 1.665m.
+
+## utils/HeatSolid.m
+
+### Discretization of the 2D ODE (Radial Domains)
+
+In the radial piston and radial soil domains the transient heat conduction equation is solved in cylindrical coordinates \((z,r)\) without angular dependence.
+
+The governing equation reads:
+
+$$
+\frac{\partial T}{\partial t}
+=
+\alpha
+\left(
+\frac{\partial^2 T}{\partial z^2}
++
+\frac{1}{r}
+\frac{\partial}{\partial r}
+\left(
+r \frac{\partial T}{\partial r}
+\right)
+\right),
+$$
+
+where  
+
+- $T = T(z,r,t)$  
+- $\alpha = \dfrac{\lambda}{\rho c}$ is the thermal diffusivity  
+- the first term represents vertical conduction  
+- the second term represents radial conduction in cylindrical coordinates  
+
+---
+
+### Discretization in Vertical Direction
+
+The vertical second derivative is approximated using a second-order central difference scheme:
+
+$$
+\frac{\partial^2 T}{\partial z^2}
+\approx
+\frac{T_{j+1,i} - 2T_{j,i} + T_{j-1,i}}{\Delta z^2}
+$$
+
+where  
+
+- $j$ denotes the vertical index  
+- $i$ denotes the radial index  
+
+---
+
+### Discretization in Radial Direction
+
+The cylindrical radial operator
+
+$$
+\frac{1}{r}
+\frac{\partial}{\partial r}
+\left(
+r \frac{\partial T}{\partial r}
+\right)
+$$
+
+is expanded before discretization (chain-rule):
+
+$$
+=
+\frac{\partial^2 T}{\partial r^2}
++
+\frac{1}{r}
+\frac{\partial T}{\partial r}
+$$
+
+The second derivative is approximated via central difference:
+
+$$
+\frac{\partial^2 T}{\partial r^2}
+\approx
+\frac{T_{j,i+1} - 2T_{j,i} + T_{j,i-1}}{\Delta r_i^2}
+$$
+
+The first derivative term becomes:
+
+$$
+\frac{1}{r_i}
+\frac{\partial T}{\partial r}
+\approx
+\frac{1}{r_i}
+\frac{T_{j,i+1} - T_{j,i-1}}{2\Delta r_i}
+$$
+
+In the implementation the radial metric terms are stored inside the geometry matrix `z_RE`, which contains  
+
+- local radius  
+- cell distances  
+- harmonic interface distances  
+
+This allows consistent treatment of non-uniform radial spacing.
+
+---
+
+### Final Semi-Discrete Form (ODE System)
+
+Combining both directions yields the semi-discrete ODE for each interior node:
+
+$$
+\frac{dT_{j,i}}{dt}
+=
+\alpha
+\left(
+\frac{T_{j+1,i} - 2T_{j,i} + T_{j-1,i}}{\Delta z^2}
++
+\text{radial term}
+\right)
+$$
+
+This transforms the PDE into a system of coupled ordinary differential equations:
+
+The time integration is then handled by `ode45` (or another MATLAB ODE solver).
+
+---
+
+### Relation to Code Implementation
+
+The corresponding MATLAB implementation reads:
+
+```matlab
+for j = 2:Nz(3)-1
+    for i = 2:Nz(14)-1
+        dTdt_Pf(j,i) = SW(2,5) * ( ...
+                  (T_Pf(j+1,i)-2*T_Pf(j,i)+T_Pf(j-1,i))/(dz^2) ...         % vertical component
+                + (1/z_RP(1,i)*(T_Pf(j,i+1)-T_Pf(j,i-1))/z_RP(3,i)...      % first term of radial component
+                + (T_Pf(j,i+1)-2*T_Pf(j,i)+T_Pf(j,i-1))/(z_RP(3,i)^2)) ... % second term of radial component
+            );  
+    end
+end
+```
+
+### Case of Non-Uniform Radial Discretization
+
+For a non-uniform radial grid the spacing to the neighboring nodes is not constant.  
+Let
+
+$$
+\Delta r_{i+\frac12} = r_{i+1} - r_i,
+\qquad
+\Delta r_{i-\frac12} = r_i - r_{i-1}.
+$$
+
+Then the second derivative cannot be written in the simple equidistant form.  
+Instead, the consistent second-order approximation reads:
+
+$$
+\frac{\partial^2 T}{\partial r^2}\Big|_{i}
+\approx
+\frac{2}{\Delta r_{i+\frac12} + \Delta r_{i-\frac12}}
+\left(
+\frac{T_{j,i+1}-T_{j,i}}{\Delta r_{i+\frac12}}
+-
+\frac{T_{j,i}-T_{j,i-1}}{\Delta r_{i-\frac12}}
+\right).
+$$
+
+This formulation has the following interpretation:
+
+- The terms  
+  $$
+  \frac{T_{j,i+1}-T_{j,i}}{\Delta r_{i+\frac12}}
+  \quad\text{and}\quad
+  \frac{T_{j,i}-T_{j,i-1}}{\Delta r_{i-\frac12}}
+  $$
+  represent the heat flux gradients at the right and left cell interfaces.
+- The prefactor  
+  $$
+  \frac{2}{\Delta r_{i+\frac12} + \Delta r_{i-\frac12}}
+  $$
+  normalizes the flux difference by the total control volume width.
+
+Thus, the radial operator is effectively evaluated in a flux-conservative form:
+
+$$
+\frac{\partial}{\partial r}
+\left(
+r \frac{\partial T}{\partial r}
+\right)
+\;\longrightarrow\;
+\frac{1}{\Delta r_i}
+\left(
+r_{i+\frac12} q_{i+\frac12}
+-
+r_{i-\frac12} q_{i-\frac12}
+\right),
+$$
+
+with interface fluxes
+
+$$
+q_{i+\frac12}
+=
+\frac{T_{j,i+1}-T_{j,i}}{\Delta r_{i+\frac12}}.
+$$
+
+In the MATLAB implementation the quantities
+
+- `z_RE(4,i)` → $\Delta r_{i+\frac12}$  
+- `z_RE(5,i)` → $\Delta r_{i-\frac12}$  
+- `z_RE(3,i)` → $\Delta r_{i+\frac12} + \Delta r_{i-\frac12}$  
+- `z_RE(1,i)` → local radius $r_i$
+
+store exactly these geometric distances.
+
+This guarantees:
+
+- second-order accuracy in space,
+- consistency for geometrically stretched grids,
+- and proper conservation of radial heat flux even if the radial spacing increases outward.
+
+The corresponding MATLAB implementation reads:
+
+```matlab
+   for j = 2:Nz(3)-1
+        for i = 2:Nz(14)-1
+            dTdt_Pf(j,i) = SW(2,5) * ( ...
+                  (T_Pf(j+1,i)-2*T_Pf(j,i)+T_Pf(j-1,i))/(dz^2) ...          % vertical component
+                + 2/z_RP(3,i)*(...                                          % second radial derivative with variable grid spacing
+                    (T_Pf(j,i+1)-T_Pf(j,i))/z_RP(4,i) ...                   % forward component
+                  + (T_Pf(j,i)-T_Pf(j,i-1))/z_RP(5,i) ...                   % backward component
+                    ) ...
+                + (1/z_RP(1,i))*(T_Pf(j,i+1)-T_Pf(j,i-1))/z_RP(3,i)...      % first radial derivative
+            );  
+        end
+    end
+```
 
 ## scenario_1/Szenario1.m
 
