@@ -26,18 +26,26 @@
 %  OUTPUT:
 %   Workspace variables:
 %       Geometry: H, d, A, Nz, dz, z_SSys, z_Sys, z_UD, z_OD, z_W, z_Pist,
-%                 z_ZE, z_RE
+%                 z_ZE, z_RE, z_RP
 %       Material properties: SW
-%       Temperature fields: IC_Sys, T_V, T_W, T_REf, T_Sys, T
+%       Temperature fields: IC_Sys, T_V, T_W, T_REf, T_RP, T_Sys, T
 %       Time discretization: dt, t2, time_short, time_long
 %
 % -------------------------------------------------------------------------
 
 
-
 clc 
 clear
 
+%%%------------------------------------------%%%
+% 00. Load Local Paths
+%%%------------------------------------------%%%
+
+% Load local paths (per-machine config)
+run(fullfile('..','..', 'configs', 'paths_local.m'));
+
+% Build data subfolder for this configuration
+DATA_INIT = fullfile(DATA_BASE, 'init');
 
 %%%------------------------------------------%%%
 % 01 Initialize Time and Temperature
@@ -390,9 +398,13 @@ T_RPf = T0init(5) * ones(Nz(3), Nz(14));                    % Radial piston temp
 %--------------------------------------------------------------
 % Time loop: conductive pre-initialization
 %--------------------------------------------------------------
-%%
+
 filenameSIM = ['Init_d' num2str(d_ST) '_h' num2str(h_pist) '_g' num2str(r_gap) '.mat'];
-o = 1;
+version = 'v1';
+
+dateTag = datestr(now, 'yyyymmdd');         % e.g., 20260227
+modeTag = 'Init2D';                         % adjust if needed (e.g., 'Init1D', 'Init2D')
+o = 1;                                      % chunk counter (kept from your logic)
 
 for i = 1:length(time_long)
     tic
@@ -407,7 +419,7 @@ for i = 1:length(time_long)
 
     % Compute transient heat conduction and heat transfer
     [T_Sys, T_REf, T_RPf] = HeattransferInit( ...
-        t2, IC_Sys, Nz, dz, flow, T0init, SW, A, z_RE);
+        t2, IC_Sys, Nz, dz, T0init, SW, z_RE, z_RP);
 
     % Update initial condition for next time step (use last time level)
     IC_Sys = T_Sys(end,:);
@@ -424,17 +436,58 @@ for i = 1:length(time_long)
     %--------------------------------------------------------------
     % Periodic saving of intermediate simulation results
     %--------------------------------------------------------------
-    if i == 28800 || i == 41800 || i == 61400 || i == 77500 || ...
+    if i == 20 || i == 28800 || i == 41800 || i == 61400 || i == 77500 || ...
        i == 95800 || i == 112800 || i == 130800 || i == 147057
 
-        filenameSIM = ['Init_d' num2str(d_ST) ...
-                       '_h' num2str(h_pist) ...
-                       '_time' num2str(o) '.mat'];
+        % Build output struct (single variable to save)
+        InitOut = struct();
 
-        % Save current simulation state
-        save(filenameSIM, "H", "z_OD", "z_UD", "z_W", "z_Pist", ...
-                         "z_SSys", "z_Sys", "IC_Sys", "T_REf", "T_RPf", ...
-                         "d", "SW", "Nz", "T", "z_RE", "z_RP", "T_V")
+        % --- Meta information ---
+        InitOut.meta.dateTag     = dateTag;
+        InitOut.meta.modeTag     = modeTag;
+        InitOut.meta.version     = version; 
+        InitOut.meta.step_i      = i;
+        InitOut.meta.chunk_o     = o;
+        InitOut.meta.diameter    = d_ST;
+        InitOut.meta.h_pist      = h_pist;
+        InitOut.meta.r_gap       = r_gap;
+
+        % --- Geometry / grids ---
+        InitOut.grid.Nz   = Nz;
+        InitOut.grid.dz   = dz;
+        InitOut.grid.z_RE = z_RE;
+        InitOut.grid.z_RP = z_RP;
+
+        InitOut.geom.H      = H;
+        InitOut.geom.d      = d;
+        InitOut.geom.z_OD   = z_OD;
+        InitOut.geom.z_UD   = z_UD;
+        InitOut.geom.z_W    = z_W;
+        InitOut.geom.z_Pist = z_Pist;
+        InitOut.geom.z_SSys = z_SSys;
+        InitOut.geom.z_Sys  = z_Sys;
+
+        % --- Material / boundary state ---
+        InitOut.param.SW    = SW;
+        InitOut.param.T0init = T0init;
+
+        % --- Current solution state (last time level) ---
+        InitOut.state.IC_Sys_end = IC_Sys;
+        InitOut.state.T_V_end    = T_V;
+        InitOut.state.T_W_end    = T_W;
+        InitOut.state.T_REf_end  = T_REf;
+        InitOut.state.T_RPf_end  = T_RPf;
+
+        % --- input series reference ---
+        InitOut.input.T_series = T;
+
+        % File name and path (use fullfile + DATA_INIT)
+        filenameSIM = sprintf('%s_d%d_hp%.1f_gap%.1f_%s_chunk%03d.mat', ...
+                            dateTag, d_ST, h_pist, r_gap, modeTag, o);
+
+        fullpathSIM = fullfile(DATA_INIT, filenameSIM);
+
+        save(fullpathSIM, "InitOut");
 
         o = o + 1;
     end
