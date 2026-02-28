@@ -38,8 +38,8 @@ load(fullfile(DATA_BASE, 'scenario1/SzenarioComsol.mat'));
 
 % MATLAB results (same as plot_matlab_profiles.m)
 data_1 = load(fullfile(DATA_SCEN1_NOFK, 'd18_h18_Res_Matlab_d18_18.mat'));
-data_2 = load(fullfile(DATA_SCEN1_FK, '260207_d18_h18_Res_Matlab_FK_v18.mat'));
-data_3 = load(fullfile(DATA_SCEN1_FK, '260219_d18_h18_Res_Matlab_FK_v20.mat'));
+data_2 = load(fullfile(DATA_SCEN1_FK, '260223_d18_h18_Res_Matlab_FK_v21.mat'));
+data_3 = load(fullfile(DATA_SCEN1_FK, '260223_d18_h18_Res_Matlab_FK_v22.mat'));
 
 %%
 %%%------------------------------------------%%%
@@ -136,14 +136,14 @@ models(1).z      = z_M;
 models(1).style  = '-';
 models(1).color  = [0 0 0];          % black
 
-models(2).name   = 'FK ';
+models(2).name   = 'FK + additional distributed piston-water coupling - radial piston';
 models(2).T_sys  = T_2;
 models(2).T_ring = T_ring_2;
 models(2).z      = z_M;
 models(2).style  = '-';
 models(2).color  = [0.0 0.7 0.0];    % green
 
-models(3).name   = 'FK - adapted diffusion + radial coupling';
+models(3).name   = 'FK + extended distributed piston-water coupling - radial piston';
 models(3).T_sys  = T_3;
 models(3).T_ring = T_ring_3;
 models(3).z      = z_M;
@@ -157,7 +157,7 @@ z_ring_norm = linspace(0,1,blockLen)';   % normalized vertical coordinate
 %%%------------------------------------------%%%
 dateTag = datestr(now,'yyyymmdd');
 videoname = fullfile(RESULTS_TIMELAPSE, ...
-    [dateTag '_timelapse_1D_temperature_profiles_15min_matlab_only_v2.mp4']);
+    [dateTag '_timelapse_1D_temperature_profiles_15min_matlab_only_v3.mp4']);
 
 v = VideoWriter(videoname,'MPEG-4');
 % Keep it readable; increase if you want a faster video
@@ -220,7 +220,7 @@ for mm = 1:numel(models)
 end
 
 
-legend(legend_handles, legend_labels, 'Interpreter','none', 'Location','best')
+legend(legend_handles, legend_labels, 'Interpreter','none', 'Location','southwest')
 
 xlim([40 80])
 ylim([min(z_M) max(z_M)])

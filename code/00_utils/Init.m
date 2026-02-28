@@ -400,7 +400,7 @@ T_RPf = T0init(5) * ones(Nz(3), Nz(14));                    % Radial piston temp
 %--------------------------------------------------------------
 
 filenameSIM = ['Init_d' num2str(d_ST) '_h' num2str(h_pist) '_g' num2str(r_gap) '.mat'];
-version = 'v1';
+version = 'v3';
 
 dateTag = datestr(now, 'yyyymmdd');         % e.g., 20260227
 modeTag = 'Init2D';                         % adjust if needed (e.g., 'Init1D', 'Init2D')

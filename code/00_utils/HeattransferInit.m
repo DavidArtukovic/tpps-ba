@@ -20,7 +20,6 @@
 % INPUT:
 %   tspan   - time vector for the purely conductive initialization
 %   IC_Sys  - initial temperature vector of the TPPS system
-%   T_series- time history of boundary temperatures (e.g., ambient, ground) for the initialization period
 %   Nz      - vector with number of grid points in each subdomain
 %   dz      - vertical grid spacing for the 1D domains
 %   T0init  - vector of prescribed initial / boundary temperatures
@@ -37,7 +36,7 @@
 %
 % ---------------------------------------------------------------
 
-function [T_Sys, T_REf, T_RPf] = HeattransferInit(tspan, IC_Sys, T_series, Nz, dz, T0init, SW, z_RE, z_RP)
+function [T_Sys, T_REf, T_RPf] = HeattransferInit(tspan, IC_Sys, Nz, dz, T0init, SW, z_RE, z_RP)
     
     % Preallocation for contact temperatures between system insulation (1D)
     % and radial insulation (2D)
@@ -49,10 +48,9 @@ function [T_Sys, T_REf, T_RPf] = HeattransferInit(tspan, IC_Sys, T_series, Nz, d
     options = odeset('RelTol',1e-3, ...
                     'AbsTol',1e-5, ...
                     'MaxStep',900,...
-                    'InitialStep',10,...
-                    'OutputFcn',@odeProgress);
+                    'InitialStep', 10);
 
-    [~,T_Sys] = ode45(@HeatSolid, tspan, IC_Sys, options, T_series, Nz, dz, T0init, SW, z_RE, z_RP);
+    [~,T_Sys] = ode45(@HeatSolid, tspan, IC_Sys, options, Nz, dz, T0init, SW, z_RE, z_RP);
 
 
     %%%------------------------------------------%%%
@@ -141,42 +139,4 @@ function [T_Sys, T_REf, T_RPf] = HeattransferInit(tspan, IC_Sys, T_series, Nz, d
     T_Sys900(piston_2d_first_idx + (0:Nz(14)*Nz(3)-1)) = T_RPf(:);
 
     T_Sys(end,:) = T_Sys900; % Update final time step of system temperature vector with updated 2D fields
-end
-
-
-% ==========================================================
-% Local function for progress monitoring
-% ==========================================================
-function status = odeProgress(t,~,flag)
-
-persistent tStart lastBlockTime lastPhysBlock
-
-status = 0;
-
-switch flag
-
-    case 'init'
-        tStart = tic;
-        lastBlockTime = tic;
-        lastPhysBlock = 0;
-
-    case ''
-        physTime = t(end);
-
-        % Check if we crossed next 900s block
-        if physTime - lastPhysBlock >= 900
-
-            blockRuntime = toc(lastBlockTime);
-            totalRuntime = toc(tStart);
-
-            fprintf('Reached t = %.0f s | last 900s took %.2f s | total %.1f s\n', ...
-                    physTime, blockRuntime, totalRuntime);
-
-            lastPhysBlock = floor(physTime/900)*900;
-            lastBlockTime = tic;
-        end
-
-    case 'done'
-        fprintf('Simulation finished. Total runtime: %.1f s\n', toc(tStart));
-end
 end
