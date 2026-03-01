@@ -123,6 +123,7 @@ end
 % -------------------------------------------------------------
 
 R      = 8.5;                 % piston radius
+RE = 9;
 T_wall = 45;                  % boundary temperature [°C]
 
 Nz_ax  = Nz(3);               % axial piston nodes
@@ -198,13 +199,10 @@ title('Synthetic 2D piston IC')
 % -------------------------------------------------------------
 
 
-SW(4,3) = (2*SW(2,1)) / (RE^2 * SW(1,2) * SW(1,3) * log((RE+dr)/RE));
-                                             % Radial loss factor: water(full) <-> soil, referenced to water(full) domain [1/s]
-                                             
-SW(4,4) = (2*SW(2,1)) / ((RE^2-r_pist^2) * SW(1,2) * SW(1,3) * log((RE+dr)/RE));
+SW(4,4) = (2*SW(2,1)) / ((RE^2-R^2) * SW(1,2) * SW(1,3) * log((R+0.005)/R));
                                              % Radial loss factor: ring-gap water <-> soil, referenced to ring-gap water domain [1/s]
 
-SW(4,5) = (2*SW(2,1)) / ((RE^2-r_pist^2) * SW(1,2) * SW(1,3) * log(r_pist/(r_pist - dr0_piston)));
+SW(4,5) = (2*SW(2,1)) / ((RE^2-R^2) * SW(1,2) * SW(1,3) * log(R/(R - dr0_piston)));
                                              % Radial loss factor: ring-gap water <-> piston, referenced to ring-gap water domain [1/s]
 
 

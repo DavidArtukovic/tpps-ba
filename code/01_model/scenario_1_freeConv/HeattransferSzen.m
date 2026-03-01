@@ -36,6 +36,7 @@
 %   SW     - parameter matrix with material and model switches
 %   A      - cross-sectional areas and geometric parameters
 %   z_RE   - geometric parameters of the radial soil grid
+%   z_RP   - geometric parameters of the radial piston grid
 %   T_REf  - 2D temperature field in the radial soil (z,r)
 %   Nt2    - number of stored time steps during the scenario
 %
@@ -52,7 +53,7 @@
 % ---------------------------------------------------------------
 
 
-function [T_Sys,T_REf, fk_code] = HeattransferSzen(t2, IC_Sys, Nz, dz, bypass_indices, flow,T0init,SW,A,z_RE,T_REf,Nt2,fklog)
+function [T_Sys,T_REf, fk_code] = HeattransferSzen(t2, IC_Sys, Nz, dz, bypass_indices, flow,T0init,SW,A,z_RE,z_RP,T_REf,Nt2,fklog)
 
     %--------------------------------------------------------------
     % Preallocation for contact temperatures between system insulation (1D)
@@ -64,7 +65,7 @@ function [T_Sys,T_REf, fk_code] = HeattransferSzen(t2, IC_Sys, Nz, dz, bypass_in
     % 01: Integrate transient 1D TPPS model with flow (fluid + solid)
     %%%------------------------------------------%%%
 
-    [t2,T_Sys] = ode45(@HeatFluidSolid, t2, IC_Sys,[], Nz, dz, bypass_indices, flow, T0init, SW, A, z_RE);
+    [t2,T_Sys] = ode45(@HeatFluidSolid, t2, IC_Sys,[], Nz, dz, bypass_indices, flow, T0init, SW, A, z_RE, z_RP);
 
 
     %%%------------------------------------------%%%
@@ -88,46 +89,11 @@ function [T_Sys,T_REf, fk_code] = HeattransferSzen(t2, IC_Sys, Nz, dz, bypass_in
 
     % Water+soil index (1D)
     water_soil_idx = Nz(3)+Nz(8);
-
-    % replacement volume index (1D)
-    replacement_top_idx = Nz(3)+Nz(8)+Nz(2)+Nz(5)-2;
-    replacement_bottom_idx = Nz(3)+Nz(8)+Nz(2)-1;
-
+    
     % Radial soil indices in 2D field
     radial_soil_top_idx        = Nz(2)+Nz(3)+Nz(4)+Nz(9)-3; % with insulation
     radial_soil_top_no_ins_idx = Nz(2)+Nz(3)+Nz(4)-2;       % without insulation
 
-
-    %%%------------------------------------------%%%
-    % 04: Coupling conditions between 1D domains
-    %%%------------------------------------------%%%
-
-    % 3.1: Water (Volumen Saugrohr) / piston coupling at top and bottom (Robin BC)
-    if flow == 0
-        % Thermal standstill
-        % Top: piston / upper water replacement volume
-        T_Sys(:,Nz(3)) = (SW(1,4)*T_Sys(:,replacement_top_idx)...
-                         +SW(2,4)*T_Sys(:,Nz(3)-1))/((SW(1,4)+SW(2,4)));
-        % Bottom: piston / lower water replacement volume
-        T_Sys(:,1) = (SW(1,4)*T_Sys(:,replacement_bottom_idx)...
-                     +SW(2,4)*T_Sys(:,2))/((SW(1,4)+SW(2,4)));
-             
-    elseif flow > 0
-        % Discharging
-        % Top: piston / upper water replacement volume
-        T_Sys(:,Nz(3)) = (SW(1,4)*T_Sys(:,replacement_top_idx)...
-                         +SW(2,4)*T_Sys(:,Nz(3)-1))/((SW(1,4)+SW(2,4)));
-        % Bottom: piston / lower water replacement volume
-        T_Sys(:,1) = (SW(1,4)*T_Sys(:,replacement_bottom_idx-1)+SW(2,4)*T_Sys(:,2))/((SW(1,4)+SW(2,4)));
-     
-    else
-        % Charging
-        % Top: piston / upper water replacement volume
-        T_Sys(:,Nz(3)) = (SW(1,4)*T_Sys(:,replacement_top_idx+1)+SW(2,4)*T_Sys(:,Nz(3)-1))/((SW(1,4)+SW(2,4)));
-        % Bottom: piston / lower water replacement volume
-        T_Sys(:,1) = (SW(1,4)*T_Sys(:,replacement_bottom_idx)+SW(2,4)*T_Sys(:,2))/((SW(1,4)+SW(2,4)));
-
-    end
 
     % Air temperature at system top (Dirichlet BC)
     T_Sys(:,sys_top_idx) = T0init(4);
