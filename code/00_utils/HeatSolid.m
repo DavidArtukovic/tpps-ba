@@ -83,7 +83,9 @@ function dTdt = HeatSolid(t, T, Nz, dz, T0init, SW, z_RE, z_RP)
     T(1) = T0init(6);
 
     % First index of 2D piston block
-    piston_2d_first_idx = Nz(10)+Nz(12)*Nz(13)+1;
+    sys_top_idx = Nz(3)+Nz(8)+Nz(2)+Nz(5)+Nz(4)+Nz(9)-4;      % system top index
+    soil_2d_top_idx = sys_top_idx+Nz(12)*Nz(13);              % last index of 2D soil field in system vector
+    piston_2d_first_idx = soil_2d_top_idx+1;                  % first index of 2D piston field in system vector
 
     % Extract 2D piston temperature block
     block_P = T(piston_2d_first_idx + (0:Nz(14)*Nz(3)-1));
@@ -154,8 +156,8 @@ function dTdt = HeatSolid(t, T, Nz, dz, T0init, SW, z_RE, z_RP)
     % 04 2D-Radial Soil
     %%%------------------------------------------%%%
 
-    sys_top_idx = Nz(3)+Nz(8)+Nz(2)+Nz(5)+Nz(4)+Nz(9)-4; % system top index
-    soil_2d_first_idx = Nz(10)+1;                        % first index of 2D soil field in system vector
+    sys_top_idx = Nz(3)+Nz(8)+Nz(2)+Nz(5)+Nz(4)+Nz(9)-4;      % system top index
+    soil_2d_first_idx = sys_top_idx+1;                        % first index of 2D soil field in system vector
 
     % Mapping: 1D-temperature vector → 2D-temperature field for the radial soil 
     block_RE = T(soil_2d_first_idx + (0:Nz(12)*Nz(13)-1));

@@ -349,7 +349,13 @@ SW(4,2) = (2*SW(2,1)) / ((RE^2 - R_PS^2) * SW(2,2) * SW(2,3) * log((RE+dr)/RE));
                                              % Radial loss factor for soil (referenced to piston radius) [1/s]
 
 SW(4,3) = (2*SW(2,1)) / (RE^2 * SW(1,2) * SW(1,3) * log((RE+dr)/RE));
-                                             % Radial loss factor for soil (referenced to water domain) [1/s]
+                                             % Radial loss factor: water(full) <-> soil, referenced to water(full) domain [1/s]
+
+SW(4,4) = (2*SW(2,1)) / ((RE^2-r_pist^2) * SW(1,2) * SW(1,3) * log((RE+dr)/RE));
+                                             % Radial loss factor: ring-gap water <-> soil, referenced to ring-gap water domain [1/s]
+
+SW(4,5) = (2*SW(2,1)) / ((RE^2-r_pist^2) * SW(1,2) * SW(1,3) * log(r_pist/(r_pist - dr0_piston)));
+                                             % Radial loss factor: ring-gap water <-> piston, referenced to ring-gap water domain [1/s]
 
 
 %%%------------------------------------------%%%
@@ -385,7 +391,7 @@ IC_Sys(Nz(3)+Nz(8)+Nz(2)+Nz(5)+Nz(4)-2 : ...
        Nz(3)+Nz(8)+Nz(2)+Nz(5)+Nz(4)+Nz(9)-5) = T0init(7); % Initial insulation temperature
 
 IC_Sys(Nz(3)+Nz(8)+Nz(2)+Nz(5)+Nz(4)+Nz(9)-3 : end) = T0init(5);
-                                                           % Initial temperature in radial soil domain +piston
+                                                           % Initial temperature in radial soil domain + piston
 
 
 % Helper matrices for post-processing
