@@ -28,8 +28,9 @@ dz = d(2);                                 % axial grid spacing [m]
 Nr = Nz(12);                                % number of radial nodes (soil)
 Nz_ax = Nz(13);                             % number of axial nodes (soil)
 
+sys_top_idx = Nz(3)+Nz(8)+Nz(2)+Nz(5)+Nz(4)+Nz(9)-4;
 % Extract soil temperatures from IC_Sys
-idx_start = Nz(10) + 1;
+idx_start = sys_top_idx + 1;
 idx_end   = idx_start + Nr*Nz_ax - 1;
 
 T_RE_vec = IC_Sys(idx_start:idx_end);
@@ -193,7 +194,23 @@ ylabel('z [m]')
 title('Synthetic 2D piston IC')
 
 %% ------------------------------------------------------------
-%  08. Save synthetic data based on structure from init.m
+%  08. Add material parameters
+% -------------------------------------------------------------
+
+
+SW(4,3) = (2*SW(2,1)) / (RE^2 * SW(1,2) * SW(1,3) * log((RE+dr)/RE));
+                                             % Radial loss factor: water(full) <-> soil, referenced to water(full) domain [1/s]
+                                             
+SW(4,4) = (2*SW(2,1)) / ((RE^2-r_pist^2) * SW(1,2) * SW(1,3) * log((RE+dr)/RE));
+                                             % Radial loss factor: ring-gap water <-> soil, referenced to ring-gap water domain [1/s]
+
+SW(4,5) = (2*SW(2,1)) / ((RE^2-r_pist^2) * SW(1,2) * SW(1,3) * log(r_pist/(r_pist - dr0_piston)));
+                                             % Radial loss factor: ring-gap water <-> piston, referenced to ring-gap water domain [1/s]
+
+
+
+%% ------------------------------------------------------------
+%  09. Save synthetic data based on structure from init.m
 % -------------------------------------------------------------
 
 T_RPf_vec = T_2D(:).';
@@ -201,7 +218,7 @@ T_RPf_vec = T_2D(:).';
 %  Append 2D piston to IC_Sys
 % -------------------------------------------------------------
 
-IC_Sys_old = IC_Sys;                      % backup
+IC_Sys_old = IC_Sys(1:idx_end);                      % backup
 
 IC_Sys = [IC_Sys_old , T_RPf_vec];
 
@@ -214,7 +231,7 @@ disp(['Expected length = ', num2str( ...
 % ------------------------------------------------------------
 %  Build InitOut structure
 % -------------------------------------------------------------
-version = 'v_synth';
+version = 'v2_synth';
 modeTag = '2D';
 dateTag = datestr(now,'yyyymmdd');
 o = 8;
