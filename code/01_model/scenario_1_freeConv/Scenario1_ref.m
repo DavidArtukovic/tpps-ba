@@ -36,28 +36,49 @@ run(fullfile('..','..','..', 'configs','paths_relative.m'));
 % Build data subfolder for this configuration
 DATA_SCEN1 = fullfile(DATA_BASE, 'scenario1');
 DATA_SCEN1_FK = fullfile(DATA_BASE, 'scenario1_freeConv');
+DATA_INIT = fullfile(DATA_BASE, 'init');
 
 % Load init and scenario files
-load(fullfile(DATA_SCEN1, 'Init_d18_h18_time8.mat'));   % Geometry, material values and initial values
+% load(fullfile(DATA_SCEN1, 'Init_d18_h18_time8.mat'));   % Geometry, material values and initial values
+load(fullfile(DATA_INIT, '20260301_d18_hp16.0_gap0.5_2D_chunk008_v2_synth.mat'));       % Synthetic data for initial temperature fields
 load(fullfile(DATA_SCEN1, 'SzenarioComsol.mat'));       % Scenario control flags
 %%
 %%%------------------------------------------%%%
 % 02. Initialize Arrays and Geometry
 %%%------------------------------------------%%%
 
+
+% --- Extract grid / geometry ---
+Nz    = InitOut.grid.Nz;
+dz    = InitOut.grid.dz;
+z_RE  = InitOut.grid.z_RE;
+z_RP  = InitOut.grid.z_RP;
+z_W =   InitOut.geom.z_W;
+
+H     = InitOut.geom.H;
+d     = InitOut.geom.d;
+
+% --- Extract material / parameters ---
+SW     = InitOut.param.SW;
+
+% --- Extract state ---
+IC_Sys = InitOut.state.IC_Sys_end;
+T_REf  = InitOut.state.T_REf_end;
+
+
+
 % Result arrays
 Res_900  = zeros(10, length(t_900)  + 1);   % Values for quarter hours
 Res_hour = zeros(10, length(t_hour) + 1);   % Values for full hours
 
-% Temperature vector for the whole system
+% Temperature vector for the 1D system
 T_SSys = zeros(Nz(13), 1);
 
-T_V_900 = zeros(Nz(13), length(t_900));     % Temperature array: system grid x time
-T_W_900 = zeros(Nz(6),  length(t_900));     % Temperature array: water grid x time
+T_V_900 = zeros(Nz(13), length(t_900));             % Temperature array: system grid x time
+T_W_900 = zeros(Nz(6),  length(t_900));             % Temperature array: water grid x time
+T_P_900 = zeros(Nz(3)*Nz(14),  length(t_900));      % Temperature array: piston grid x time
+T_S_900 = zeros(Nz(12)*Nz(13),  length(t_900));     % Temperature array: piston grid x time
 
-% Spatial discretization
-dz = d(4);        % Vertical step size
-dr = d(2);        % Radial step size
 
 % Time discretization
 dt  = 900;        % Time in seconds for every procedure step
@@ -76,14 +97,23 @@ r_ST   = d_ST / 2;       % Radius in m
 r_gap  = 0.5;            % Annular gap thickness in m
 r_pist = r_ST - r_gap;   % Piston radius in m
 
-A(1) = d(1)^2 * pi/4;    % Area of the cylindrical storage
+A(1) = d_ST^2 * pi/4;    % Area of the cylindrical storage
 A(2) = r_pist^2 * pi;    % Area of the piston
 A(3) = A(1) - A(2);      % Area of the annulus (ring gap)
 
 % Initialize positions indices of bypass inlets and mebrane
-[idx_bypass_lower_vec, idx_bypass_upper_vec, idx_membrane_vec] = compute_bypass_indices(t_900(2,:), H(3), H(11), Nz, dz);
+[idx_bypass_lower_vec, idx_bypass_upper_vec, idx_membrane_vec] = ...
+compute_bypass_indices(t_900(2,:), H(3), H(11), Nz, dz);
+
 bypass_indices = [idx_bypass_lower_vec; idx_bypass_upper_vec; idx_membrane_vec];
 
+% index of top node in system vector (air node above insulation)
+sys_top_idx = Nz(3)+Nz(8)...
+             +Nz(2)+Nz(5)...
+             +Nz(4)+Nz(9)-4;   
+
+% index of top node in 2D soil field in system vector
+soil_top_idx = sys_top_idx + Nz(12)*Nz(13);           
 %%
 %%%------------------------------------------%%%
 % 03. Preprocess Scenario: piston position and flow rates
@@ -104,7 +134,12 @@ DTRE = zeros(1, Nz(12));   % Vector of radial temperature differences in radial 
 T_V(1, :) = T_Sys(1, 1:Nz(10));
 
 % Temperature in water system
-T_W(1, :) = T_Sys(1, Nz(3)+Nz(8):Nz(3)+Nz(8)+Nz(2)+Nz(5)+Nz(4)-3);
+water_begin_idx = Nz(3)+Nz(8);
+water_end_idx = water_begin_idx + Nz(2)+Nz(5)+Nz(4)-3;
+T_W(1, :) = T_Sys(1,water_begin_idx:water_end_idx);
+
+% Temperature in piston
+T_P(1, :) = T_Sys(1, soil_top_idx+1 : soil_top_idx + Nz(3)*Nz(14));
 
 % Exergy density of the water (initialized, will be overwritten)
 wEX = zeros(1, length(T_W));
@@ -117,8 +152,7 @@ wEX = zeros(1, length(T_W));
 % Compute initial energy and exergy balances using helper function
 [Heat_insu, Heat_Wasser, Heat_piston, Heat_Vsoil, ...
     Heat_Rsoil, Heat_Rinsu, WEX, wEX, DTRE] = ...
-    compute_energy_balances(T_V, T_W, T_Sys, T_REf, ...
-                            Nz, dz, A, SW, z_RE, z_W, K, Spz);
+    compute_energy_balances(T_V, T_W, T_Sys, T_REf, Nz, dz, A, SW, z_RE, z_W , K, Spz);
 
 % Store initial values in hourly result array
 Res_hour(1,1)  = Heat_insu;
@@ -144,7 +178,8 @@ T0init(2) = 80;                 % Supply temperature
 T0init(3) = 45;                 % Return temperature
 T0init(4) = 20;                 % Air temperature
 T0init(5) = 11;                 % Ground temperature
-T0init(6) = T(3,1) - 273.15;    % Boundary temperature for initial radial soil
+% T0init(6) = InitOut.input.T_series(3,1) - 273.15;    % Boundary temperature for initial radial soil
+T0init(6) = 284.15 -27.15;
 T0init(7) = 11;                 % Initial insulation temperature
 
 %%
@@ -152,9 +187,8 @@ T0init(7) = 11;                 % Initial insulation temperature
 % 06. Time Loop over Scenario (t_900/2 for 10 days)
 %%%------------------------------------------%%%
 
-
 % Initialize logging
-version = 'v22';
+version = '2d_v3';
 dateTag = datestr(now, "yymmdd");
 
 FK_LOG_BASE = fullfile(DATA_SCEN1_FK, '01_logs');
@@ -174,7 +208,8 @@ fklog(sprintf([ ...
     'Added upwind scheme in water \n'...
     'First time modified diffusion coefficient in ring gap \n' ...
     'Added radial coupling of ring-gap water to soil  \n' ...
-    'Added distributed coupling lower/upper water to piston (50 nodes) \n' ...
+    'Added distributed coupling lower/upper water to piston (20 nodes) \n' ...
+    'Added 2D piston temperature field with radial conduction \n' ...
  
 ]));
 fklog(sprintf('Date and Time: %s', dateTag));
@@ -183,11 +218,11 @@ fklog(sprintf('Version: %s', version));
 % create fk code history vector
 fk_code_hist = zeros(1, length(t_900));
 
-for i = 1:(length(t_900))
+for i = 1:length(t_900)
     tic
     fklog('|||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||');
     fklog(sprintf('t = %.2f h', i * 15 / 60));
-    fklog(sprintf('Temperature in middle of ring gap:  %.2f °C', T_Sys(end, Nz(3)+Nz(8)+Nz(2)+round(Nz(5)/2-3))));
+    % fklog(sprintf('Temperature in middle of ring gap:  %.2f °C', T_Sys(end, Nz(3)+Nz(8)+Nz(2)+round(Nz(5)/2-3))));
 
 
     % Update vertical water discretization according to piston position
@@ -200,16 +235,25 @@ for i = 1:(length(t_900))
 
     % Compute heat transfer and mass transport for the current 15-min step
     [T_Sys, T_REf, fk_code] = HeattransferSzen(t2, IC_Sys, Nz, dz, bypass_indices(:,i),...
-                                               flow, T0init, SW, A, z_RE, T_REf, Nt2,fklog);
+                                               flow, T0init, SW, A, z_RE, z_RP, T_REf, Nt2, fklog);
+
+    block = T_Sys(end, soil_top_idx+1 : soil_top_idx + Nz(14)*Nz(3));
+    T_RP = reshape(block, Nz(3), Nz(14));
+    areas = z_RP(2,:);                     % ring segment areas
+    weights = areas / sum(areas);          % normalize once
+    mean_T_RP = T_RP * weights';         % [Nz(3) x 1]
 
     % Update initial condition for the next procedure step
     IC_Sys = T_Sys(end, :);
 
     % Updated temperatures in the vertical system
-    T_V(1, :) = T_Sys(end, 1:Nz(10));
+    T_V(1, :) = T_Sys(end, 1:sys_top_idx);
 
     % Updated water temperature profile
-    T_W(1, :) = T_Sys(end, Nz(3)+Nz(8):Nz(3)+Nz(8)+Nz(2)+Nz(5)+Nz(4)-3);
+    T_W(1, :) = T_Sys(end, water_begin_idx:water_end_idx);
+
+    % Updated piston temperature field
+    T_P(1, :) = T_Sys(end, soil_top_idx+1 : soil_top_idx + Nz(3)*Nz(14));
     
     % Recompute energy and exergy balances using helper function
     [Heat_insu, Heat_Wasser, Heat_piston, Heat_Vsoil, ...
@@ -230,16 +274,20 @@ for i = 1:(length(t_900))
     T_W_900(:, i) = flip(T_W);
 
     % Assemble system temperature vector for plotting (piston, zones, insulation)
-    T_SSys(1:Nz(2)) = T_V(Nz(3)+Nz(8):Nz(3)+Nz(8)+Nz(2)-1);   % Lower pressure zone
+    T_SSys(1:Nz(2)) = T_V(water_begin_idx:water_begin_idx+Nz(2)-1);   % Lower pressure zone
 
-    T_SSys(Nz(2)+Nz(3)-1 : Nz(2)+Nz(3)+Nz(4)-2) = ...
-        T_V(Nz(3)+Nz(8)+Nz(2)+Nz(5)-2 : Nz(3)+Nz(8)+Nz(2)+Nz(5)+Nz(4)-3); % Upper pressure zone
+    upper_pressure_first_idx = Nz(2)+Nz(3)-1;
+    upper_pressure_top_idx = Nz(2)+Nz(3)+Nz(4)-2;
+    T_SSys(upper_pressure_first_idx: upper_pressure_top_idx) = ...
+        T_V(water_begin_idx+Nz(2)+Nz(5)-2 : water_begin_idx+Nz(2)+Nz(5)+Nz(4)-3); % Upper pressure zone
 
-    T_SSys(Nz(2) : Nz(2)+Nz(3)-1) = T_V(1:Nz(3));                               % Piston
+    T_SSys(Nz(2) : Nz(2)+Nz(3)-1) = mean_T_RP;                               % Piston
     T_SSys(Nz(2)+Nz(3)+Nz(4)-2:end) = ...
         T_V(Nz(3)+Nz(8)+Nz(2)+Nz(5)+Nz(4)-3:end);                               % Vertical insulation
 
     T_V_900(:, i) = flip(T_SSys);
+    
+    T_P_900(:, i) = flip(T_P);
 
     % Store hourly aggregated values every 4th 15-min step
     if mod(i, 4) == 0
@@ -280,8 +328,9 @@ ResOut.meta.use_fk      = fk;
 ResOut.res.series_900  = Res_900;
 ResOut.res.series_hour = Res_hour;
 
-ResOut.temperature.water  = T_W_900;
-ResOut.temperature.system = T_V_900;
+ResOut.temperature.water  = single(T_W_900);
+ResOut.temperature.system = single(T_V_900);
+ResOut.temperature.piston = single(T_P_900);
 
 ResOut.geometry.bypass_indices = bypass_indices;
 

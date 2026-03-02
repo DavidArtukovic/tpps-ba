@@ -65,7 +65,7 @@ function [T_Sys,T_REf, fk_code] = HeattransferSzen(t2, IC_Sys, Nz, dz, bypass_in
     % 01: Integrate transient 1D TPPS model with flow (fluid + solid)
     %%%------------------------------------------%%%
 
-    [t2,T_Sys] = ode45(@HeatFluidSolid, t2, IC_Sys,[], Nz, dz, bypass_indices, flow, T0init, SW, A, z_RE, z_RP);
+    [t2, T_Sys] = ode45(@HeatFluidSolid, t2, IC_Sys,[], Nz, dz, bypass_indices, flow, T0init, SW, A, z_RE, z_RP);
 
 
     %%%------------------------------------------%%%
@@ -121,11 +121,8 @@ function [T_Sys,T_REf, fk_code] = HeattransferSzen(t2, IC_Sys, Nz, dz, bypass_in
         % 5.1: Build 2D radial soil temperature field from 1D state
         %----------------------------------------------------------
 
-        for j = 1:Nz(13) % vertical direction (z)
-            for i = 1:Nz(12) % radial direction (r)
-                T_REf(j,i) = T_Sys(tt,sys_top_idx+(i-1)*Nz(13)+j);
-            end
-        end
+        block = T_Sys(tt, sys_top_idx+1 : sys_top_idx + Nz(12)*Nz(13));
+        T_REf = reshape(block, Nz(13), Nz(12));
 
         %----------------------------------------------------------
         % 5.2: Re-apply boundary conditions in the 2D radial soil
@@ -175,11 +172,7 @@ function [T_Sys,T_REf, fk_code] = HeattransferSzen(t2, IC_Sys, Nz, dz, bypass_in
         % 5.4: Map updated 2D temperature field back into system vector
         %----------------------------------------------------------
         
-        for j = 1:Nz(13)
-            for i = 1:Nz(12)
-                T_Sys(tt,sys_top_idx +(i-1)*Nz(13)+j) = T_REf(j,i); 
-            end
-        end
+        T_Sys(tt, sys_top_idx+1 : sys_top_idx + Nz(12)*Nz(13)) = T_REf(:).';
     end
 
 end

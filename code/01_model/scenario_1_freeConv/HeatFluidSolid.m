@@ -55,8 +55,8 @@ function dTdt = HeatFluidSolid(t, T, Nz, dz, bypass_indices, flow, T0init, SW, A
     % indices in the 1D system vector for coupling with 2D fields
     sys_top_idx = Nz(3)+Nz(8)+Nz(2)+Nz(5)+Nz(4)+Nz(9)-4;
 
-    soil_2d_first_idx = sys_top_idx+1;                            % first index of 2D soil field in system vector
-    soil_2d_top_idx = sys_top_idx + Nz(12)*Nz(13) - 1;            % last index of 2D soil field in system vector
+    soil_2d_first_idx = sys_top_idx+1;                                  % first index of 2D soil field in system vector
+    soil_2d_top_idx = soil_2d_first_idx + Nz(12)*Nz(13) - 1;            % last index of 2D soil field in system vector
 
     piston_2d_first_idx = soil_2d_top_idx+1;                      % first index of 2D piston field in system vector
     piston_2d_top_idx = piston_2d_first_idx + Nz(14)*Nz(3) - 1;   % last index of 2D piston field in system vector
@@ -159,7 +159,7 @@ function dTdt = HeatFluidSolid(t, T, Nz, dz, bypass_indices, flow, T0init, SW, A
     TK_KWO_f = T_Pf(end-1, :); % radial temperature distribution at piston top
 
     % Mixed contact temperature at piston top
-    T_Pf(end,:) = (SW(1,4)*TK_WKO_f + SW(2,4)*TK_KWO_f) / (SW(1,4)+SW(2,4));
+    T_Pf(end,:) = (SW(1,4)*TK_WKO + SW(2,4)*TK_KWO_f) / (SW(1,4)+SW(2,4));
 
     %--------------------------------------------------------------
     % 3.2 Piston bottom contact (to lower water region) 
@@ -267,7 +267,7 @@ function dTdt = HeatFluidSolid(t, T, Nz, dz, bypass_indices, flow, T0init, SW, A
     % Temperaturvektor in Temperaturfeld umwandeln
     for j = 1:Nz(13)
         for i = 1:Nz(12)
-            Tf(j,i) = T(Nz(3)+Nz(8)+Nz(2)+Nz(5)+Nz(4)+Nz(9)-4+(i-1)*Nz(13)+j); 
+            T_REf(j,i) = T(Nz(3)+Nz(8)+Nz(2)+Nz(5)+Nz(4)+Nz(9)-4+(i-1)*Nz(13)+j); 
         end
     end
 
@@ -276,11 +276,11 @@ function dTdt = HeatFluidSolid(t, T, Nz, dz, bypass_indices, flow, T0init, SW, A
     %%%------------------------------------------%%%
 
     % Vertical boundaries of the radial soil
-    Tf(1,:) = T0init(5); % bottom soil (same as vertical soil bottom)
-    Tf(end,:) = T0init(4); % top soil equals air temperature
+    T_REf(1,:) = T0init(5); % bottom soil (same as vertical soil bottom)
+    T_REf(end,:) = T0init(4); % top soil equals air temperature
 
     % Outer radial boundary of the soil
-    Tf(:,end) = T0init(5);
+    T_REf(:,end) = T0init(5);
 
     %--------------------------------------------------------------
     % 5.1 Coupling 1D insulation with 2D radial insulation
@@ -295,18 +295,18 @@ function dTdt = HeatFluidSolid(t, T, Nz, dz, bypass_indices, flow, T0init, SW, A
     radial_soil_top_no_ins_idx = Nz(2)+Nz(3)+Nz(4)-2;
 
     % Vertical temperature profile in the second radial column (just inside insulation)
-    DTd(:,2) = Tf(radial_soil_top_no_ins_idx:radial_soil_top_idx,2); 
+    DTd(:,2) = T_REf(radial_soil_top_no_ins_idx:radial_soil_top_idx,2); 
 
     % Average contact temperature between 1D insulation and 2D radial insulation
     DTd(:,3) = (DTd(:,1)+DTd(:,2))/2;
 
     % Update contact temperatures in the first radial column of the soil / insulation
-    Tf(Nz(2)+Nz(3)+Nz(4)-2:Nz(2)+Nz(3)+Nz(4)+Nz(9)-3,1) = DTd(:,3); 
+    T_REf(Nz(2)+Nz(3)+Nz(4)-2:Nz(2)+Nz(3)+Nz(4)+Nz(9)-3,1) = DTd(:,3); 
 
 
     % Mixed contact between vertical soil and radial insulation at the very top
-    Tf(end-Nz(9)+1,:) = ...
-        (SW(2,4)*Tf(end-Nz(9),:) + SW(3,4)*Tf(end-Nz(9)+2,:)) / (SW(2,4)+SW(3,4));
+    T_REf(end-Nz(9)+1,:) = ...
+        (SW(2,4)*T_REf(end-Nz(9),:) + SW(3,4)*T_REf(end-Nz(9)+2,:)) / (SW(2,4)+SW(3,4));
 
     %--------------------------------------------------------------
     % 5.2 Coupling 1D water with 2D radial soil at the inner radius
@@ -314,14 +314,14 @@ function dTdt = HeatFluidSolid(t, T, Nz, dz, bypass_indices, flow, T0init, SW, A
 
     % Coupling 1D water (lower part) with 2D radial soil at inner radius
     for e = 1:Nz(2)
-        Tf(e,1) = ...
-            (SW(1,4)*T(Nz(3)+Nz(8)+e-1) + SW(2,4)*Tf(e,2)) / (SW(1,4)+SW(2,4));
+        T_REf(e,1) = ...
+            (SW(1,4)*T(Nz(3)+Nz(8)+e-1) + SW(2,4)*T_REf(e,2)) / (SW(1,4)+SW(2,4));
     end
 
     % Coupling 1D water (upper part) with 2D radial soil at inner radius
     for e = Nz(2)+Nz(3)-1 : Nz(2)+Nz(3)+Nz(4)-2
-        Tf(e,1) = ...
-            (SW(1,4)*T(Nz(8)+Nz(5)+e-1) + SW(2,4)*Tf(e,2)) / (SW(1,4)+SW(2,4));
+        T_REf(e,1) = ...
+            (SW(1,4)*T(Nz(8)+Nz(5)+e-1) + SW(2,4)*T_REf(e,2)) / (SW(1,4)+SW(2,4));
     end
 
     % Coupling 1D water (ring-gap) with 2D radial soil
@@ -339,9 +339,9 @@ function dTdt = HeatFluidSolid(t, T, Nz, dz, bypass_indices, flow, T0init, SW, A
         % corresponding ring-gap index (1 ... Nz(5))
         j = floor(rel * (N_ring-1)) + 1;
 
-        Tf(e,1) = ...
+        T_REf(e,1) = ...
             (SW(1,4) * T(Nz(3)+Nz(8)+Nz(2)-1 + j) ...
-            + SW(2,4) * Tf(e,2)) ...
+            + SW(2,4) * T_REf(e,2)) ...
             / (SW(1,4) + SW(2,4));
     end
 
@@ -353,29 +353,29 @@ function dTdt = HeatFluidSolid(t, T, Nz, dz, bypass_indices, flow, T0init, SW, A
     % 6.1 Soil region until radial insulation
     for j = 2 : Nz(13)-Nz(9)          % vertical index
         for i = 2 : Nz(12)-1          % radial index
-            dTdtf(j,i) = SW(2,5) * ( ...
-                (Tf(j+1,i) - 2*Tf(j,i) + Tf(j-1,i)) / dz^2 + ...
-                (Tf(j,i+1) - Tf(j,i-1)) ./ (z_RE(1,i) .* z_RE(3,i)) + ...
-                ( (Tf(j,i+1) - Tf(j,i)) ./ z_RE(4,i) + ...
-                (Tf(j,i-1) - Tf(j,i)) ./ z_RE(5,i) ) .* 2 ./ z_RE(3,i) );
+            dTdt_REf(j,i) = SW(2,5) * ( ...
+                (T_REf(j+1,i) - 2*T_REf(j,i) + T_REf(j-1,i)) / dz^2 + ...
+                (T_REf(j,i+1) - T_REf(j,i-1)) ./ (z_RE(1,i) .* z_RE(3,i)) + ...
+                ( (T_REf(j,i+1) - T_REf(j,i)) ./ z_RE(4,i) + ...
+                (T_REf(j,i-1) - T_REf(j,i)) ./ z_RE(5,i) ) .* 2 ./ z_RE(3,i) );
         end
     end
 
     % 6.2 Radial insulation region
     for j = Nz(13)-Nz(9)-2 : Nz(13)-1 % vertical index
         for i = 2 : Nz(12)-1          % radial index
-            dTdtf(j,i) = SW(3,5) * ( ...
-                (Tf(j+1,i) - 2*Tf(j,i) + Tf(j-1,i)) / dz^2 + ...
-                (Tf(j,i+1) - Tf(j,i-1)) ./ (z_RE(1,i) .* z_RE(3,i)) + ...
-                ( (Tf(j,i+1) - Tf(j,i)) ./ z_RE(4,i) + ...
-                (Tf(j,i-1) - Tf(j,i)) ./ z_RE(5,i) ) .* 2 ./ z_RE(3,i) );
+            dTdt_REf(j,i) = SW(3,5) * ( ...
+                (T_REf(j+1,i) - 2*T_REf(j,i) + T_REf(j-1,i)) / dz^2 + ...
+                (T_REf(j,i+1) - T_REf(j,i-1)) ./ (z_RE(1,i) .* z_RE(3,i)) + ...
+                ( (T_REf(j,i+1) - T_REf(j,i)) ./ z_RE(4,i) + ...
+                (T_REf(j,i-1) - T_REf(j,i)) ./ z_RE(5,i) ) .* 2 ./ z_RE(3,i) );
         end
     end
 
     % Map 2D radial temperature gradients back into the global dTdt vector
     for j = 1 : Nz(13)
         for i = 1 : Nz(12)
-            dTdt(sys_top_idx + (i-1)*Nz(13) + j,1) = dTdtf(j,i);
+            dTdt(sys_top_idx + (i-1)*Nz(13) + j,1) = dTdt_REf(j,i);
         end
     end
 
@@ -384,7 +384,7 @@ function dTdt = HeatFluidSolid(t, T, Nz, dz, bypass_indices, flow, T0init, SW, A
     %%%------------------------------------------%%%
 
     % radial temperature difference between first and second radial nodes
-    DT(:,1) = Tf(:,2) - Tf(:,1);
+    DT(:,1) = T_REf(:,2) - T_REf(:,1);
 
     % Temperature gradient in the 1D system insulation including radial loss
     for i = sys_top_no_ins_idx+1 : sys_top_idx-1
