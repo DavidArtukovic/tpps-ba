@@ -95,6 +95,16 @@ function [T_Sys,T_REf, fk_code] = HeattransferSzen(t2, IC_Sys, Nz, dz, bypass_in
     radial_soil_top_no_ins_idx = Nz(2)+Nz(3)+Nz(4)-2;       % without insulation
 
 
+    soil_2d_first_idx = sys_top_idx+1;                                  % first index of 2D soil field in system vector
+    soil_2d_top_idx = soil_2d_first_idx + Nz(12)*Nz(13) - 1;            % last index of 2D soil field in system vector
+
+    piston_2d_first_idx = soil_2d_top_idx+1;                      % first index of 2D piston field in system vector
+    piston_2d_top_idx = piston_2d_first_idx + Nz(14)*Nz(3) - 1;   % last index of 2D piston field in system vector
+
+    % Mapping: 1D-temperature vector → 2D-temperature field for piston 
+    block_P = T_Sys(piston_2d_first_idx:piston_2d_top_idx);
+    T_Pf    = reshape(block_P, Nz(3), Nz(14));
+
     % Air temperature at system top (Dirichlet BC)
     T_Sys(:,sys_top_idx) = T0init(4);
     
@@ -109,6 +119,43 @@ function [T_Sys,T_REf, fk_code] = HeattransferSzen(t2, IC_Sys, Nz, dz, bypass_in
     % Set new membrane index temperature
     T_Sys(:,bypass_indices(3)) = (T_Sys(:,bypass_indices(3)-1)+T_Sys(:,bypass_indices(3)+1))/2;
     fklog(['temperature at membrane after FK= ' num2str(T_Sys(end, bypass_indices(3)))]);
+
+    %%%------------------------------------------%%%
+    % 04: Update water/piston contact temperatures at piston top and bottom based on flow direction
+    %%%------------------------------------------%%%
+
+    % Water/piston contact temperature at the piston top (water side)
+    if flow >= 0
+        % thermal discharging / standstill
+        TK_WKO = T_Sys(end,Nz(3)+Nz(8)+Nz(2)+Nz(5)-2);
+    else
+        % thermal charging
+        TK_WKO = T_Sys(end,Nz(3)+Nz(8)+Nz(2)+Nz(5)-1);
+    end
+    % Piston/water contact temperature at piston top (piston side)
+    TK_KWO_f = T_Pf(end-1, :); % radial temperature distribution at piston top
+
+    % Mixed contact temperature at piston top
+    T_Pf(end,:) = (SW(1,4)*TK_WKO + SW(2,4)*TK_KWO_f) / (SW(1,4)+SW(2,4));
+
+
+    % Water/piston contact temperature at piston bottom (water side)
+    if flow <= 0
+        % thermal charging / standstill
+        TK_WKU = T_Sys(end,Nz(3)+Nz(8)+Nz(2)-1);
+    else 
+        % thermal discharging
+        TK_WKU = T_Sys(end,Nz(3)+Nz(8)+Nz(2)-2);
+    end
+    % Piston/water contact temperature at piston bottom (piston side)
+    TK_KWU_f = T_Pf(2, :); % radial temperature distribution at piston bottom
+
+    % Mixed contact temperature at piston bottom
+    T_Pf(1,:)   = (SW(1,4)*TK_WKU + SW(2,4)*TK_KWU_f) / (SW(1,4)+SW(2,4));
+
+    % Update 1D system vector with new piston top and bottom temperatures
+    T_Sys(end,piston_2d_first_idx:piston_2d_top_idx) = T_Pf(:);
+
 
     %%%------------------------------------------%%%
     % 05: Mapping 1D system state <-> 2D radial soil field
