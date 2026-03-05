@@ -398,7 +398,7 @@ function dTdt = HeatFluidSolid(t, T, Nz, dz, bypass_indices, flow, T0init, SW, A
     %%%------------------------------------------%%%
 
     idx_w_top    = sys_top_no_ins_idx - 1;      % topmost interior water node
-    idx_w_bottom = Nz(3) + Nz(8) + 1;             % bottommost interior water node
+    idx_w_bottom = Nz(3) + Nz(8);             % bottommost interior water node
 
     % Bypass indices for the current time step
     idx_bypass_lower = bypass_indices(1);
@@ -413,7 +413,7 @@ function dTdt = HeatFluidSolid(t, T, Nz, dz, bypass_indices, flow, T0init, SW, A
     e_start_piston = 1;
     e_end_piston   = Nz(3);
 
-    for i = Nz(3)+Nz(8)+1 : idx_w_top
+    for i = idx_w_bottom : idx_w_top
 
         is_adv_segment = (i >= idx_bypass_upper && i <= idx_w_top) || ...
                         (i >= idx_w_bottom    && i <= idx_bypass_lower);
@@ -461,6 +461,24 @@ function dTdt = HeatFluidSolid(t, T, Nz, dz, bypass_indices, flow, T0init, SW, A
             s_geom      = A(3) / A(1);              % = H(5)/H(3) because A1*H5 = A3*H3
             alpha_ring  = SW(1,5) * s_geom^2;       % preserve diffusion time scale tau ~ L^2/alpha
 
+            % ----------------------------------------------------------
+            % Extra axial mixing below/above outlet (eddy diffusion)
+            % ----------------------------------------------------------
+            alpha_max = 3e-5;   % [m^2/s] tune
+            L_mix = max(abs(idx_bypass_upper - idx_membrane) * dz, dz); % [m]
+
+            % Define mixing zone: between membrane and upper bypass
+            in_mix_zone = (i >= idx_membrane) && (i <= idx_bypass_upper);
+
+            if in_mix_zone
+                d  = abs(i - idx_bypass_upper) * dz;      % [m], 0 at stub
+                alpha_turb = alpha_max * (1 - d/(2*L_mix))*s_geom^2; % strong near inlet
+            else
+                alpha_turb = 0;
+            end
+
+            alpha_ring_eff = alpha_ring + alpha_turb;
+
             % Compute mean radial gradient based on current node position in the ring gap
             % ring-gap local index (1 ... Nz(5))
             j = i - (Nz(3)+Nz(8)+Nz(2)-1);
@@ -490,7 +508,7 @@ function dTdt = HeatFluidSolid(t, T, Nz, dz, bypass_indices, flow, T0init, SW, A
             % Water segment inside the piston region (no direct radial coupling)
             % update with advection + scaled diffusion and  radial loss to outer soil
             % at mebrane node dTdt = 0 (adiabatic)
-            dTdt(i) = alpha_ring * diffusion ...
+            dTdt(i) = alpha_ring_eff * diffusion ...
                     + adv ...
                     + SW(4,4) * mean_DT ...          % soil coupling
                     + SW(4,5) * mean_DT_p;           % piston coupling
@@ -514,7 +532,7 @@ function dTdt = HeatFluidSolid(t, T, Nz, dz, bypass_indices, flow, T0init, SW, A
     wk = wk / sum(wk);  % normalize weights to sum to 1
 
     % normalize by sum of ZR_P(1,:) to get proper weights
-    gradient_weights = z_RP(2,:) / sum(z_RP(2,:));;
+    gradient_weights = z_RP(2,:) / sum(z_RP(2,:));
 
     % weighted mean temperature gradient at piston top
     dT_WKO_mean = sum((T_Pf(end-1,:)-T_Pf(end,:)).* gradient_weights);

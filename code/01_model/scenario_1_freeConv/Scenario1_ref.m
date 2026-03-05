@@ -135,7 +135,7 @@ T_V(1, :) = T_Sys(1, 1:Nz(10));
 
 % Temperature in water system
 water_begin_idx = Nz(3)+Nz(8);
-water_end_idx = water_begin_idx + Nz(2)+Nz(5)+Nz(4)-3;
+water_end_idx = Nz(3)+Nz(8)+Nz(2)+Nz(5)+Nz(4)-3;
 T_W(1, :) = T_Sys(1,water_begin_idx:water_end_idx);
 
 % Temperature in piston
@@ -188,7 +188,7 @@ T0init(7) = 11;                 % Initial insulation temperature
 %%%------------------------------------------%%%
 
 % Initialize logging
-version = '2d_v3';
+version = '2d_v4';
 dateTag = datestr(now, "yymmdd");
 
 FK_LOG_BASE = fullfile(DATA_SCEN1_FK, '01_logs');
@@ -281,7 +281,7 @@ for i = 1:length(t_900)
     T_SSys(upper_pressure_first_idx: upper_pressure_top_idx) = ...
         T_V(water_begin_idx+Nz(2)+Nz(5)-2 : water_begin_idx+Nz(2)+Nz(5)+Nz(4)-3); % Upper pressure zone
 
-    T_SSys(Nz(2) : Nz(2)+Nz(3)-1) = mean_T_RP;                               % Piston
+    T_SSys(Nz(2)+1 : Nz(2)+Nz(3)-2) = mean_T_RP;                               % Piston
     T_SSys(Nz(2)+Nz(3)+Nz(4)-2:end) = ...
         T_V(Nz(3)+Nz(8)+Nz(2)+Nz(5)+Nz(4)-3:end);                               % Vertical insulation
 
