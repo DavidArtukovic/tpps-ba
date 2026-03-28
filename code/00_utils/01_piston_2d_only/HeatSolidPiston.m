@@ -52,22 +52,20 @@ function dTdt = HeatSolidPiston(t, T_vec, Nz, dz, T0init, SW, z_RP)
     d2T_dz2 = (T_Pf(jIdx+1, iIdx) - 2*T_Pf(jIdx, iIdx) + T_Pf(jIdx-1, iIdx)) / (dz^2);
 
     % radial second derivative with variable spacing
-    drsum = z_RP(3, iIdx);     % 1 × NrInt
     dr_f  = z_RP(4, iIdx);     % 1 × NrInt
     dr_b  = z_RP(5, iIdx);     % 1 × NrInt
-    ri    = z_RP(1, iIdx);     % 1 × NrInt
 
-    % Broadcast row vectors across all z rows via implicit expansion
-    d2T_dr2 = (2 ./ drsum) .* ( ...
-                (T_Pf(jIdx, iIdx+1) - T_Pf(jIdx, iIdx)) ./ dr_f  ...  % forward component
-              - (T_Pf(jIdx, iIdx)   - T_Pf(jIdx, iIdx-1)) ./ dr_b );  % backward component
+    % radial conduction term in divergence form (robust for nonuniform grid)
+    r_imh = 0.5 * (z_RP(1,iIdx-1) + z_RP(1,iIdx));   % r_{i-1/2}
+    r_iph = 0.5 * (z_RP(1,iIdx)   + z_RP(1,iIdx+1)); % r_{i+1/2}
 
-    % first radial derivative term (1/r * dT/dr) with variable spacing
-    dT_dr = (T_Pf(jIdx, iIdx+1) - T_Pf(jIdx, iIdx-1)) ./ drsum;
-    one_over_r_dTdr = (1 ./ ri) .* dT_dr;
+    flux_in  = r_imh .* (T_Pf(jIdx,iIdx)   - T_Pf(jIdx,iIdx-1)) ./ dr_b;
+    flux_out = r_iph .* (T_Pf(jIdx,iIdx+1) - T_Pf(jIdx,iIdx))   ./ dr_f;
+
+    radial_term = 2 .* (flux_out - flux_in) ./ (r_iph.^2 - r_imh.^2);
 
     % assemble togehter in the interior of the piston domain
-    dTdt_Pf(jIdx, iIdx) = SW(2,5) * ( d2T_dz2 + d2T_dr2 + one_over_r_dTdr );
+    dTdt_Pf(jIdx, iIdx) = SW(2,5) * (d2T_dz2 + radial_term);
 
     %--------------------------------------------------------------
     % 3.2 Axis treatment (r = 0 symmetry): vectorized over z
