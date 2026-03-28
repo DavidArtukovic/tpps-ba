@@ -40,7 +40,7 @@ DATA_INIT = fullfile(DATA_BASE, 'init');
 
 % Load init and scenario files
 % load(fullfile(DATA_SCEN1, 'Init_d18_h18_time8.mat'));   % Geometry, material values and initial values
-load(fullfile(DATA_INIT, '20260301_d18_hp16.0_gap0.5_2D_chunk008_v2_synth.mat'));       % Synthetic data for initial temperature fields
+load(fullfile(DATA_INIT, '20260324_d18_hp16.0_gap0.5_2D_chunk009_v1.mat'));       % Synthetic data for initial temperature fields
 load(fullfile(DATA_SCEN1, 'SzenarioComsol.mat'));       % Scenario control flags
 %%
 %%%------------------------------------------%%%
@@ -188,7 +188,7 @@ T0init(7) = 11;                 % Initial insulation temperature
 %%%------------------------------------------%%%
 
 % Initialize logging
-version = '2d_v4';
+version = '2d_v6';
 dateTag = datestr(now, "yymmdd");
 
 FK_LOG_BASE = fullfile(DATA_SCEN1_FK, '01_logs');
@@ -281,7 +281,7 @@ for i = 1:length(t_900)
     T_SSys(upper_pressure_first_idx: upper_pressure_top_idx) = ...
         T_V(water_begin_idx+Nz(2)+Nz(5)-2 : water_begin_idx+Nz(2)+Nz(5)+Nz(4)-3); % Upper pressure zone
 
-    T_SSys(Nz(2)+1 : Nz(2)+Nz(3)-2) = mean_T_RP;                               % Piston
+    T_SSys(Nz(2) : Nz(2)+Nz(3)-1) = mean_T_RP;                               % Piston
     T_SSys(Nz(2)+Nz(3)+Nz(4)-2:end) = ...
         T_V(Nz(3)+Nz(8)+Nz(2)+Nz(5)+Nz(4)-3:end);                               % Vertical insulation
 

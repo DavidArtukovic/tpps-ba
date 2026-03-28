@@ -53,7 +53,7 @@
 % ---------------------------------------------------------------
 
 
-function [T_Sys,T_REf, fk_code] = HeattransferSzen(t2, IC_Sys, Nz, dz, bypass_indices, flow,T0init,SW,A,z_RE,z_RP,T_REf,Nt2,fklog)
+function [T_Sys, T_REf, fk_code] = HeattransferSzen(t2, IC_Sys, Nz, dz, bypass_indices, flow,T0init,SW,A,z_RE,z_RP,T_REf,Nt2,fklog)
 
     %--------------------------------------------------------------
     % Preallocation for contact temperatures between system insulation (1D)
@@ -102,7 +102,7 @@ function [T_Sys,T_REf, fk_code] = HeattransferSzen(t2, IC_Sys, Nz, dz, bypass_in
     piston_2d_top_idx = piston_2d_first_idx + Nz(14)*Nz(3) - 1;   % last index of 2D piston field in system vector
 
     % Mapping: 1D-temperature vector → 2D-temperature field for piston 
-    block_P = T_Sys(piston_2d_first_idx:piston_2d_top_idx);
+    block_P = T_Sys(end, piston_2d_first_idx:piston_2d_top_idx);
     T_Pf    = reshape(block_P, Nz(3), Nz(14));
 
     % Air temperature at system top (Dirichlet BC)
@@ -154,7 +154,7 @@ function [T_Sys,T_REf, fk_code] = HeattransferSzen(t2, IC_Sys, Nz, dz, bypass_in
     T_Pf(1,:)   = (SW(1,4)*TK_WKU + SW(2,4)*TK_KWU_f) / (SW(1,4)+SW(2,4));
 
     % Update 1D system vector with new piston top and bottom temperatures
-    T_Sys(end,piston_2d_first_idx:piston_2d_top_idx) = T_Pf(:);
+    T_Sys(end,piston_2d_first_idx:piston_2d_top_idx) = T_Pf(:).';
 
 
     %%%------------------------------------------%%%
