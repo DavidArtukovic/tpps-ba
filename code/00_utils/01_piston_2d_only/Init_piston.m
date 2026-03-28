@@ -1,38 +1,23 @@
-%% INIT.m
+%% INITPISTON.m
 % -------------------------------------------------------------------------
-%  SUMMARY:
-%   Initializes geometry, material properties and temperature fields for the
-%   TPPS model and performs the purely conductive pre-initialization phase.
+% SUMMARY:
+%   Standalone initialization of the 2D piston temperature field over
+%   long-term conductive pre-simulation (no coupling to full TPPS system).
 %
-%  DESCRIPTION:
-%   - Generates long-term synthetic ground temperature boundary conditions
-%     (short-term linear ramp + long-term sinusoidal/exponential trend).
-%   - Defines full storage geometry: cylinder, dome, piston, ring gap,
-%     membrane, replacement volumes, soil and insulation.
-%   - Computes stored potential and thermal energy for reference conditions.
-%   - Sets material properties (water, soil, insulation) incl. thermal
-%     conductivity, density, heat capacity and derived thermal diffusivities.
-%   - Constructs vertical 1D discretization (piston, pressure zones, water
-%     inventory, insulation, soil) and radial discretization of the soil
-%     domain using predefined ring segments.
-%   - Computes radial heat-loss factors from an analytical cylindrical model.
-%   - Initializes all temperature fields for piston, water, insulation,
-%     soil and air; assembles the global 1D system state vector.
-%   - Calls HeattransferInit.m in a time loop to compute transient heat
-%     conduction during the initialization phase (no forced mass flow).
-%   - Saves intermediate states to MAT files for later TPPS simulations.
+% DESCRIPTION:
+%   - Generates time-dependent boundary temperature (synthetic ground BC)
+%   - Defines piston geometry and material properties
+%   - Builds radial (r) and axial (z) discretization of piston domain
+%   - Solves transient 2D heat conduction in piston using ODE solver
+%   - Stores intermediate states for later coupling with full model
 %
-%
-%  OUTPUT:
-%   Workspace variables:
-%       Geometry: H, d, A, Nz, dz, z_SSys, z_Sys, z_UD, z_OD, z_W, z_Pist,
-%                 z_ZE, z_RE, z_RP
-%       Material properties: SW
-%       Temperature fields: IC_Sys, T_V, T_W, T_REf, T_RP, T_Sys, T
-%       Time discretization: dt, t2, time_short, time_long
-%
+% OUTPUT:
+%   Saved MAT files containing:
+%       InitOut.state.T_RPf_end   % 2D piston temperature field [z x r]
+%       InitOut.grid              % Nz, dz, z_RP
+%       InitOut.param             % SW, T0init
+%       InitOut.meta              % time, BC, geometry info
 % -------------------------------------------------------------------------
-
 
 clc 
 clear
@@ -42,7 +27,7 @@ clear
 %%%------------------------------------------%%%
 
 % Load local paths (per-machine config)
-run(fullfile('..','..', 'configs', 'paths_local.m'));
+run(fullfile('..','..','..', 'configs', 'paths_local.m'));
 
 % Build data subfolder for this configuration
 DATA_INIT = fullfile(DATA_BASE, 'init');
@@ -60,10 +45,6 @@ time_long = t0:900:t_end;               % long time array in 15 minutes steps
 
 T = zeros(3,length(time_long));         % 3-row temperature array (only third row relevant)
 
-% Custom linear temperature profile for 120 days
-for k = 1:length(time_short)
-    T(3,k) = 11+273.15 + time_long(k)*(286.25-(11+273.15))/(t1);
-end
 
 % Custom temperature profile for 4.2 years, as function of sin and exponential terms.
 for k = length(time_short):length(time_long)
@@ -237,49 +218,7 @@ z_ZE = 0:dz:H(13);                        % Vertical coordinate soil-only domain
 
 
 %--------------------------------------------------------------
-% 6.2. Radial Geometry Soil
-%--------------------------------------------------------------
-
-Nz(12) = 13;                              % Number of radial nodes
-z_RE = zeros(5, Nz(12));                  % Matrix for radial geometry/storage
-
-z_RE(1,1) = d(1)/2;                       % Inner radius (outer cylinder radius)
-
-% Hard-coded radial node distribution for soil domain [m]
-z_RE(1,:) = [d(1)/2 , ...
-             d(1)/2+0.005 , d(1)/2+0.015 , d(1)/2+0.035 , d(1)/2+0.075 , ...
-             d(1)/2+0.15 , d(1)/2+0.3 , d(1)/2+0.6 , d(1)/2+1.2 , ...
-             d(1)/2+2.4 , d(1)/2+4.6 , d(1)/2+6.8 , d(1)/2+9];
-
-
-%--------------------------------------------------------------
-% 6.3. Area of Single Circular Ring Segments Soil
-%--------------------------------------------------------------
-
-z_RE(2,1) = round(pi*(z_RE(1,2)-z_RE(1,1)) * ((z_RE(1,2)-z_RE(1,1))/4 + z_RE(1,1)), 10); 
-                                             % Area of first circular ring segment [m²]
-
-z_RE(2,end) = round(-pi*(z_RE(1,end-1)-z_RE(1,end)) * ...
-                         ((z_RE(1,end-1)-z_RE(1,end))/4 + z_RE(1,end)), 10);
-                                             % Area of last circular ring segment [m²]
-
-for i = 2:Nz(12)-1
-    z_RE(2,i) = round( ...
-        pi*(z_RE(1,i+1)-z_RE(1,i-1)) * ...
-        (z_RE(1,i-1) + 0.5*((z_RE(1,i+1)-z_RE(1,i-1))/2 + z_RE(1,i) - z_RE(1,i-1))), ...
-    10);                                      % Area of intermediate ring segments [m²]
-end
-
-for i = 2:length(z_RE)-1
-    z_RE(3,i) = round(z_RE(1,i+1)-z_RE(1,i-1), 10); % Spacing to next/previous node (symmetric) [m]
-    z_RE(4,i) = round(z_RE(1,i+1)-z_RE(1,i),   10); % Forward node spacing [m]
-    z_RE(5,i) = round(z_RE(1,i)-z_RE(1,i-1),   10); % Backward node spacing [m]
-end    
-
-dr = d(2);                                % Radial grid spacing [m]
-
-%--------------------------------------------------------------
-% 6.4 Radial Geometry – Piston (half domain)
+% 6.2. Radial Geometry – Piston (half domain)
 %--------------------------------------------------------------
 
 n_radial_piston_cells = 10;                     % 10 cells
@@ -296,11 +235,11 @@ dr_vec = dr0_piston * 2.^(0:n_radial_piston_nodes-1);   % cell widths
 r_nodes = [0, cumsum(flip(dr_vec))];                  % length = 11, first = 0, last = r_pist
 
 % --- store like soil grid
-z_RP = zeros(4, Nz(14));
+z_RP = zeros(5, Nz(14));
 z_RP(1,:) = r_nodes;                            % nodes radial positions
 
 %--------------------------------------------------------------
-% 6.5. Area of Circular Ring Segments Piston
+% 6.3. Area of Circular Ring Segments Piston
 %--------------------------------------------------------------
 
 % Area of first circular ring segment [m²]
@@ -326,18 +265,17 @@ end
 
 
 %--------------------------------------------------------------
-% 6.6. Temporal Discreization
+% 6.4. Temporal Discreization
 %--------------------------------------------------------------
 
 dt  = 900;                                 % Time step size [s]
 t2  = [0 900];                             % time interval
 
 
-
 %%%------------------------------------------%%%
 % 07 Radial heat-loss factors (new analytical approximation)
 %%%------------------------------------------%%%
-
+dr = d(2);      % radial grid spacing for heat-loss factor calculation [m]
 RE   = d(1)/2;      % Outer cylinder radius [m]
 R_PS = d(3)/2;      % Penstock (1D equivalent) radius [m]
 
@@ -372,47 +310,22 @@ T0init(6) = T(3,1) - 273.15;         % Initial boundary temperature for ground (
 T0init(7) = 11;                      % Initial insulation temperature
 
 
-%--------------------------------------------------------------
-% Initialization of 1D temperature field
-%--------------------------------------------------------------
-
-% Initial temperature for full 1D system +2D soil/piston
-IC_Sys = T0init(1) * ones(1, Nz(10) + Nz(12)*Nz(13) + Nz(14)*Nz(3));     
-
-% Legacy Code not needed anymore
-IC_Sys(1:Nz(3)) = T0init(5);                               % Initial piston temperature
-
-IC_Sys(Nz(3)+1 : Nz(3)+Nz(8)) = T0init(5);                 % Initial soil temperature below the storage
-
-IC_Sys(Nz(3)+Nz(8)+Nz(2)+Nz(5)+Nz(4)+Nz(9)-4) = T0init(4); 
-                                                           % Initial air temperature (single air node)
-
-IC_Sys(Nz(3)+Nz(8)+Nz(2)+Nz(5)+Nz(4)-2 : ...
-       Nz(3)+Nz(8)+Nz(2)+Nz(5)+Nz(4)+Nz(9)-5) = T0init(7); % Initial insulation temperature
-
-IC_Sys(Nz(3)+Nz(8)+Nz(2)+Nz(5)+Nz(4)+Nz(9)-3 : end) = T0init(5);
-                                                           % Initial temperature in radial soil domain + piston
-
-
-% Helper matrices for post-processing
-T_V   = zeros(1, Nz(10));                                   % Vertical system temperature profile
-T_W   = zeros(1, Nz(6));                                    % Water volume temperature profile
-T_REf = T0init(5) * ones(Nz(13), Nz(12));                   % Radial soil temperature field (vertical x radial nodes)
+% Helper matrix for post-processing
 T_RPf = T0init(5) * ones(Nz(3), Nz(14));                    % Radial piston temperature field (vertical x radial nodes)
 
-
+T_RPf_init = T_RPf; % Initial condition for piston temperature field (updated in time loop)
+%%
 %--------------------------------------------------------------
 % Time loop: conductive pre-initialization
 %--------------------------------------------------------------
 
-filenameSIM = ['Init_d' num2str(d_ST) '_h' num2str(h_pist) '_g' num2str(r_gap) '.mat'];
-version = 'v3';
+version = 'v1';
 
 dateTag = datestr(now, 'yyyymmdd');         % e.g., 20260227
-modeTag = 'Init2D';                         % adjust if needed (e.g., 'Init1D', 'Init2D')
+modeTag = 'Init2D_3months';                         % adjust if needed (e.g., 'Init1D', 'Init2D')
 o = 1;                                      % chunk counter (kept from your logic)
-
-for i = 1:length(time_long)
+start_idx = round(length(time_long)*0.95);
+for i = start_idx:length(time_long)
     tic
 
     % Example for varying boundary conditions (kept as reference):
@@ -424,17 +337,11 @@ for i = 1:length(time_long)
     T0init(6) = T(3,i) - 273.15;                        % Updated ground boundary temperature [°C]
 
     % Compute transient heat conduction and heat transfer
-    [T_Sys, T_REf, T_RPf] = HeattransferInit( ...
-        t2, IC_Sys, Nz, dz, T0init, SW, z_RE, z_RP);
+    [T_RPf] = HeattransferInitPiston( ...
+        t2, T_RPf_init, Nz, dz, T0init, SW, z_RP);
 
     % Update initial condition for next time step (use last time level)
-    IC_Sys = T_Sys(end,:);
-
-    % Extract vertical system temperature profile
-    T_V(1,:) = T_Sys(end,1:Nz(10));
-
-    % Extract water inventory temperature profile
-    T_W(1,:) = T_Sys(end, Nz(3)+Nz(8) : Nz(3)+Nz(8)+Nz(2)+Nz(5)+Nz(4)-3);
+    T_RPf_init = T_RPf;
 
     toc
 
@@ -461,7 +368,7 @@ for i = 1:length(time_long)
         % --- Geometry / grids ---
         InitOut.grid.Nz   = Nz;
         InitOut.grid.dz   = dz;
-        InitOut.grid.z_RE = z_RE;
+        InitOut.grid.z_RE = [];
         InitOut.grid.z_RP = z_RP;
 
         InitOut.geom.H      = H;
@@ -478,17 +385,17 @@ for i = 1:length(time_long)
         InitOut.param.T0init = T0init;
 
         % --- Current solution state (last time level) ---
-        InitOut.state.IC_Sys_end = IC_Sys;
-        InitOut.state.T_V_end    = T_V;
-        InitOut.state.T_W_end    = T_W;
-        InitOut.state.T_REf_end  = T_REf;
+        InitOut.state.IC_Sys_end = [];
+        InitOut.state.T_V_end    = [];
+        InitOut.state.T_W_end    = [];
+        InitOut.state.T_REf_end  = [];
         InitOut.state.T_RPf_end  = T_RPf;
 
         % --- input series reference ---
         InitOut.input.T_series = T;
 
         % File name and path (use fullfile + DATA_INIT)
-        filenameSIM = sprintf('%s_d%d_hp%.1f_gap%.1f_%s_chunk%03d.mat', ...
+        filenameSIM = sprintf('%s_Init_piston_d%d_hp%.1f_gap%.1f_%s_chunk%03d.mat', ...
                             dateTag, d_ST, h_pist, r_gap, modeTag, o);
 
         fullpathSIM = fullfile(DATA_INIT, filenameSIM);
