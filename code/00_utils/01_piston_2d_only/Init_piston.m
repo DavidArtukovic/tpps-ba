@@ -45,6 +45,10 @@ time_long = t0:900:t_end;               % long time array in 15 minutes steps
 
 T = zeros(3,length(time_long));         % 3-row temperature array (only third row relevant)
 
+% Custom linear temperature profile for 120 days
+for k = 1:length(time_short)
+    T(3,k) = 11+273.15 + time_long(k)*(286.25-(11+273.15))/(t1);
+end
 
 % Custom temperature profile for 4.2 years, as function of sin and exponential terms.
 for k = length(time_short):length(time_long)
@@ -395,8 +399,8 @@ for i = start_idx:length(time_long)
         InitOut.input.T_series = T;
 
         % File name and path (use fullfile + DATA_INIT)
-        filenameSIM = sprintf('%s_Init_piston_d%d_hp%.1f_gap%.1f_%s_chunk%03d.mat', ...
-                            dateTag, d_ST, h_pist, r_gap, modeTag, o);
+        filenameSIM = sprintf('%s_Init_piston_d%d_hp%.1f_gap%.1f_%s_chunk%03d_%s.mat', ...
+                            dateTag, d_ST, h_pist, r_gap, modeTag, o, version);
 
         fullpathSIM = fullfile(DATA_INIT, filenameSIM);
 
