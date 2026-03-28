@@ -2,10 +2,10 @@ clc
 clear
 close all
 %%%------------------------------------------%%%
-%  timelapse_matlab_15min_2d.m
+%  timelapse_matlab_comsol_15min_2d.m
 %
 %  SUMMARY:
-%   Timelapse visualization of matlab 1D temperature profiles (15 min resolution)
+%   Timelapse visualization of matlab/comsol 1D temperature profiles (15 min resolution)
 %   and 2D piston temperature field from Matlab, side-by-side.
 %
 %  NOTES:
@@ -23,64 +23,79 @@ run(fullfile('..','..','..', 'configs', 'paths_local.m'));
 RESULTS_VIS_BASE  = fullfile(RESULTS_BASE, "02_visualizations");
 RESULTS_TIMELAPSE = fullfile(RESULTS_VIS_BASE, "timelapse");
 
-
-%%
 DATA_SCEN1_BASE = fullfile(DATA_BASE, 'Modellvergleich1D');
 DATA_SCEN1_NOFK  = fullfile(DATA_BASE, 'scenario1');
 DATA_SCEN1_FK  = fullfile(DATA_BASE, 'scenario1_freeConv');
 DATA_INIT = fullfile(DATA_BASE, 'init');
 
-% Load init and scenario files
-load(fullfile(DATA_INIT, '20260324_d18_hp16.0_gap0.5_2D_chunk009_v1.mat'));       % Synthetic data for initial temperature fields
+% Load init results and scenario files
+load(fullfile(DATA_INIT, '20260324_d18_hp16.0_gap0.5_2D_chunk009_v1.mat')); %2D init file
 % Scenario/time information
 load(fullfile(DATA_SCEN1_BASE, 'd18_h18.mat'));
 
 % Piston information (only for plotting the piston)
 load(fullfile(DATA_BASE, 'scenario1/SzenarioComsol.mat'));
 
-% MATLAB results (same as plot_matlab_profiles.m)
-data_1 = load(fullfile(DATA_SCEN1_NOFK, 'd18_h18_Res_Matlab_d18_18.mat'));
-data_2 = load(fullfile(DATA_SCEN1_FK, '260305_d18_h18_Res_Matlab_FK_2d_v5.mat'));
-data_3 = load(fullfile(DATA_SCEN1_FK, '260324_d18_h18_Res_Matlab_FK_2d_v6.mat'));
+% MATLAB and COMSOL results (same as plot_matlab_profiles.m)
+data_1 = load(fullfile(DATA_SCEN1_NOFK, 'd18_h18_Res_Matlab_d18_18.mat')); % Matlab 1D no FK
+data_2 = load(fullfile(DATA_SCEN1_BASE, 'T1_1818_900.mat')); % COMSOL
+data_3 = load(fullfile(DATA_SCEN1_FK, '260324_d18_h18_Res_Matlab_FK_2d_v6.mat')); % Matlab 2D piston with FK
 
-%%
+
 %%%------------------------------------------%%%
 % 02. Spatial grid
 %%%------------------------------------------%%%
 
 dz_M = 0.005;  % MATLAB resolution
-Nz   = size(data_1.Res_System_d18_18,1) - 400;
+Nz   = size(data_1.Res_System_d18_18,1) - 400; % remove isolation nodes
 
 z_M_star = flip((0:Nz-1)' * dz_M);
 % Physical coordinate: top at +0.665 m, bottom at -36.665 m
 z_M = -1*(37.33 - z_M_star) + 0.665;
 
-% --- geometric bypass positions (relative to z = 0) ---
+% geometric bypass positions (relative to z = 0)
+% based on Dominic#s sheet
 z_ps_up_geom  = -1 - 16/2;
 z_ps_low_geom = -3*1 - 0.05 - 16;
 
-% --- corresponding indices on z_M grid ---
+% corresponding indices on z_M grid
 [~, idx_bypass_upper] = min(abs(z_M - z_ps_up_geom));
 [~, idx_bypass_lower] = min(abs(z_M - z_ps_low_geom));
-
 
 %%%------------------------------------------%%%
 % 03. Extract full 15-min resolution
 %%%------------------------------------------%%%
 
 T_1 = data_1.Res_System_d18_18(401:end,:);
-T_2 = data_2.ResOut.temperature.system(401:end,:);
 T_3 = data_3.ResOut.temperature.system(401:end,:);
 T_3_p = data_3.ResOut.temperature.piston; % 2d piston
 
-n_steps = size(T_1, 2);
-%%
+% COMSOL: drop first stored time point (t = 0)
+W_C_raw = data_2.W(:,2:end);
+P_C_raw = data_2.P(:,2:end);
+
+% need to ensure all variables have the same number of time steps for the animation loop
+n_steps = min([ ...
+    size(T_1,2), ...
+    size(T_3,2), ...
+    size(T_3_p,2), ...
+    size(W_C_raw,2), ...
+    size(P_C_raw,2), ...
+    size(t_900,2)]);
+
+% truncate to n_steps
+T_1     = T_1(:,1:n_steps);
+T_3     = T_3(:,1:n_steps);
+T_3_p   = T_3_p(:,1:n_steps);
+W_C_raw = W_C_raw(:,1:n_steps);
+P_C_raw = P_C_raw(:,1:n_steps);
+
 %-----------------------------------------
-% 2.1 Extract Ring-Gap Info
+% 3.1 Extract Ring-Gap Temperatures for Matlab models
 %------------------------------------------
 
 % Part for Ringgap
-blockLen = 389;
+blockLen = 389; % hard coded ring-gap size
 startIdx = data_1.Res_900_d18_18(8,2:n_steps+1)-1;   % [1 x Nt]
 
 % --- build row index matrix ---
@@ -89,14 +104,9 @@ rows = startIdx(:)' + rowOffsets;               % [389 x Nt_reduced]
 colsMat = repmat(1:n_steps, blockLen, 1);       % [389 x Nt_reduced]
 
 %%% No FK %%%
-A        = data_1.Res_Wasser_d18_18(:,1:n_steps);            % [Nz x Nt]
+A        = data_1.Res_Wasser_d18_18(:,1:n_steps);     % [Nz x Nt]
 linInd = sub2ind(size(A), rows, colsMat);
-T_ring_1 = A(linInd);                                        % [389 x Nt_reduced]
-
-%%% FK %%%
-A        = data_2.ResOut.temperature.water(:,1:n_steps);     % [Nz x Nt]
-linInd = sub2ind(size(A), rows, colsMat);
-T_ring_2 = A(linInd);                                        % [389 x Nt_reduced]
+T_ring_1 = A(linInd);                                 % [389 x Nt_reduced]
 
 %%% FK %%%
 A        = data_3.ResOut.temperature.water(:,1:n_steps);     % [Nz x Nt]
@@ -105,32 +115,87 @@ T_ring_3 = A(linInd);                                        % [389 x Nt_reduced
 
 clear A linInd startIdx rowOffsets rows
 
-%%
 %%%------------------------------------------%%%
 % 04. Time axis (15 min per step)
 %%%------------------------------------------%%%
 
 dt_min  = 15;
-t_hours = (0:n_steps-1) * dt_min / 60;
+t_hours = (1:n_steps) * dt_min / 60;
+
 
 %%%------------------------------------------%%%
-% 05. Piston position per time step
+% 05. COMSOL vertical coordinate projected to MATLAB geometry
 %%%------------------------------------------%%%
-% Physical piston position (lower edge) from your mapping
-% z_piston = t_900(2,i)*(-19) + (1-t_900(2,i))*(-36)
-% Make sure indices are valid.
-if size(t_900,2) < n_steps
-    warning('t_900 has fewer time steps (%d) than temperature data (%d). Using min length.', size(t_900,2), n_steps);
-    n_steps = min(size(t_900,2), n_steps);
-    T_1 = T_noFK(:,1:n_steps);
-    T_2 = T_fk(:,1:n_steps);
-    t_hours = t_hours(1:n_steps);
+
+dz_C = 0.05;                                        % COMSOL resolution in m
+zC_raw = (0:size(data_2.W,1)-1)' * dz_C;            % 0 ... 38 m from top to bottom
+
+zC_proj = zeros(size(zC_raw));
+
+% Top dead zone: 2.0 m -> 1.665 m
+mask_top = zC_raw <= 2.0;
+zC_proj(mask_top) = zC_raw(mask_top) * (1.665 / 2.0);
+
+% Middle part: unchanged
+mask_mid = zC_raw > 2.0 & zC_raw < 36.0;
+zC_proj(mask_mid) = 1.665 + (zC_raw(mask_mid) - 2.0);
+
+% Bottom dead zone: 2.0 m -> 1.665 m
+mask_bot = zC_raw >= 36.0;
+zC_proj(mask_bot) = 1.665 + 34.0 + (zC_raw(mask_bot) - 36.0) * (1.665 / 2.0);
+
+% Convert to physical z-axis used in plot:
+% top = +0.665 m, bottom = -36.665 m
+z_C = 0.665 - zC_proj;
+
+
+%%% COMSOL %%%
+% Keep original COMSOL grid and map via interpolation onto projected z-grid
+T_ring_comsol = nan(blockLen, n_steps);
+
+
+%%%------------------------------------------%%%
+% 06. COMSOL -> reconstruct global system profile
+%%%------------------------------------------%%%
+
+h_piston    = 18;                         % [m]
+z_ring_norm = linspace(0,1,blockLen)';    % normalized vertical coordinate
+
+T_sys_comsol = nan(Nz, n_steps);
+
+% Piston lower edge from scenario mapping
+z_piston_ts = t_900(2,1:n_steps) * (-19) + (1 - t_900(2,1:n_steps)) * (-35);
+
+% COMSOL piston coordinate (18 m, no projection needed)
+zP_rel = (0:size(P_C_raw,1)-1)' * dz_C;     % 0 ... 18 m from piston top to bottom
+
+for i = 1:n_steps
+
+    z_piston = z_piston_ts(i);              % lower piston edge
+    z_piston_top = z_piston + 18.0;         % upper piston edge
+
+    % --- projected COMSOL water on MATLAB z-grid ---
+    T_Wi = interp1(z_C, W_C_raw(:,i), z_M, 'linear', 'extrap');
+
+    % --- piston mean temperature placed into current piston interval ---
+    z_Pi = z_piston_top - zP_rel;           % physical piston coordinates, top -> bottom
+    T_Pi = interp1(z_Pi, P_C_raw(:,i), z_M, 'linear', 'extrap');
+
+    % start with projected water everywhere
+    T_sys_comsol(:,i) = T_Wi;
+
+    % overwrite piston region
+    mask_piston = (z_M <= z_piston_top) & (z_M >= z_piston);
+    T_sys_comsol(mask_piston,i) = T_Pi(mask_piston);
+
+    % ring-gap temperatures along current ring-gap height
+    z_ring = flip(z_piston + z_ring_norm * h_piston);
+    T_ring_comsol(:,i) = interp1(z_C, W_C_raw(:,i), z_ring, 'linear', 'extrap');
 end
 
-z_piston_ts = t_900(2,1:n_steps) * (-19) + (1 - t_900(2,1:n_steps)) * (-35);
 %%
 %%%------------------------------------------%%%
-% 06. Model container
+% 07. Model container
 %%%------------------------------------------%%%
 
 models(1).name   = 'no FK 1D';
@@ -140,9 +205,9 @@ models(1).z      = z_M;
 models(1).style  = '-';
 models(1).color  = [0 0 0];          % black
 
-models(2).name   = 'FK 1D';
-models(2).T_sys  = T_2;
-models(2).T_ring = T_ring_2;
+models(2).name   = 'COMSOL';
+models(2).T_sys  = T_sys_comsol;
+models(2).T_ring = T_ring_comsol;
 models(2).z      = z_M;
 models(2).style  = '-';
 models(2).color  = [0.0 0.7 0.0];    % green
@@ -158,23 +223,24 @@ models(3).color  = [0.6 0.0 0.0];    % blue
 z_ring_norm = linspace(0,1,blockLen)';   % normalized vertical coordinate
 
 %%%------------------------------------------%%%
-% 07. Video writer
+% 08. Video writer
 %%%------------------------------------------%%%
 dateTag = datestr(now,'yyyymmdd');
 videoname = fullfile(RESULTS_TIMELAPSE, ...
-    [dateTag '_timelapse_1D+2D_temperature_profiles_15min_matlab_only.mp4']);
+    [dateTag '_timelapse_1D+2D_temperature_profiles_15min_matlab_comsol.mp4']);
 
 v = VideoWriter(videoname,'MPEG-4');
 % Keep it readable; increase if you want a faster video
-v.FrameRate = 10;
+v.FrameRate = 8;
 open(v);
+
 %%%------------------------------------------%%%
-% 08. Figure initialization
+% 09. Figure initialization
 %%%------------------------------------------%%%
 
-figure('Color','w','Name','1D temperature profiles – time-lapse (15 min)');
+figure('Color','w','Name','1D system + 2D piston temperature profiles – time-lapse (15 min)');
 
-tlo = tiledlayout(1,2,'TileSpacing','compact','Padding','compact');
+tlo = tiledlayout(1,2,'TileSpacing','loose','Padding','compact');
 
 %% ==========================================================
 % LEFT: 1D temperature profile (unchanged visual appearance)
@@ -184,22 +250,22 @@ ax1 = nexttile;
 hold(ax1,'on')
 grid(ax1,'on')
 
-% --- right-side markers (short horizontal segments) ---
-x_mark = [78 80];
+% right-side markers (short horizontal segments) for upper/lower bypass and membrane
+x_mark = [78.8 80.3];
 
-h_ps_up  = plot(ax1, x_mark, [NaN NaN], 'k-', 'LineWidth',3);
-h_ps_low = plot(ax1, x_mark, [NaN NaN], 'k-', 'LineWidth',3);
-h_mem    = plot(ax1, x_mark, [NaN NaN], 'k-', 'LineWidth',3);
+h_ps_up  = plot(ax1, x_mark, [NaN NaN], 'k-', 'LineWidth',2);
+h_ps_low = plot(ax1, x_mark, [NaN NaN], 'k-', 'LineWidth',2);
+h_mem    = plot(ax1, x_mark, [NaN NaN], 'k-', 'LineWidth',2);
 
 x_txt = 80.3;   % slightly right of marker lines
 
-h_txt_up  = text(ax1, x_txt, NaN, 'upper bypass inlet', ...
+h_txt_up  = text(ax1, x_txt, NaN, 'upper inlet', ...
     'FontSize',9, 'Color','k', 'VerticalAlignment','middle');
 
 h_txt_mem = text(ax1, x_txt, NaN, 'membrane', ...
     'FontSize',9, 'Color','k', 'VerticalAlignment','middle');
 
-h_txt_low = text(ax1, x_txt, NaN, 'lower bypass inlet', ...
+h_txt_low = text(ax1, x_txt, NaN, 'lower inlet', ...
     'FontSize',9, 'Color','k', 'VerticalAlignment','middle');
 
 for mm = 1:numel(models)
@@ -269,7 +335,7 @@ h_title = title(ax1,'','Interpreter','Latex');
 set(h_ps_up ,  'YData', [z_M(idx_bypass_upper) z_M(idx_bypass_upper)]);
 set(h_ps_low,  'YData', [z_M(idx_bypass_lower) z_M(idx_bypass_lower)]);
 set(h_txt_up , 'Position', [x_txt z_M(idx_bypass_upper) 0]);
-set(h_txt_low,'Position', [x_txt z_M(idx_bypass_lower) 0]);
+set(h_txt_low, 'Position', [x_txt z_M(idx_bypass_lower) 0]);
 
 %% ==========================================================
 % RIGHT: 2D radial piston temperature field (no interpolation)
@@ -334,8 +400,17 @@ colorbar(ax2)
 clim(ax2,[40 80])
 xlim(ax2,[0 max(r_vec)])
 axis(ax2,'tight')
+
+% right-side markers (short horizontal segments) for upper/lower bypass and membrane
+x_mark_r = [8.2 8.5];
+
+hold(ax2,'on')
+h_ps_up_r  = plot(ax2, x_mark_r, [NaN NaN], 'k-', 'LineWidth',2);
+h_ps_low_r = plot(ax2, x_mark_r, [NaN NaN], 'k-', 'LineWidth',2);
+h_mem_r    = plot(ax2, x_mark_r, [NaN NaN], 'k-', 'LineWidth',2);
+
 %%%------------------------------------------%%%
-% 09. Animation loop
+% 10. Animation loop
 %%%------------------------------------------%%%
 
 for i = 1:n_steps
@@ -352,6 +427,12 @@ for i = 1:n_steps
 
     z_piston = z_piston_ts(i);
     z_ring   = flip(z_piston + z_ring_norm * h_piston);
+
+    % set inlets and membrane positions for variable piston position
+    y_up_loc  = z_M(idx_bypass_upper) - z_piston;
+    y_low_loc = z_M(idx_bypass_lower) - z_piston+0.05;
+    y_mem_loc = z_M(idx_membrane)     - z_piston;
+
 
     % --- FK visualization ---
     fk_code = data_3.ResOut.fk.logging_code(i);
@@ -402,11 +483,16 @@ for i = 1:n_steps
     set(h_img,'CData',T_vis);
 
     h_title.String = sprintf( ...
-        '1D temperature profiles (15 min) - t = %.2f h', ...
+        '1D system + 2D piston temperature profiles (15 min) - t = %.2f h', ...
         t_hours(i));
 
+    
+    set(h_ps_up_r , 'YData', [y_up_loc y_up_loc]);
+    set(h_ps_low_r, 'YData', [y_low_loc y_low_loc]);
+    set(h_mem_r   , 'YData', [y_mem_loc y_mem_loc], 'Color', [1 0.85 0]);
+
     drawnow
-    writeVideo(v, getframe(gcf));
+    % writeVideo(v, getframe(gcf));
 end
 
 close(v);

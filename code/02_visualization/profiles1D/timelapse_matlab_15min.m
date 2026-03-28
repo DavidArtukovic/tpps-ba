@@ -123,7 +123,7 @@ if size(t_900,2) < n_steps
     t_hours = t_hours(1:n_steps);
 end
 
-z_piston_ts = t_900(2,1:n_steps) * (-19) + (1 - t_900(2,1:n_steps)) * (-36);
+z_piston_ts = t_900(2,1:n_steps) * (-19) + (1 - t_900(2,1:n_steps)) * (-35);
 %%
 %%%------------------------------------------%%%
 % 06. Model container
