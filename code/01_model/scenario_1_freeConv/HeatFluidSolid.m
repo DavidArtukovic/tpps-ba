@@ -414,7 +414,7 @@ function dTdt = HeatFluidSolid(t, T, Nz, dz, bypass_indices, flow, T0init, SW, A
     e_end_piston   = Nz(3);
 
     for i = idx_w_bottom : idx_w_top
-
+        % upwind scheme for axial convection in the water column
         is_adv_segment = (i >= idx_bypass_upper && i <= idx_w_top) || ...
                         (i >= idx_w_bottom    && i <= idx_bypass_lower);
 
@@ -535,9 +535,11 @@ function dTdt = HeatFluidSolid(t, T, Nz, dz, bypass_indices, flow, T0init, SW, A
     gradient_weights = z_RP(2,:) / sum(z_RP(2,:));
 
     % weighted mean temperature gradient at piston top
+    % positive gradient means piston is warmer than water, so we add energy to water nodes
     dT_WKO_mean = sum((T_Pf(end-1,:)-T_Pf(end,:)).* gradient_weights);
     
     % weighted mean temperature gradient at piston bottom
+    % positive gradient means piston is colder than water, so we remove energy from water nodes
     dT_WKU_mean = sum((T_Pf(1,:)-T_Pf(2,:)).* gradient_weights);
     
 
@@ -545,7 +547,7 @@ function dTdt = HeatFluidSolid(t, T, Nz, dz, bypass_indices, flow, T0init, SW, A
     idx_water_top_piston = Nz(3)+Nz(8)+Nz(2)+Nz(5)-2;
     for j = 0:Nspread-1
         idx = idx_water_top_piston + j;            
-        dTdt(idx) = dTdt(idx) - wk(j+1) * alpha_pw * dT_WKO_mean;
+        dTdt(idx) = dTdt(idx) + wk(j+1) * alpha_pw * dT_WKO_mean;
     end
 
     % Lower water nodes adjacent to piston
