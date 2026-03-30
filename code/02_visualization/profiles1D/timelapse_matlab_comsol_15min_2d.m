@@ -39,7 +39,7 @@ load(fullfile(DATA_BASE, 'scenario1/SzenarioComsol.mat'));
 % MATLAB and COMSOL results (same as plot_matlab_profiles.m)
 data_1 = load(fullfile(DATA_SCEN1_NOFK, 'd18_h18_Res_Matlab_d18_18.mat')); % Matlab 1D no FK
 data_2 = load(fullfile(DATA_SCEN1_BASE, 'T1_1818_900.mat')); % COMSOL
-data_3 = load(fullfile(DATA_SCEN1_FK, '260324_d18_h18_Res_Matlab_FK_2d_v6.mat')); % Matlab 2D piston with FK
+data_3 = load(fullfile(DATA_SCEN1_FK, '260329_d18_h18_Res_Matlab_FK_2d_v9.mat')); % Matlab 2D piston with FK
 
 
 %%%------------------------------------------%%%
@@ -169,7 +169,7 @@ z_piston_ts = t_900(2,1:n_steps) * (-19) + (1 - t_900(2,1:n_steps)) * (-35);
 % COMSOL piston coordinate (18 m, no projection needed)
 zP_rel = (0:size(P_C_raw,1)-1)' * dz_C;     % 0 ... 18 m from piston top to bottom
 
-for i = 1:n_steps
+for i = 1:(n_steps)
 
     z_piston = z_piston_ts(i);              % lower piston edge
     z_piston_top = z_piston + 18.0;         % upper piston edge
@@ -226,12 +226,13 @@ z_ring_norm = linspace(0,1,blockLen)';   % normalized vertical coordinate
 % 08. Video writer
 %%%------------------------------------------%%%
 dateTag = datestr(now,'yyyymmdd');
+version = 'v3';
 videoname = fullfile(RESULTS_TIMELAPSE, ...
-    [dateTag '_timelapse_1D+2D_temperature_profiles_15min_matlab_comsol.mp4']);
+    [dateTag '_' version '_timelapse_1D+2D_temperature_profiles_15min_matlab_comsol.mp4']);
 
 v = VideoWriter(videoname,'MPEG-4');
 % Keep it readable; increase if you want a faster video
-v.FrameRate = 8;
+v.FrameRate = 5;
 open(v);
 
 %%%------------------------------------------%%%
@@ -242,22 +243,22 @@ figure('Color','w','Name','1D system + 2D piston temperature profiles – time-l
 
 tlo = tiledlayout(1,2,'TileSpacing','loose','Padding','compact');
 
-%% ==========================================================
-% LEFT: 1D temperature profile (unchanged visual appearance)
-% ==========================================================
+%%%------------------------------------------%%%
+% 10. LEFT: 1D temperature profile
+%%%------------------------------------------%%%
 
 ax1 = nexttile;
 hold(ax1,'on')
 grid(ax1,'on')
 
 % right-side markers (short horizontal segments) for upper/lower bypass and membrane
-x_mark = [78.8 80.3];
+x_mark = [78.6 80.0];
 
 h_ps_up  = plot(ax1, x_mark, [NaN NaN], 'k-', 'LineWidth',2);
 h_ps_low = plot(ax1, x_mark, [NaN NaN], 'k-', 'LineWidth',2);
 h_mem    = plot(ax1, x_mark, [NaN NaN], 'k-', 'LineWidth',2);
 
-x_txt = 80.3;   % slightly right of marker lines
+x_txt = 80.1;   % slightly right of marker lines
 
 h_txt_up  = text(ax1, x_txt, NaN, 'upper inlet', ...
     'FontSize',9, 'Color','k', 'VerticalAlignment','middle');
@@ -276,7 +277,7 @@ for mm = 1:numel(models)
         'Color', models(mm).color, ...
         'LineWidth',1.5);
 
-    % --- Ring-gap handles for model 2 and 3 ---
+    % Ring-gap handles for model 2 and 3
     if mm >= 2
         h_ring(mm) = plot(ax1, nan, nan, '--', ...
             'Color', models(mm).color, ...
@@ -296,6 +297,7 @@ for mm = 1:numel(models)
     legend_handles(end+1) = h_sys(mm);
     legend_labels{end+1}  = [models(mm).name ' – system'];
 
+    % handles for ring-gap only for models 2 and 3 (comsol+,matlab)
     if mm >= 2
         legend_handles(end+1) = h_ring(mm);
         legend_labels{end+1}  = [models(mm).name ' – ring gap'];
@@ -305,7 +307,8 @@ end
 legend(ax1, legend_handles, legend_labels, ...
     'Interpreter','none', 'Location','southwest')
 
-xlim(ax1,[40 80])
+% set limits
+xlim(ax1,[40 85])
 ylim(ax1,[min(z_M) max(z_M)])
 
 % Piston rectangle (initialized)
@@ -337,9 +340,9 @@ set(h_ps_low,  'YData', [z_M(idx_bypass_lower) z_M(idx_bypass_lower)]);
 set(h_txt_up , 'Position', [x_txt z_M(idx_bypass_upper) 0]);
 set(h_txt_low, 'Position', [x_txt z_M(idx_bypass_lower) 0]);
 
-%% ==========================================================
-% RIGHT: 2D radial piston temperature field (no interpolation)
-% ==========================================================
+%%%------------------------------------------%%%
+% 11. RIGHT: 2D radial piston temperature field for Matlab model
+%%%------------------------------------------%%%
 
 ax2 = nexttile;
 
@@ -402,21 +405,20 @@ xlim(ax2,[0 max(r_vec)])
 axis(ax2,'tight')
 
 % right-side markers (short horizontal segments) for upper/lower bypass and membrane
-x_mark_r = [8.2 8.5];
+x_mark_r = [8.0 8.5];
 
 hold(ax2,'on')
-h_ps_up_r  = plot(ax2, x_mark_r, [NaN NaN], 'k-', 'LineWidth',2);
-h_ps_low_r = plot(ax2, x_mark_r, [NaN NaN], 'k-', 'LineWidth',2);
 h_mem_r    = plot(ax2, x_mark_r, [NaN NaN], 'k-', 'LineWidth',2);
 
 %%%------------------------------------------%%%
-% 10. Animation loop
+% 12. Animation loop
 %%%------------------------------------------%%%
 
-for i = 1:n_steps
+for i = 1:(n_steps)
 
     SoC = t_900(2,i);
 
+    % set position of membrane marker based on SoC
     z_membrane = -2*1 - 16 * (1 - SoC/2);
     [~, idx_membrane] = min(abs(z_M - z_membrane));
 
@@ -428,13 +430,11 @@ for i = 1:n_steps
     z_piston = z_piston_ts(i);
     z_ring   = flip(z_piston + z_ring_norm * h_piston);
 
-    % set inlets and membrane positions for variable piston position
-    y_up_loc  = z_M(idx_bypass_upper) - z_piston;
-    y_low_loc = z_M(idx_bypass_lower) - z_piston+0.05;
+    % set membrane positions for variable piston position
     y_mem_loc = z_M(idx_membrane)     - z_piston;
 
 
-    % --- FK visualization ---
+    % FK visualization
     fk_code = data_3.ResOut.fk.logging_code(i);
 
     if fk_code == 0
@@ -486,13 +486,11 @@ for i = 1:n_steps
         '1D system + 2D piston temperature profiles (15 min) - t = %.2f h', ...
         t_hours(i));
 
-    
-    set(h_ps_up_r , 'YData', [y_up_loc y_up_loc]);
-    set(h_ps_low_r, 'YData', [y_low_loc y_low_loc]);
+    % set membrane dynamically based on current piston position
     set(h_mem_r   , 'YData', [y_mem_loc y_mem_loc], 'Color', [1 0.85 0]);
 
     drawnow
-    % writeVideo(v, getframe(gcf));
+    writeVideo(v, getframe(gcf));
 end
 
 close(v);
