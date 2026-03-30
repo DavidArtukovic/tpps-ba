@@ -48,7 +48,7 @@ load(fullfile(DATA_SCEN1, 'SzenarioComsol.mat'));       % Scenario control flags
 %%%------------------------------------------%%%
 
 
-% --- Extract grid / geometry ---
+% Extract grid / geometry
 Nz    = InitOut.grid.Nz;
 dz    = InitOut.grid.dz;
 z_RE  = InitOut.grid.z_RE;
@@ -58,18 +58,16 @@ z_W =   InitOut.geom.z_W;
 H     = InitOut.geom.H;
 d     = InitOut.geom.d;
 
-% --- Extract material / parameters ---
+% Extract material / parameters
 SW     = InitOut.param.SW;
 
-% --- Extract state ---
+% Extract state
 IC_Sys = InitOut.state.IC_Sys_end;
 T_REf  = InitOut.state.T_REf_end;
 
-
-
 % Result arrays
-Res_900  = zeros(10, length(t_900)  + 1);   % Values for quarter hours
-Res_hour = zeros(10, length(t_hour) + 1);   % Values for full hours
+Res_900  = zeros(11, length(t_900)  + 1);   % Values for quarter hours
+Res_hour = zeros(11, length(t_hour) + 1);   % Values for full hours
 
 % Temperature vector for the 1D system
 T_SSys = zeros(Nz(13), 1);
@@ -128,15 +126,13 @@ soil_top_idx = sys_top_idx + Nz(12)*Nz(13);
 % Set temperature vector to initial state
 T_Sys = IC_Sys;
 
-DTRE = zeros(1, Nz(12));   % Vector of radial temperature differences in radial soil
-
 % Temperature in the whole vertical system
 T_V(1, :) = T_Sys(1, 1:Nz(10));
 
 % Temperature in water system
 water_begin_idx = Nz(3)+Nz(8);
 water_end_idx = Nz(3)+Nz(8)+Nz(2)+Nz(5)+Nz(4)-3;
-T_W(1, :) = T_Sys(1,water_begin_idx:water_end_idx);
+T_W(1, :) = T_Sys(1, water_begin_idx:water_end_idx);
 
 % Temperature in piston
 T_P(1, :) = T_Sys(1, soil_top_idx+1 : soil_top_idx + Nz(3)*Nz(14));
@@ -151,8 +147,8 @@ wEX = zeros(1, length(T_W));
 
 % Compute initial energy and exergy balances using helper function
 [Heat_insu, Heat_Wasser, Heat_piston, Heat_Vsoil, ...
-    Heat_Rsoil, Heat_Rinsu, WEX, wEX, DTRE] = ...
-    compute_energy_balances(T_V, T_W, T_Sys, T_REf, Nz, dz, A, SW, z_RE, z_W , K, Spz);
+    Heat_Rsoil, Heat_Rinsu, WEX, wEX] = ...
+    compute_energy_balances(T_V, T_W, T_Sys, T_REf, Nz, dz, A, SW, z_RE, z_RP, z_W , K, Spz);
 
 % Store initial values in hourly result array
 Res_hour(1,1)  = Heat_insu;
@@ -240,6 +236,7 @@ for i = 1:n_steps
     [T_Sys, T_REf, fk_code] = HeattransferSzen(t2, IC_Sys, Nz, dz, bypass_indices(:,i),...
                                                flow, T0init, SW, A, z_RE, z_RP, T_REf, Nt2, fklog);
 
+    % calculate mean piston temperature for energy balance and plotting
     block = T_Sys(end, soil_top_idx+1 : soil_top_idx + Nz(14)*Nz(3));
     T_RP = reshape(block, Nz(3), Nz(14));
     areas = z_RP(2,:);                     % ring segment areas
@@ -258,20 +255,6 @@ for i = 1:n_steps
     % Updated piston temperature field
     T_P(1, :) = T_Sys(end, soil_top_idx+1 : soil_top_idx + Nz(3)*Nz(14));
     
-    % Recompute energy and exergy balances using helper function
-    [Heat_insu, Heat_Wasser, Heat_piston, Heat_Vsoil, ...
-        Heat_Rsoil, Heat_Rinsu, WEX, wEX, DTRE] = ...
-        compute_energy_balances(T_V, T_W, T_Sys, T_REf, ...
-                                Nz, dz, A, SW, z_RE, z_W, K, Spz);
-
-    % Store quarter-hourly results
-    Res_900(1, 1+i)  = Heat_insu;
-    Res_900(2, 1+i)  = Heat_Wasser;
-    Res_900(3, 1+i)  = Heat_piston;
-    Res_900(4, 1+i)  = Heat_Vsoil;
-    Res_900(5, 1+i)  = Heat_Rsoil;
-    Res_900(6, 1+i)  = Heat_Rinsu;
-    Res_900(11, 1+i) = WEX;          % Exergy in water volume
 
     % Store instantaneous water temperature (flipped for plotting)
     T_W_900(:, i) = flip(T_W);
@@ -281,16 +264,32 @@ for i = 1:n_steps
 
     upper_pressure_first_idx = Nz(2)+Nz(3)-1;
     upper_pressure_top_idx = Nz(2)+Nz(3)+Nz(4)-2;
+
     T_SSys(upper_pressure_first_idx: upper_pressure_top_idx) = ...
         T_V(water_begin_idx+Nz(2)+Nz(5)-2 : water_begin_idx+Nz(2)+Nz(5)+Nz(4)-3); % Upper pressure zone
 
     T_SSys(Nz(2) : Nz(2)+Nz(3)-1) = mean_T_RP;                               % Piston
+
     T_SSys(Nz(2)+Nz(3)+Nz(4)-2:end) = ...
         T_V(Nz(3)+Nz(8)+Nz(2)+Nz(5)+Nz(4)-3:end);                               % Vertical insulation
 
     T_V_900(:, i) = flip(T_SSys);
-    
     T_P_900(:, i) = flip(T_P);
+
+    % Recompute energy and exergy balances using helper function
+    [Heat_insu, Heat_Wasser, Heat_piston, Heat_Vsoil, ...
+        Heat_Rsoil, Heat_Rinsu, WEX, wEX] = ...
+        compute_energy_balances(T_V, T_W, T_Sys, T_REf, ...
+                                Nz, dz, A, SW, z_RE, z_RP, z_W, K, Spz);
+
+    % Store quarter-hourly results
+    Res_900(1, 1+i)  = Heat_insu;
+    Res_900(2, 1+i)  = Heat_Wasser;
+    Res_900(3, 1+i)  = Heat_piston;
+    Res_900(4, 1+i)  = Heat_Vsoil;
+    Res_900(5, 1+i)  = Heat_Rsoil;
+    Res_900(6, 1+i)  = Heat_Rinsu;
+    Res_900(11, 1+i) = WEX;          % Exergy in water volume
 
     % Store hourly aggregated values every 4th 15-min step
     if mod(i, 4) == 0
@@ -417,9 +416,9 @@ function [Res_900, LC, DC, Lflow, Dflow] = prepare_scenario_flow(Res_900, t_900,
 end
 
 function [Heat_insu, Heat_Wasser, Heat_piston, Heat_Vsoil, ...
-          Heat_Rsoil, Heat_Rinsu, WEX, wEX, DTRE] = ...
+          Heat_Rsoil, Heat_Rinsu, WEX, wEX] = ...
           compute_energy_balances(T_V, T_W, T_Sys, T_REf, ...
-                                  Nz, dz, A, SW, z_RE, z_W, K, Spz)
+                                  Nz, dz, A, SW, z_RE, z_RP, z_W, K, Spz)
     % COMPUTE_ENERGY_BALANCES
     %   Compute all thermal energy contents and the exergy of the water volume
     %   based on the current temperature fields in the TPPS model.
@@ -428,12 +427,13 @@ function [Heat_insu, Heat_Wasser, Heat_piston, Heat_Vsoil, ...
     %   T_V    - vertical temperature vector of the whole system
     %   T_W    - water temperature vector
     %   T_Sys  - full 1D system state vector (including flatten radial soil)
-    %   T_REf  - radial soil/insulation temperature matrix (radial x vertical)
+    %   T_REf  - radial soil/insulation temperature matrix (vertical x radial)
     %   Nz     - vector with numbers of grid points in each subdomain
     %   dz     - vertical grid spacing
     %   A      - areas (storage, piston, annulus)
     %   SW     - material properties (density * heat capacity)
     %   z_RE   - radial grid information for soil/insulation
+    %   z_RP   - radial grid information for piston
     %   z_W    - vertical grid of the water volume
     %   K      - reference temperature for exergy computation
     %   Spz    - water cross-section area
@@ -447,7 +447,6 @@ function [Heat_insu, Heat_Wasser, Heat_piston, Heat_Vsoil, ...
     %   Heat_Rinsu  - thermal energy in radial insulation [J]
     %   WEX         - total exergy in the water volume [J]
     %   wEX         - exergy density along the water column
-    %   DTRE        - auxiliary vector with radial soil contributions
 
     % --- Vertical insulation energy [J] ---
     Heat_insu = SW(3,2) * SW(3,3) * dz * A(1) * ...
@@ -458,36 +457,43 @@ function [Heat_insu, Heat_Wasser, Heat_piston, Heat_Vsoil, ...
     Heat_Wasser = SW(1,2) * SW(1,3) * dz * A(1) * ...
         (sum(T_W(1,2:end-1)) + 0.5 * (T_W(1,1) + T_W(1,end)));
 
-    % --- Piston energy [J] ---
-    % Note: The sum uses the first row of T_Sys (consistent with the
-    % original loop implementation), while the boundary uses the last row.
-    Heat_piston = SW(2,2) * SW(2,3) * dz * A(2) * ...
-        (sum(T_Sys(1, 2:Nz(3)-1)) + ...
-         0.5 * (T_Sys(end,1) + T_Sys(end, Nz(3))));
+    % --- 2D piston energy [J] ---
+    % Extract flattened 2D piston block from system state and reshape it to
+    % [axial x radial]. The piston block is stored after the 2D soil field.
+    sys_top_idx  = Nz(3) + Nz(8) + Nz(2) + Nz(5) + Nz(4) + Nz(9) - 4;
+    soil_top_idx = sys_top_idx + Nz(12) * Nz(13);
+
+    piston_first_idx = soil_top_idx + 1;
+    piston_last_idx  = soil_top_idx + Nz(3) * Nz(14);
+
+    T_RP = reshape(T_Sys(end, piston_first_idx:piston_last_idx), Nz(3), Nz(14));
+
+    % Radial ring areas [m^2] for each piston column
+    A_r = z_RP(2,:);
+
+    % Volume integration over the full 2D piston field:
+    %   E = rho * cp * sum( T(z,r) * dV )
+    % with dV = dz * A_r
+    Heat_piston = SW(2,2) * SW(2,3) * dz * sum(T_RP .* A_r, 'all');
 
     % --- Vertical soil energy below the system [J] ---
     Heat_Vsoil = SW(2,2) * SW(2,3) * dz * A(1) * ...
         (sum(T_V(1, Nz(3)+2:Nz(3)+Nz(8)-1)) + ...
          0.5 * (T_V(1, Nz(3)+1) + T_V(1, Nz(3)+Nz(8))));
 
-    % --- Radial soil energy (before insulation) [J] ---
-    DTRE = zeros(1, Nz(12));   % Will be overwritten each call
-    for m = 1:Nz(12)
-        DTRE(m) = dz * z_RE(2,m) * ...
-            (sum(T_REf(2:end-Nz(9), m)) + ...
-             0.5 * (T_REf(1,m) + T_REf(end-Nz(9)+1, m)));   % 'K*m^3'
-    end
-    Heat_Rsoil = SW(2,2) * SW(2,3) * sum(DTRE);
 
-    % --- Radial insulation energy [J] ---
-    for m = 1:Nz(12)
-        DTRE(m) = dz * z_RE(2,m) * ...
-            (sum(T_REf(end-Nz(9)+2:end-1, m)) + ...
-             0.5 * (T_REf(end-Nz(9)+1, m) + T_REf(end, m))); % 'K*m^3'
-    end
-    Heat_Rinsu = SW(3,2) * SW(3,3) * sum(DTRE);
+    A_r_soil = z_RE(2,:);
 
-    % --- Exergy in the water volume [J] ---
+    % Radial soil energy (before insulation) [J]
+    T_Rsoil = T_REf(1:end-Nz(9), :);
+    Heat_Rsoil = SW(2,2) * SW(2,3) * dz * sum(T_Rsoil .* A_r_soil, 'all');
+
+    % Radial insulation energy [J]
+    T_Rinsu = T_REf(end-Nz(9)+1:end, :);
+    Heat_Rinsu = SW(3,2) * SW(3,3) * dz * sum(T_Rinsu .* A_r_soil, 'all');
+
+
+    % Exergy in the water volume [J]
     wEX = zeros(1, length(z_W));
     for p = 1:length(z_W)
         wEX(1,p) = T_W(p) - K * log((K + T_W(p)) / K);
