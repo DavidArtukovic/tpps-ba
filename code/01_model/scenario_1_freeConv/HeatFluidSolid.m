@@ -7,10 +7,11 @@
 % DESCRIPTION:
 %   - Assembles 1D heat conduction in piston, water, air, insulation and
 %     vertical soil.
-%   - Adds 1D axial forced convection in the water column based on the flow flag
-%     "flow".
+%   - Adds 1D axial forced convection (advection) in the water column based on the flow flag
 %   - Assembles 2D heat conduction in the surrounding radial soil and
 %     radial insulation.
+%   - Assembles 2D radial piston temperature field with coupling to water at top and bottom and
+%     ring-gap water at the outer radius.
 %   - Couples the 1D system (piston / water / air / insulation) to the
 %     2D radial soil via mixed (Robin-type) boundary conditions.
 %   - Returns dTdt in a format compatible with ode45 for time integration.
@@ -44,11 +45,7 @@
 
 
 function dTdt = HeatFluidSolid(t, T, Nz, dz, bypass_indices, flow, T0init, SW, A, z_RE, z_RP)
-    % Pre-allocate temperature time derivative vector:
-    %  - Nz(10) = number of 1D vertical nodes in piston, soil, water, air,
-    %             and 1D insulation
-    %  - Nz(12)*Nz(13) = number of nodes in the 2D radial soil / insulation
-    %  - Nz(14)*Nz(3) = number of nodes in the 2D piston
+
     dTdt = zeros(Nz(10)+Nz(12)*Nz(13)+Nz(14)*Nz(3),1); 
 
 
@@ -202,7 +199,6 @@ function dTdt = HeatFluidSolid(t, T, Nz, dz, bypass_indices, flow, T0init, SW, A
         end
 
 
-
     %--------------------------------------------------------------
     % 3.4 Map 2D piston temperature field back to 1D system vector
     %--------------------------------------------------------------
@@ -234,7 +230,7 @@ function dTdt = HeatFluidSolid(t, T, Nz, dz, bypass_indices, flow, T0init, SW, A
     dT_dr = (T_Pf(jIdx,iIdx+1) - T_Pf(jIdx,iIdx-1)) ./ drsum;
     one_over_r_dTdr = (1 ./ ri) .* dT_dr;
 
-    % assemble
+    % assemble derivative in piston
     dTdt_Pf(jIdx,iIdx) = SW(2,5) * (d2T_dz2 + d2T_dr2 + one_over_r_dTdr);
     
     %--------------------------------------------------------------
@@ -257,7 +253,7 @@ function dTdt = HeatFluidSolid(t, T, Nz, dz, bypass_indices, flow, T0init, SW, A
     dTdt_Pf(1,:) = 0;   % piston - lower water volume
     dTdt_Pf(end,:) = 0; % piston - upper water volume
  
-    % Bring bakc in 1D system vector
+    % Bring back in 1D system vector
     dTdt(piston_2d_first_idx: piston_2d_top_idx) = dTdt_Pf(:);
 
     %%%------------------------------------------%%%
@@ -462,7 +458,7 @@ function dTdt = HeatFluidSolid(t, T, Nz, dz, bypass_indices, flow, T0init, SW, A
             alpha_ring  = SW(1,5) * s_geom^2;       % preserve diffusion time scale tau ~ L^2/alpha
 
             % ----------------------------------------------------------
-            % Extra axial mixing below/above outlet (eddy diffusion)
+            % Extra axial mixing below/above outlet (increased diffusion as turbulent mixing proxy)
             % ----------------------------------------------------------
             alpha_max = 3e-5;   % [m^2/s] tune
             L_mix = max(abs(idx_bypass_upper - idx_membrane) * dz, dz); % [m]

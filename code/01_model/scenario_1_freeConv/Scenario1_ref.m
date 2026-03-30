@@ -40,7 +40,7 @@ DATA_INIT = fullfile(DATA_BASE, 'init');
 
 % Load init and scenario files
 % load(fullfile(DATA_SCEN1, 'Init_d18_h18_time8.mat'));   % Geometry, material values and initial values
-load(fullfile(DATA_INIT, '20260324_d18_hp16.0_gap0.5_2D_chunk009_v1.mat'));       % Synthetic data for initial temperature fields
+load(fullfile(DATA_INIT, '20260330_d18_hp18.0_gap0.5_2D_chunk009.mat'));       % Actual init with modified flux
 load(fullfile(DATA_SCEN1, 'SzenarioComsol.mat'));       % Scenario control flags
 %%
 %%%------------------------------------------%%%
@@ -188,7 +188,7 @@ T0init(7) = 11;                 % Initial insulation temperature
 %%%------------------------------------------%%%
 
 % Initialize logging
-version = '2d_v10';
+version = '2d_v11';
 dateTag = datestr(now, "yymmdd");
 
 FK_LOG_BASE = fullfile(DATA_SCEN1_FK, '01_logs');
@@ -204,6 +204,7 @@ fklog = @(s) fprintf(fid_fk,'%s\n',string(s));
 fklog(sprintf([ ...
     '=== Scenario 1 Free Convection Simulation ===\n' ...
     'Description:\n' ...
+    'Short testing of new flux derivative in piston\n'...
     'Switched sign in front of piston-top and water interface\n'...
     'FK with shifting membrane adapted convection diffusion  \n'...
     'Added upwind scheme in water \n'...
@@ -216,7 +217,7 @@ fklog(sprintf([ ...
 fklog(sprintf('Date and Time: %s', dateTag));
 fklog(sprintf('Version: %s', version));
 
-n_steps = length(t_900); 
+n_steps = length(t_900)/40; 
 % create fk code history vector
 fk_code_hist = zeros(1, n_steps);
 

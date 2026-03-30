@@ -8,14 +8,14 @@ clear
 %%%------------------------------------------%%%
 
 % Load local paths (per-machine config)
-run(fullfile('..','..', 'configs', 'paths_local.m'));
+run(fullfile('..','..','..', 'configs', 'paths_local.m'));
 
 % Build data subfolder for this configuration
 DATA_INIT = fullfile(DATA_BASE, 'init');
 %%
 % Load init and scenario files
 InitOut_snythetic = load(fullfile(DATA_INIT, '20260301_d18_hp16.0_gap0.5_2D_chunk008_v2_synth.mat'));   % Geometry, material values and initial values
-InitOut_piston = load(fullfile(DATA_INIT, '20260320_Init_piston_d18_hp18.0_gap0.5_Init2D_chunk009.mat'));       % Scenario control flags
+InitOut_piston = load(fullfile(DATA_INIT, '20260328_Init_piston_d18_hp18.0_gap0.5_Init2D_chunk009_v3.mat'));       % Scenario control flags
 %%
 
 % Extract data
@@ -49,4 +49,4 @@ InitOut.state.T_RPf_end = T_RPf_real;
 n_piston_2d = numel(T_RPf_real);
 InitOut.state.IC_Sys_end(end-n_piston_2d+1:end) = T_RPf_real(:);
 
-save(fullfile(DATA_INIT, '20260324_d18_hp16.0_gap0.5_2D_chunk009_v1.mat'), 'InitOut', '-v7.3')
+save(fullfile(DATA_INIT, '20260330_d18_hp18.0_gap0.5_2D_chunk009.mat'), 'InitOut', '-v7.3')

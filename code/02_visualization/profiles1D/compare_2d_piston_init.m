@@ -14,8 +14,7 @@ DATA_SCEN1_BASE = fullfile(DATA_BASE, 'Modellvergleich1D');
 % 02. File names
 %%%------------------------------------------%%%
 file_init_ref  = '20260324_d18_hp16.0_gap0.5_2D_chunk009_v1.mat';
-file_init_old  = '20260328_Init_piston_d18_hp18.0_gap0.5_Init2D_3months_chunk002_v1.mat';
-file_init_new  = '20260328_Init_piston_d18_hp18.0_gap0.5_Init2D_3months_chunk001_v2.mat';
+file_init_old  = '20260328_Init_piston_d18_hp18.0_gap0.5_Init2D_chunk009_v3.mat';
 file_comsol    = 'T1_1818_900.mat';
 
 %%%------------------------------------------%%%
@@ -23,7 +22,6 @@ file_comsol    = 'T1_1818_900.mat';
 %%%------------------------------------------%%%
 S_ref = load(fullfile(DATA_INIT, file_init_ref));
 S_old = load(fullfile(DATA_INIT, file_init_old));
-S_new = load(fullfile(DATA_INIT, file_init_new));
 S_c   = load(fullfile(DATA_SCEN1_BASE, file_comsol));
 
 %%%------------------------------------------%%%
@@ -32,10 +30,9 @@ S_c   = load(fullfile(DATA_SCEN1_BASE, file_comsol));
 % Adjust here only if one file stores the field differently
 T_ref = S_ref.InitOut.state.T_RPf_end;
 T_old = S_old.InitOut.state.T_RPf_end;
-T_new = S_new.InitOut.state.T_RPf_end;
 
-z_RP  = S_new.InitOut.grid.z_RP;
-Nz    = S_new.InitOut.grid.Nz;
+z_RP  = S_old.InitOut.grid.z_RP;
+Nz    = S_old.InitOut.grid.Nz;
 
 Nz_p = Nz(3);
 Nr_p = Nz(14);
@@ -51,7 +48,6 @@ weights = areas / sum(areas);
 
 T_ref_mean = T_ref * weights';
 T_old_mean = T_old * weights';
-T_new_mean = T_new * weights';
 
 %%%------------------------------------------%%%
 % 06. COMSOL piston profile (already mean)
@@ -76,15 +72,13 @@ box on
 
 plot(T_ref_mean, z_p, 'k-',  'LineWidth', 1.8)
 plot(T_old_mean, z_p, 'b--', 'LineWidth', 1.8)
-plot(T_new_mean, z_p, 'r-',  'LineWidth', 1.8)
 plot(T_comsol_interp, z_matlab, 'g-', 'LineWidth', 1.8)
 
 xlabel('Temperature [^\circC]')
 ylabel('Piston height [m]')
 title('Comparison of mean piston temperature profiles')
 legend({'MATLAB reference', ...
-        'MATLAB old radial operator', ...
-        'MATLAB new radial operator', ...
+        'MATLAB flux radial operator', ...
         'COMSOL'}, ...
         'Location','best')
 

@@ -29,7 +29,7 @@ DATA_SCEN1_FK  = fullfile(DATA_BASE, 'scenario1_freeConv');
 DATA_INIT = fullfile(DATA_BASE, 'init');
 
 % Load init results and scenario files
-load(fullfile(DATA_INIT, '20260324_d18_hp16.0_gap0.5_2D_chunk009_v1.mat')); %2D init file
+load(fullfile(DATA_INIT, '20260330_d18_hp18.0_gap0.5_2D_chunk009.mat')); %2D init file
 % Scenario/time information
 load(fullfile(DATA_SCEN1_BASE, 'd18_h18.mat'));
 
@@ -39,7 +39,7 @@ load(fullfile(DATA_BASE, 'scenario1/SzenarioComsol.mat'));
 % MATLAB and COMSOL results (same as plot_matlab_profiles.m)
 data_1 = load(fullfile(DATA_SCEN1_NOFK, 'd18_h18_Res_Matlab_d18_18.mat')); % Matlab 1D no FK
 data_2 = load(fullfile(DATA_SCEN1_BASE, 'T1_1818_900.mat')); % COMSOL
-data_3 = load(fullfile(DATA_SCEN1_FK, '260329_d18_h18_Res_Matlab_FK_2d_v9.mat')); % Matlab 2D piston with FK
+data_3 = load(fullfile(DATA_SCEN1_FK, '260330_d18_h18_Res_Matlab_FK_2d_v10.mat')); % Matlab 2D piston with FK
 
 
 %%%------------------------------------------%%%
@@ -226,7 +226,7 @@ z_ring_norm = linspace(0,1,blockLen)';   % normalized vertical coordinate
 % 08. Video writer
 %%%------------------------------------------%%%
 dateTag = datestr(now,'yyyymmdd');
-version = 'v3';
+version = 'v2';
 videoname = fullfile(RESULTS_TIMELAPSE, ...
     [dateTag '_' version '_timelapse_1D+2D_temperature_profiles_15min_matlab_comsol.mp4']);
 
@@ -252,13 +252,13 @@ hold(ax1,'on')
 grid(ax1,'on')
 
 % right-side markers (short horizontal segments) for upper/lower bypass and membrane
-x_mark = [78.6 80.0];
+x_mark = [79.0 80.5];
 
-h_ps_up  = plot(ax1, x_mark, [NaN NaN], 'k-', 'LineWidth',2);
-h_ps_low = plot(ax1, x_mark, [NaN NaN], 'k-', 'LineWidth',2);
-h_mem    = plot(ax1, x_mark, [NaN NaN], 'k-', 'LineWidth',2);
+h_ps_up  = plot(ax1, x_mark, [NaN NaN], 'k-', 'LineWidth',1.5);
+h_ps_low = plot(ax1, x_mark, [NaN NaN], 'k-', 'LineWidth',1.5);
+h_mem    = plot(ax1, x_mark, [NaN NaN], 'k-', 'LineWidth',1.5);
 
-x_txt = 80.1;   % slightly right of marker lines
+x_txt = 80.8;   % slightly right of marker lines
 
 h_txt_up  = text(ax1, x_txt, NaN, 'upper inlet', ...
     'FontSize',9, 'Color','k', 'VerticalAlignment','middle');
@@ -308,20 +308,22 @@ legend(ax1, legend_handles, legend_labels, ...
     'Interpreter','none', 'Location','southwest')
 
 % set limits
-xlim(ax1,[40 85])
+xlim(ax1,[40 81])
 ylim(ax1,[min(z_M) max(z_M)])
 
 % Piston rectangle (initialized)
 h_piston = 18;   % [m]
 z_piston = z_piston_ts(1);
 
-h_rect = rectangle(ax1, ...
-    'Position',[40 z_piston 40 h_piston], ...
-    'FaceColor',[1 1 1], ...
-    'FaceAlpha',0.12, ...
-    'EdgeColor',[0 0 0]);
+h_piston_top = plot(ax1, [40 81], [z_piston + h_piston, z_piston + h_piston], ...
+    ':', 'Color', [0 0 1], 'LineWidth', 1.5);
 
-uistack(h_rect,'bottom');
+h_piston_bottom = plot(ax1, [40 81], [z_piston, z_piston], ...
+    ':', 'Color', [0 0 1], 'LineWidth', 1.5);
+
+
+legend(ax1, [legend_handles h_piston_top], [legend_labels {'upper/lower piston end'}], ...
+    'Interpreter','none', 'Location','southwest')
 
 % FK highlight rectangle (whole volume)
 h_fk_rect = rectangle(ax1, ...
@@ -474,7 +476,13 @@ for i = 1:(n_steps)
             'YData', z_ring);
     end
 
-    set(h_rect,'Position',[40 z_piston 40 h_piston]);
+    set(h_piston_top, ...
+    'XData', [40 81], ...
+    'YData', [z_piston + h_piston, z_piston + h_piston]);
+
+    set(h_piston_bottom, ...
+        'XData', [40 81], ...
+        'YData', [z_piston, z_piston]);
 
     % Update 2D piston field
     block = models(3).T_piston(:,i);
