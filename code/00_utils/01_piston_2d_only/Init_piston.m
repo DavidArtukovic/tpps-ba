@@ -22,15 +22,6 @@
 clc 
 clear
 
-%%%------------------------------------------%%%
-% 00. Load Local Paths
-%%%------------------------------------------%%%
-
-% Load local paths (per-machine config)
-run(fullfile('..','..','..', 'configs', 'paths_local.m'));
-
-% Build data subfolder for this configuration
-DATA_INIT = fullfile(DATA_BASE, 'init');
 
 %%%------------------------------------------%%%
 % 01 Initialize Time and Temperature
@@ -45,6 +36,10 @@ time_long = t0:900:t_end;               % long time array in 15 minutes steps
 
 T = zeros(3,length(time_long));         % 3-row temperature array (only third row relevant)
 
+% Custom linear temperature profile for 120 days
+for k = 1:length(time_short)
+    T(3,k) = 11+273.15 + time_long(k)*(286.25-(11+273.15))/(t1);
+end
 
 % Custom temperature profile for 4.2 years, as function of sin and exponential terms.
 for k = length(time_short):length(time_long)
@@ -319,12 +314,12 @@ T_RPf_init = T_RPf; % Initial condition for piston temperature field (updated in
 % Time loop: conductive pre-initialization
 %--------------------------------------------------------------
 
-version = 'v1';
+version = 'v3';
 
 dateTag = datestr(now, 'yyyymmdd');         % e.g., 20260227
 modeTag = 'Init2D_3months';                         % adjust if needed (e.g., 'Init1D', 'Init2D')
 o = 1;                                      % chunk counter (kept from your logic)
-start_idx = round(length(time_long)*0.95);
+start_idx = 1;
 for i = start_idx:length(time_long)
     tic
 
@@ -391,14 +386,15 @@ for i = start_idx:length(time_long)
         InitOut.state.T_REf_end  = [];
         InitOut.state.T_RPf_end  = T_RPf;
 
-        % --- input series reference ---
+        % input series reference
         InitOut.input.T_series = T;
 
         % File name and path (use fullfile + DATA_INIT)
-        filenameSIM = sprintf('%s_Init_piston_d%d_hp%.1f_gap%.1f_%s_chunk%03d.mat', ...
-                            dateTag, d_ST, h_pist, r_gap, modeTag, o);
+        filenameSIM = sprintf('%s_Init_piston_d%d_hp%.1f_gap%.1f_%s_chunk%03d_%s.mat', ...
+                            dateTag, d_ST, h_pist, r_gap, modeTag, o, version);
 
-        fullpathSIM = fullfile(DATA_INIT, filenameSIM);
+        folderpath = fileparts(mfilename('fullpath'));
+        fullpathSIM = fullfile(folderpath, filenameSIM);
 
         save(fullpathSIM, "InitOut");
 

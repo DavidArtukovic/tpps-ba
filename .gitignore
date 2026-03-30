@@ -1,5 +1,6 @@
 # MATLAB
 *.mat
+!code/00_utils/01_piston_2d_only/20260328_Init_piston_d18_hp18.0_gap0.5_Init2D_3months_chunk009_v3.mat
 *.asv
 
 # LaTeX build files
