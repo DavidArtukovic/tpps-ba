@@ -14,28 +14,34 @@ DATA_SCEN1_BASE = fullfile(DATA_BASE, 'Modellvergleich1D');
 % 02. File names
 %%%------------------------------------------%%%
 file_init_ref  = '20260324_d18_hp16.0_gap0.5_2D_chunk009_v1.mat';
-file_init_old  = '20260328_Init_piston_d18_hp18.0_gap0.5_Init2D_chunk009_v3.mat';
+file_init_old  = '20260330_Init_piston_d18_hp18.0_gap0.5_Init2D_chunk009_v1.mat';
 file_comsol    = 'T1_1818_900.mat';
 
 %%%------------------------------------------%%%
 % 03. Load data
 %%%------------------------------------------%%%
-S_ref = load(fullfile(DATA_INIT, file_init_ref));
-S_old = load(fullfile(DATA_INIT, file_init_old));
+S_old = load(fullfile(DATA_INIT, file_init_ref));
+S_new = load(fullfile(DATA_INIT, file_init_old));
 S_c   = load(fullfile(DATA_SCEN1_BASE, file_comsol));
 
 %%%------------------------------------------%%%
 % 04. Extract piston fields
 %%%------------------------------------------%%%
 % Adjust here only if one file stores the field differently
-T_ref = S_ref.InitOut.state.T_RPf_end;
 T_old = S_old.InitOut.state.T_RPf_end;
+T_new = S_new.InitOut.state.T_RPf_end;
 
-z_RP  = S_old.InitOut.grid.z_RP;
-Nz    = S_old.InitOut.grid.Nz;
+z_RP_old  = S_old.InitOut.grid.z_RP;
+Nz_old    = S_old.InitOut.grid.Nz;
 
-Nz_p = Nz(3);
-Nr_p = Nz(14);
+Nz_p_old = Nz_old(3);
+Nr_p_old = Nz_old(14);
+
+z_RP_new  = S_new.InitOut.grid.z_RP;
+Nz_new    = S_new.InitOut.grid.Nz;
+
+Nz_p_new = Nz_new(3);
+Nr_p_new = Nz_new(14);
 
 % piston height coordinate [m]
 z_p = 0:0.005:18;
@@ -43,11 +49,14 @@ z_p = 0:0.005:18;
 %%%------------------------------------------%%%
 % 05. Area-weighted mean piston temperature
 %%%------------------------------------------%%%
-areas   = z_RP(2,:);
-weights = areas / sum(areas);
+areas_old   = z_RP_old(2,:);
+weights_old = areas_old / sum(areas_old);
 
-T_ref_mean = T_ref * weights';
-T_old_mean = T_old * weights';
+areas_new   = z_RP_new(2,:);
+weights_new = areas_new / sum(areas_new);
+
+T_old_mean = T_old * weights_old';
+T_new_mean = T_new * weights_new';
 
 %%%------------------------------------------%%%
 % 06. COMSOL piston profile (already mean)
@@ -58,7 +67,7 @@ dz_C = 0.05;
 z_comsol = (0:length(T_comsol)-1)' * dz_C;
 
 dz_M = 0.005;
-z_matlab = (0:length(T_ref_mean)-1)' * dz_M;
+z_matlab = (0:length(T_old_mean)-1)' * dz_M;
 
 T_comsol_interp = interp1(z_comsol, T_comsol, z_matlab, 'linear', 'extrap');
 
@@ -70,15 +79,15 @@ hold on
 grid on
 box on
 
-plot(T_ref_mean, z_p, 'k-',  'LineWidth', 1.8)
-plot(T_old_mean, z_p, 'b--', 'LineWidth', 1.8)
+plot(T_old_mean, z_p, 'k-',  'LineWidth', 1.8)
+plot(T_new_mean, z_p, 'b--', 'LineWidth', 1.8)
 plot(T_comsol_interp, z_matlab, 'g-', 'LineWidth', 1.8)
 
 xlabel('Temperature [^\circC]')
 ylabel('Piston height [m]')
 title('Comparison of mean piston temperature profiles')
 legend({'MATLAB reference', ...
-        'MATLAB flux radial operator', ...
+        'MATLAB flux radial operator + finer gitter', ...
         'COMSOL'}, ...
         'Location','best')
 

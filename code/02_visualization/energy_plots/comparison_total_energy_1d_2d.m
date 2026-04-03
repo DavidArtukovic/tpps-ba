@@ -126,6 +126,11 @@ Nplot_2d = Nt_2d;
 % 06. Plot: total system energy vs. flow enthalpy
 %%%------------------------------------------%%%
 
+% Academic / muted colors
+c_base = [0.10 0.10 0.10];   % dark gray
+c_cmsl = [0.00 0.45 0.74];   % muted blue
+c_ext  = [0 0.39 0];   % muted green
+
 figure('Color','w','Name','Total energy balance: 1D vs 2D');
 set(gca,'FontName','Times New Roman')
 set(gca,'FontSize',12)
@@ -137,17 +142,17 @@ box on
 
 % --- 1D model
 plot(t_d_1d(1:Nplot_1d), E_sys_1d(1:Nplot_1d), ...
-    'k-', 'LineWidth', 1.6);
+    '-','Color', c_base, 'LineWidth', 1.6);
 
 plot(t_d_1d(1:Nplot_1d), E_flow_true_1d(1:Nplot_1d), ...
-    'k--', 'LineWidth', 1.6);
+    '--', 'Color', c_base, 'LineWidth', 1.6);
 
 % --- 2D model
 plot(t_d_2d(1:Nplot_2d), E_sys_2d(1:Nplot_2d), ...
-    'b-', 'LineWidth', 1.6);
+    '-', 'Color', c_ext, 'LineWidth', 1.6);
 
 plot(t_d_2d(1:Nplot_2d), E_flow_true_2d(1:Nplot_2d), ...
-    'b--', 'LineWidth', 1.6);
+    '--', 'Color', c_ext,  'LineWidth', 1.6);
 
 
 xlabel('Time [days]')
@@ -192,10 +197,10 @@ grid on
 box on
 
 plot(t_d_1d(1:Nplot_1d), res_pct_1d(1:Nplot_1d), ...
-    'k-', 'LineWidth', 1.6);
+    '-', 'Color', c_base,  'LineWidth', 1.6);
 
 plot(t_d_2d(1:Nplot_2d), res_pct_2d(1:Nplot_2d), ...
-    'b-', 'LineWidth', 1.6);
+    '-','Color', c_ext,  'LineWidth', 1.6);
 
 xlabel('Time [days]')
 ylabel('Energy residual [%]')
