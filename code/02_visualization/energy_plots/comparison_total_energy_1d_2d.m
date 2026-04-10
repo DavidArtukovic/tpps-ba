@@ -48,7 +48,12 @@ run(fullfile('..','..','..', 'configs', 'paths_local.m'));
 DATA_INIT = fullfile(DATA_BASE, 'init');
 DATA_SCEN1_BASE = fullfile(DATA_BASE, 'Modellvergleich1D');
 DATA_SCEN1_FK   = fullfile(DATA_BASE, 'scenario1_freeConv');
+RESULTS_VIS_BASE  = fullfile(RESULTS_BASE, "02_visualizations");
+RESULTS_ENERGY = fullfile(RESULTS_VIS_BASE, "01_energy");
 
+if ~exist(RESULTS_ENERGY, 'dir')
+    mkdir(RESULTS_ENERGY);
+end
 
 load(fullfile(DATA_INIT, '20260330_d18_hp18.0_gap0.5_2D_chunk009.mat'));   % Geometry, material values and initial values
 
@@ -60,7 +65,7 @@ data_1d = load(fullfile(DATA_SCEN1_BASE, ...
 data_2d = load(fullfile(DATA_SCEN1_FK, ...
     '260331_d18_h18_Res_Matlab_FK_2d_v12.mat'));
 
-
+export_png_dpi = 600;
 %%
 %%%------------------------------------------%%%
 % 02. Physical parameters
@@ -127,14 +132,34 @@ Nplot_2d = Nt_2d;
 %%%------------------------------------------%%%
 
 % Academic / muted colors
-c_base = [0.10 0.10 0.10];   % dark gray
-c_cmsl = [0.00 0.45 0.74];   % muted blue
-c_ext  = [0 0.39 0];   % muted green
+c_base = [0.15 0.15 0.15];   % dark gray
+c_cmsl = [0.00 0.45 0.70];   % blue
+c_ext  = [0.80 0.40 0.00];   % orangen
 
-figure('Color','w','Name','Total energy balance: 1D vs 2D');
-set(gca,'FontName','Times New Roman')
-set(gca,'FontSize',12)
-set(gca,'LineWidth',1)
+width_cm  = 14;
+height_cm = 9;
+
+fig = figure( ...
+    'Color', 'w', ...
+    'Name', 'MATLAB energy comparison', ...
+    'Units', 'centimeters', ...
+    'Position', [2 2 width_cm height_cm]);
+
+set(fig, 'Units', 'centimeters');
+set(fig, 'Position', [2 2 width_cm height_cm]);
+
+set(fig, 'PaperUnits', 'centimeters');
+set(fig, 'PaperSize', [width_cm height_cm]);
+set(fig, 'PaperPosition', [0 0 width_cm height_cm]);
+set(fig, 'Renderer', 'painters');
+
+ax = gca;
+set(ax,'FontName','Times New Roman');
+set(ax,'FontSize',9);
+set(ax,'LineWidth',0.5);
+
+set(gca,'GridAlpha',0.10);             % lighter grid
+set(gca,'MinorGridAlpha',0.05);
 
 hold on
 grid on
@@ -142,17 +167,17 @@ box on
 
 % --- 1D model
 plot(t_d_1d(1:Nplot_1d), E_sys_1d(1:Nplot_1d), ...
-    '-','Color', c_base, 'LineWidth', 1.6);
+    '-','Color', c_base, 'LineWidth', 0.7);
 
 plot(t_d_1d(1:Nplot_1d), E_flow_true_1d(1:Nplot_1d), ...
-    '--', 'Color', c_base, 'LineWidth', 1.6);
+    '--', 'Color', c_base, 'LineWidth', 0.7);
 
 % --- 2D model
 plot(t_d_2d(1:Nplot_2d), E_sys_2d(1:Nplot_2d), ...
-    '-', 'Color', c_ext, 'LineWidth', 1.6);
+    '-', 'Color', c_ext, 'LineWidth', 0.7);
 
 plot(t_d_2d(1:Nplot_2d), E_flow_true_2d(1:Nplot_2d), ...
-    '--', 'Color', c_ext,  'LineWidth', 1.6);
+    '--', 'Color', c_ext,  'LineWidth', 0.7);
 
 
 xlabel('Time [days]')
@@ -160,15 +185,31 @@ ylabel('Energy change [GJ]')
 % title('Total energy balance: internal energy vs. cumulative flow enthalpy')
 
 legend( ...
-    '\DeltaE_{sys} - Matlab Baseline', ...
-    'E_{flow} - Matlab Baseline', ...
+    '\DeltaE_{sys} - MATLAB Baseline', ...
+    'E_{flow} - MATLAB Baseline', ...
     '\DeltaE_{sys} - MATLAB Extended', ...
     'E_{flow} - MATLAB Extended', ...
-    'Location', 'northwest');
+    'Location', 'south',...
+    'LineWidth', 0.3);
 
+%%%------------------------------------------%%%
+% 07. Export
+%%%------------------------------------------%%%
+version = 'v1';
+dateTag = datestr(now, 'yyyymmdd');
+baseName = sprintf('%s_energy_balance_%s', dateTag, version);
+
+out_png = fullfile(RESULTS_ENERGY, [baseName '.png']);
+out_pdf = fullfile(RESULTS_ENERGY, [baseName '.pdf']);
+
+exportgraphics(fig, out_png, 'Resolution', export_png_dpi);
+exportgraphics(fig, out_pdf, 'ContentType', 'vector', 'Resolution', export_png_dpi);
+
+disp(['Saved PNG: ' out_png]);
+disp(['Saved PDF: ' out_pdf]);
 %%
 %%%------------------------------------------%%%
-% 07. Plot: residuals
+% 08. Plot: residuals
 %%%------------------------------------------%%%
 
 res_true_1d   = E_flow_true_1d   - E_sys_1d;
@@ -179,7 +220,7 @@ res_simple_2d = E_flow_simple_2d - E_sys_2d;
 
 
 %%%------------------------------------------%%%
-% 07b. Residual in percent
+% 08b. Residual in percent
 %%%------------------------------------------%%%
 
 E_ref_1d = max(abs(E_flow_true_1d));
@@ -188,19 +229,37 @@ E_ref_2d = max(abs(E_flow_true_2d));
 res_pct_1d = 100 * res_true_1d / E_ref_1d;
 res_pct_2d = 100 * res_true_2d / E_ref_2d;
 
-figure('Color','w','Name','Energy balance residuals');
-set(gca,'FontName','Times New Roman')
-set(gca,'FontSize',12)
-set(gca,'LineWidth',1)
+width_cm  = 14;
+height_cm = 9;
+
+fig_res = figure( ...
+    'Color','w', ...
+    'Name','Energy balance residuals', ...
+    'Units','centimeters', ...
+    'Position',[2 2 width_cm height_cm]);
+
+set(fig_res, 'Renderer', 'painters');
+set(fig_res, 'PaperUnits', 'centimeters');
+set(fig_res, 'PaperSize', [width_cm height_cm]);
+set(fig_res, 'PaperPosition', [0 0 width_cm height_cm]);
+
+ax = gca;
+set(ax,'FontName', 'Times New Roman');
+set(ax,'FontSize',9);
+set(ax,'LineWidth',0.5);
+
+set(gca,'GridAlpha',0.10)             % lighter grid
+set(gca,'MinorGridAlpha',0.05)
+
 hold on
 grid on
 box on
 
 plot(t_d_1d(1:Nplot_1d), res_pct_1d(1:Nplot_1d), ...
-    '-', 'Color', c_base,  'LineWidth', 1.6);
+    '-', 'Color', c_base,  'LineWidth', 0.7);
 
 plot(t_d_2d(1:Nplot_2d), res_pct_2d(1:Nplot_2d), ...
-    '-','Color', c_ext,  'LineWidth', 1.6);
+    '-','Color', c_ext,  'LineWidth', 0.7);
 
 xlabel('Time [days]')
 ylabel('Energy residual [%]')
@@ -209,11 +268,28 @@ ylabel('Energy residual [%]')
 legend( ...
     'E_{flow} - \DeltaE_{sys}  | MATLAB Baseline', ...
     'E_{flow} - \DeltaE_{sys}  | MATLAB Extended', ...
-    'Location', 'northwest');
+    'Location', 'northwest',...
+    'LineWidth', 0.3);
+
+%%%------------------------------------------%%%
+% 09. Export Residual
+%%%------------------------------------------%%%
+version = 'v1';
+dateTag = datestr(now, 'yyyymmdd');
+baseName = sprintf('%s_energy_balance_residual_%s', dateTag, version);
+
+out_png = fullfile(RESULTS_ENERGY, [baseName '.png']);
+out_pdf = fullfile(RESULTS_ENERGY, [baseName '.pdf']);
+
+exportgraphics(fig_res, out_png, 'Resolution', export_png_dpi);
+exportgraphics(fig_res, out_pdf, 'ContentType', 'vector', 'Resolution', export_png_dpi);
+
+disp(['Saved PNG: ' out_png]);
+disp(['Saved PDF: ' out_pdf]);
 
 %%
 %%%------------------------------------------%%%
-% 08. Residual diagnostics
+% 10. Residual diagnostics
 %%%------------------------------------------%%%
 
 fprintf('\n============================================================\n');

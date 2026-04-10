@@ -335,3 +335,36 @@ Seasonal PTES modeled with a **1D multinode water model** that **does not resolv
 
 **Relation to Franke (1997):**  
 Direct application of the **multinode with inversion** concept to guarantee stratification stability.
+
+## Yang et al. (2021) - *Seasonal thermal energy storage: A techno-economic literature review*
+
+**Key Finding:**
+Classifies different technologies of Seasonal tehrmal energy storages (STES) by technical and economic parameters. STES as overarching category of thermal energy storages where PTES are part of it (and thus TPPS). Delivers extensive review of the related literature. Important to note that one of the first large-scale PTES was developed at the University of Stuttgart in 1984. 
+
+**Relevance for PTES/TPPS:**
+Among compared PTES have higher storage efficiency given the insulation. PTES relativley indifferen to geological conditions but idealy no ground water and obviously large scale. Also with ever higher volume the efficiency starts so sink again due to thermal destraficiation (e.g. due to free convection).
+
+## Hahne (2000) - *The ITW solar heating system: an oldtimer fully in action*
+**Key Finding:**
+One of the first large scale low-temperature PTES dating from 1985, operating 15 years with high reliability up to the publication of the paper. The work was conducted by the Institut of Thermodynamics and Thermal Engineering, one of the predecessors of the current IGTE. The storage had a volume of 1050m^3, wheras water composed 960m^3. The system was equipped with an extensive apparutus for thermal charging and discharging, compromising heat-exchanger coils and water exchange mechanisms at the toop and bottom. Thermal energy was supplied by solar collectors, providing 35°C warm water. The heat balance over several years showed a storage efficiency of about 80% (seite 478). While during summer months a high loss in the soil can be reported the effect is reversed in the winter months, helping in the operation of the system and achieving high efficiencies. The low temperatures demand a heat-pump which proved to be the limiting factor back then.
+
+## Dahash (2020) - *Toward efficient numerical modeling and analysis of large-scale thermal energy storage for renewable district heating*
+
+**Key Idea:**
+Dahash et al. present a numerical model for large-scale pit thermal energy storage (PTES), focusing on the prediction of thermal stratification, heat losses, and overall system performance. The model is based on a one-dimensional energy balance equation including advection, conduction, and loss terms, while the surrounding ground is modeled separately using a multidimensional heat conduction approach. Instead of resolving fluid flow explicitly, buoyancy-driven convection is incorporated through an enhanced thermal conductivity formulation, where the effective conductivity is increased based on Nusselt–Rayleigh correlations. This approach allows the model to capture mixing effects at low computational cost, but inherently limits the physical representation of convective transport. The results show that PTES systems can achieve high efficiencies (up to ~90%), although only a fraction of the storage volume is effectively utilized due to thermal losses and mixing. Furthermore, the study highlights the strong influence of ground properties and storage geometry on system performance, as well as significant uncertainties related to model parameters and boundary conditions. Overall, the work demonstrates that simplified 1D-based models can provide reasonable accuracy for system-level analysis, while emphasizing the need for improved representations of convection and multidimensional effects.
+
+**Relevance to my work**
+Check if my increase or distribution in convection can be reasoned herewith.
+
+**Solving of inverse thermoclines**
+In the presented model, buoyancy-driven convection is not resolved explicitly but approximated using an enhanced thermal conductivity approach based on Nusselt–Rayleigh correlations. This enhancement is only applied in the absence of volumetric flow and under unstable stratification conditions, ensuring that convective effects are not double-counted when advection is present. The Nusselt number is formulated as a power-law function of the Rayleigh number, allowing convective heat transfer to be represented as an increase in effective thermal conductivity, albeit relying on empirical parameters and without explicitly resolving flow dynamics.
+
+## Xiang et. al (2022) - *Long-term thermal performance analysis of a large-scale water pit thermal energy storage*
+
+**Key Idea:**
+Finding optimal grid size for PTES modelling. A full CFD model is validated against Dronninglund PTES (Denmark) test facility. 
+ modeled with a **1D multinode water model** that **does not resolve free or forced convection explicitly**, but enforces stratification numerically.
+
+## Dahash (2019) - *Numerical heat transfer modeling of large-scale hot water tanks and pits*
+ **Key Idea**
+ Numerical modelling of FK

@@ -47,12 +47,17 @@ DATA_SCEN1_BASE = fullfile(DATA_BASE, 'Modellvergleich1D');
 DATA_SCEN1_NOFK = fullfile(DATA_BASE, 'scenario1');
 DATA_SCEN1_FK   = fullfile(DATA_BASE, 'scenario1_freeConv');
 DATA_INIT       = fullfile(DATA_BASE, 'init');
+RESULTS_VIS_BASE  = fullfile(RESULTS_BASE, "02_visualizations");
+RESULTS_ENERGY = fullfile(RESULTS_VIS_BASE, "01_energy");
 
 % Piston position information 
 load(fullfile(DATA_BASE, 'scenario1/SzenarioComsol.mat'));
 
 % --- Init / geometry data
 load(fullfile(DATA_INIT, '20260330_d18_hp18.0_gap0.5_2D_chunk009.mat'));
+
+
+export_png_dpi = 600;
 
 % --- MATLAB 1D baseline
 data_1 = load(fullfile(DATA_SCEN1_NOFK, ...
@@ -151,13 +156,23 @@ dE_P_3 = (data_3.ResOut.res.series_900(3,1:n_steps)...
 %%%------------------------------------------%%%
 
 % Academic / muted colors
-c_base = [0.10 0.10 0.10];   % dark gray
-c_cmsl = [0.00 0.45 0.74];   % muted blue
-c_ext  = [0 0.39 0];         % muted green
+c_base = [0.15 0.15 0.15];   % dark gray
+c_cmsl = [0.00 0.45 0.70];   % blue
+c_ext  = [0.80 0.40 0.00];   % orange
 
-figure('Color','w', ...
+width_cm  = 14;
+height_cm = 8.5;
+
+fig = figure( ...
+    'Color','w', ...
     'Name','Water and piston energy comparison: MATLAB vs COMSOL', ...
-    'Position',[100 100 1300 650]);
+    'Units','centimeters', ...
+    'Position',[2 2 width_cm height_cm]);
+
+set(fig, 'Renderer', 'painters');
+set(fig, 'PaperUnits', 'centimeters');
+set(fig, 'PaperSize', [width_cm height_cm]);
+set(fig, 'PaperPosition', [0 0 width_cm height_cm]);
 
 hold on
 box on
@@ -165,17 +180,14 @@ grid on
 
 ax = gca;
 
-set(gcf, 'Color', 'w');
-set(ax, 'Color', 'w');
-
 ax.LineWidth = 1.0;
-ax.FontName = 'TimesNewRoman';
-ax.FontSize = 12;
+ax.FontName = 'Times New Roman';
+ax.FontSize = 9;
 
 ax.XGrid = 'on';
 ax.YGrid = 'on';
-ax.GridAlpha = 0.18;
-ax.MinorGridAlpha = 0.10;
+ax.GridAlpha = 0.10;
+ax.MinorGridAlpha = 0.05;
 ax.GridColor = [0 0 0];
 
 ax.XMinorGrid = 'off';
@@ -192,14 +204,14 @@ ax = gca;
 ax.YColor = 'k';   % left y-axis black
 
 hW1 = plot(t_days, dE_W_1, '-', ...
-    'LineWidth', 1.8, 'Color', c_base);
+    'LineWidth', 0.7, 'Color', c_base);
 hold on
 
 hWC = plot(t_days, dE_W_C, '-', ...
-    'LineWidth', 1.6, 'Color', c_cmsl);
+    'LineWidth', 0.7, 'Color', c_cmsl);
 
 hW3 = plot(t_days, dE_W_3, '-', ...
-    'LineWidth', 1.6, 'Color', c_ext);
+    'LineWidth', 0.7, 'Color', c_ext);
 
 ylabel('\Delta E_{water} [GJ]')
 
@@ -208,32 +220,50 @@ yyaxis right
 ax.YColor = 'k';   % right y-axis black
 ax.XColor = 'k';   % x-axis black
 
-hP1 = plot(t_days, dE_P_1, '--', ...
-    'LineWidth', 1.8, 'Color', c_base);
+hP1 = plot(t_days, dE_P_1, '-', ...
+    'LineWidth', 0.7, 'Color', c_base);
 hold on
 
 hPC = plot(t_days, dE_P_C, '--', ...
-    'LineWidth', 1.6, 'Color', c_cmsl);
+    'LineWidth', 0.7, 'Color', c_cmsl);
 
 hP3 = plot(t_days, dE_P_3, '--', ...
-    'LineWidth', 1.6, 'Color', c_ext);
+    'LineWidth', 0.7, 'Color', c_ext);
 
 ylabel('\Delta E_{piston} [GJ]')
 
 xlabel('Time [days]')
 
-legend([hW1 hWC hW3 hP1 hPC hP3], ...
-    'Water - MATLAB 1D baseline', ...
+lgd = legend([hW1 hWC hW3 hP1 hPC hP3], ...
+    'Water - MATLAB baseline', ...
     'Water - COMSOL', ...
-    'Water - MATLAB 2D extended', ...
-    'Piston - MATLAB 1D baseline', ...
+    'Water - MATLAB extended', ...
+    'Piston - MATLAB baseline', ...
     'Piston - COMSOL', ...
-    'Piston - MATLAB 2D extended', ...
-    'Location', 'south');
+    'Piston - MATLAB extended', ...
+    'Location', 'south',...
+    'LineWidth', 0.3);
 
-lgd.Box = 'off';
+lgd.FontSize = 8;
+
 % No title -> use LaTeX caption instead
+%%
+%%%------------------------------------------%%%
+% 08. Export
+%%%------------------------------------------%%%
 
+version = 'v1';
+dateTag = datestr(now, 'yyyymmdd');
+baseName = sprintf('%s_water_piston_energy_%s', dateTag, version);
+
+out_png = fullfile(RESULTS_ENERGY, [baseName '.png']);
+out_pdf = fullfile(RESULTS_ENERGY, [baseName '.pdf']);
+
+exportgraphics(fig, out_png, 'Resolution', export_png_dpi);
+exportgraphics(fig, out_pdf, 'ContentType', 'vector', 'Resolution', export_png_dpi);
+
+disp(['Saved PNG: ' out_png]);
+disp(['Saved PDF: ' out_pdf]);
 %%
 %%%------------------------------------------%%%
 % 07. Diagnostics
