@@ -19,6 +19,10 @@ Hier werden To Do's, Erkentnisse, Fragen sowie Protokolle zu den Treffen mit den
 - [x] set inlet to a fix position (until 25.01.26)
 - [x] lambda hybrid in beide richtungen kompatibel (bis 25.01.26)
 - [x] Wasservolumen berechnen was pro Zeitschritt zugeführt wird. (bis 26.01.26)
+- [ ] Skizze der Implementierung des FK Verfahrens über den Bypass, für den Methodenteil (bis 20.04.2026) (1Tag)
+- [ ] Skizze des verwendeten TPPS Models in Szenario 1. (1Tag)
+- [ ] Skizze der Funktionsweise eines PTES /TPPS (1. Tag)
+- [ ] Eventueller Einbau der MIX Number in die Ergebnisse, vgl. MIX number bei Bai (2019) (4h)
 
 ## 02.03.26 Meeting Dominic
 - Frage, warum wird beim Init.m file nicht die exakte Fläche der Kreissegmente berechnet?

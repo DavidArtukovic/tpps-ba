@@ -1,0 +1,10 @@
+## Argument for Matlab against COMSOL
+
+While high-fidelity multiphysics simulations (e.g. COMSOL) provide a 
+detailed representation of coupled flow and heat transfer processes, 
+their computational cost limits their applicability for long-term and 
+parametric studies. Reduced-order models, such as the one developed in 
+this work, enable efficient simulations while retaining control over 
+individual physical mechanisms. This allows for a systematic investigation 
+of modeling assumptions, such as the representation of buoyancy-driven 
+mixing, and helps to identify the limitations of one-dimensional approaches.
