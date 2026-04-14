@@ -72,6 +72,7 @@ function Tcur = fk_extrapolated_zmix_Qscaled(Tcur, ids_mix, z_mix_idx, Tin, T_w_
     z = (ids_mix - z_mix_idx) * params.dz;   % physical z
     Tcur(ids_mix) = Tin + a * (z - dz_star);
 
+    % logging results
     fklog('---------------------------------------------------');
     fklog('case: extrapolated_zmix');         
     fklog(['a                 = ' num2str(a)]);

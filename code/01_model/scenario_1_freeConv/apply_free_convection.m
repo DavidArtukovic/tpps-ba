@@ -60,7 +60,7 @@ function [T_Sys, fk_code] = apply_free_convection(T_Sys, dt_mix, flow, Nz, dz, S
     Tcur_temp = apply_fk_operator(Tcur, ids_mix, z_mix_idx, Tin, T_w_in_upper, T_w_in_lower, fk_case, dt_mix, params, fklog);
 
     %----------------------------------------------------------
-    % 4) FK boundary check + lambda hybrid (if needed)
+    % 4) FK boundary check + lambda hybrid (if not needed, returns original FK result)
     %----------------------------------------------------------
     Tcur_new = apply_fk_lambda_hybrid(Tcur, Tcur_temp, Tin, ids_mix, params, fk_case, dt_mix, fklog);
 

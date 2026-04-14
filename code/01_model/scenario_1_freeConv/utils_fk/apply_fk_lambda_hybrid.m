@@ -2,7 +2,7 @@
 function Tnew = apply_fk_lambda_hybrid(Told, Tfk, Tin, ids_mix, params, fk_case, dt_mix, fklog)
 % ---------------------------------------------------------------
 % SUMMARY:
-%   Enforces physical boundary constraints via FK/FM lambda hybrid.
+%   Enforces physical boundary constraints via a combination of a linear and uniform temperature update
 %
 % DESCRIPTION:
 %   Detects boundary violations in linear FK updates and blends the
@@ -24,39 +24,45 @@ function Tnew = apply_fk_lambda_hybrid(Told, Tfk, Tin, ids_mix, params, fk_case,
 
     Tnew = Tfk;   % default: accept FK result
 
-    % --- only for relevant linear approaches cases ---
+    % only for relevant linear approaches cases
     if ~ismember(fk_case, {'internal_zmix', 'extrapolated_zmix'})   
         return
     end
 
-    % --- indices ---
+    % indices
     idx_zin  = ids_mix(1);
     idx_zmix = ids_mix(end);
 
-    % --- boundary values ---
+    % boundary values
     Told_in  = Told(idx_zin);
     Told_mix = Told(idx_zmix);
 
     Tfk_in   = Tfk(idx_zin);
     Tfk_mix  = Tfk(idx_zmix);
 
-    % --- check violation ---
+    % check violation
     tol = 1e-3;   % temperature tolerance [°C]
 
     % case upward mixing: idx_zmix>idx_zin
     if idx_zin<idx_zmix
+        % violation if FK predicts inlet or mixing zone temperature to 
+        % be lower (upward mixing) than the previous time step
         violates = (Tfk_in  < Told_in  - tol) || ...
                         (Tfk_mix < Told_mix - tol);
 
     else % case downward mixing: idx_zmix<idx_zin
+        % violation if FK predicts inlet or mixing zone temperature to 
+        % be higher (downward mixing) than the previous time step
         violates = (Tfk_in  > Told_in  + tol) || ...
                         (Tfk_mix > Told_mix + tol);
     end
         
     if ~violates
         return
+        % no violation, accept FK result as is
     end
 
+    % Search for linear combination of linear FK and uniform FK update
 
     fklog('--- FK boundary violation detected: applying FK/FM hybrid ---');
     % Thermal energy rate introduced by inlet
@@ -74,7 +80,7 @@ function Tnew = apply_fk_lambda_hybrid(Told, Tfk, Tin, ids_mix, params, fk_case,
     Tfm = Told;
     Tfm(ids_mix) = Told(ids_mix) + dT_fm;
 
-    % --- lambda from boundary constraints ---
+    % search for lambda coefficients that blend FK and FM results to satisfy physical constraints
     epsT = 1e-12;
     lambda_in  = abs(Tfm(idx_zin)  - Told_in ) / ...
                 (abs(Tfm(idx_zin)  - Tfk_in ) + epsT);
@@ -85,10 +91,10 @@ function Tnew = apply_fk_lambda_hybrid(Told, Tfk, Tin, ids_mix, params, fk_case,
     lambda = min([lambda_in, lambda_mix, 1]);
     lambda = max(lambda,0);
 
-    % --- apply lambda blend in mixing zone ---
+    % apply lambda blend in mixing zone
     Tnew(ids_mix) = lambda * Tfk(ids_mix) + (1-lambda) * Tfm(ids_mix);
 
-    % --- logging ---
+    % logging
     fklog(sprintf('FK limited by lambda = %.3f (case: %s)', lambda, fk_case));
     fklog(['T_in_before_hybrid       = ' num2str(Tfk_in)]);
     fklog(['T_in_after_hybrid        = ' num2str(Tnew(idx_zin))]);

@@ -36,6 +36,7 @@
 %   SW     - parameter matrix with material and model switches
 %   A      - cross-sectional areas and geometric parameters
 %   z_RE   - geometric parameters of the radial soil grid
+%   z_RP   - geometric parameters of the radial piston grid
 %   T_REf  - 2D temperature field in the radial soil (z,r)
 %   Nt2    - number of stored time steps during the scenario
 %
@@ -52,7 +53,7 @@
 % ---------------------------------------------------------------
 
 
-function [T_Sys,T_REf, fk_code] = HeattransferSzen(t2, IC_Sys, Nz, dz, bypass_indices, flow,T0init,SW,A,z_RE,T_REf,Nt2,fklog)
+function [T_Sys, T_REf, fk_code] = HeattransferSzen(t2, IC_Sys, Nz, dz, bypass_indices, flow,T0init,SW,A,z_RE,z_RP,T_REf,Nt2,fklog)
 
     %--------------------------------------------------------------
     % Preallocation for contact temperatures between system insulation (1D)
@@ -64,7 +65,7 @@ function [T_Sys,T_REf, fk_code] = HeattransferSzen(t2, IC_Sys, Nz, dz, bypass_in
     % 01: Integrate transient 1D TPPS model with flow (fluid + solid)
     %%%------------------------------------------%%%
 
-    [t2,T_Sys] = ode45(@HeatFluidSolid, t2, IC_Sys,[], Nz, dz, bypass_indices, flow, T0init, SW, A, z_RE);
+    [t2, T_Sys] = ode45(@HeatFluidSolid, t2, IC_Sys,[], Nz, dz, bypass_indices, flow, T0init, SW, A, z_RE, z_RP);
 
 
     %%%------------------------------------------%%%
@@ -73,7 +74,7 @@ function [T_Sys,T_REf, fk_code] = HeattransferSzen(t2, IC_Sys, Nz, dz, bypass_in
 
     % dt_mix = t2(2) - t2(1); % time step size for mixing operator [s]
     dt_mix = 900; % time step size for mixing operator [s]
-    fklog(['temperature at membrane before FK= ' num2str(T_Sys(end, bypass_indices(3)))]);
+
     [T_Sys, fk_code] = apply_free_convection(T_Sys, dt_mix, flow, Nz, dz, SW, A, bypass_indices, fklog);
     
     %%%------------------------------------------%%%
@@ -88,46 +89,21 @@ function [T_Sys,T_REf, fk_code] = HeattransferSzen(t2, IC_Sys, Nz, dz, bypass_in
 
     % Water+soil index (1D)
     water_soil_idx = Nz(3)+Nz(8);
-
-    % replacement volume index (1D)
-    replacement_top_idx = Nz(3)+Nz(8)+Nz(2)+Nz(5)-2;
-    replacement_bottom_idx = Nz(3)+Nz(8)+Nz(2)-1;
-
+    
     % Radial soil indices in 2D field
     radial_soil_top_idx        = Nz(2)+Nz(3)+Nz(4)+Nz(9)-3; % with insulation
     radial_soil_top_no_ins_idx = Nz(2)+Nz(3)+Nz(4)-2;       % without insulation
 
 
-    %%%------------------------------------------%%%
-    % 04: Coupling conditions between 1D domains
-    %%%------------------------------------------%%%
+    soil_2d_first_idx = sys_top_idx+1;                                  % first index of 2D soil field in system vector
+    soil_2d_top_idx = soil_2d_first_idx + Nz(12)*Nz(13) - 1;            % last index of 2D soil field in system vector
 
-    % 3.1: Water (Volumen Saugrohr) / piston coupling at top and bottom (Robin BC)
-    if flow == 0
-        % Thermal standstill
-        % Top: piston / upper water replacement volume
-        T_Sys(:,Nz(3)) = (SW(1,4)*T_Sys(:,replacement_top_idx)...
-                         +SW(2,4)*T_Sys(:,Nz(3)-1))/((SW(1,4)+SW(2,4)));
-        % Bottom: piston / lower water replacement volume
-        T_Sys(:,1) = (SW(1,4)*T_Sys(:,replacement_bottom_idx)...
-                     +SW(2,4)*T_Sys(:,2))/((SW(1,4)+SW(2,4)));
-             
-    elseif flow > 0
-        % Discharging
-        % Top: piston / upper water replacement volume
-        T_Sys(:,Nz(3)) = (SW(1,4)*T_Sys(:,replacement_top_idx)...
-                         +SW(2,4)*T_Sys(:,Nz(3)-1))/((SW(1,4)+SW(2,4)));
-        % Bottom: piston / lower water replacement volume
-        T_Sys(:,1) = (SW(1,4)*T_Sys(:,replacement_bottom_idx-1)+SW(2,4)*T_Sys(:,2))/((SW(1,4)+SW(2,4)));
-     
-    else
-        % Charging
-        % Top: piston / upper water replacement volume
-        T_Sys(:,Nz(3)) = (SW(1,4)*T_Sys(:,replacement_top_idx+1)+SW(2,4)*T_Sys(:,Nz(3)-1))/((SW(1,4)+SW(2,4)));
-        % Bottom: piston / lower water replacement volume
-        T_Sys(:,1) = (SW(1,4)*T_Sys(:,replacement_bottom_idx)+SW(2,4)*T_Sys(:,2))/((SW(1,4)+SW(2,4)));
+    piston_2d_first_idx = soil_2d_top_idx+1;                      % first index of 2D piston field in system vector
+    piston_2d_top_idx = piston_2d_first_idx + Nz(14)*Nz(3) - 1;   % last index of 2D piston field in system vector
 
-    end
+    % Mapping: 1D-temperature vector → 2D-temperature field for piston 
+    block_P = T_Sys(end, piston_2d_first_idx:piston_2d_top_idx);
+    T_Pf    = reshape(block_P, Nz(3), Nz(14));
 
     % Air temperature at system top (Dirichlet BC)
     T_Sys(:,sys_top_idx) = T0init(4);
@@ -142,7 +118,43 @@ function [T_Sys,T_REf, fk_code] = HeattransferSzen(t2, IC_Sys, Nz, dz, bypass_in
 
     % Set new membrane index temperature
     T_Sys(:,bypass_indices(3)) = (T_Sys(:,bypass_indices(3)-1)+T_Sys(:,bypass_indices(3)+1))/2;
-    fklog(['temperature at membrane after FK= ' num2str(T_Sys(end, bypass_indices(3)))]);
+
+    %%%------------------------------------------%%%
+    % 04: Update water/piston contact temperatures at piston top and bottom based on flow direction
+    %%%------------------------------------------%%%
+
+    % Water/piston contact temperature at the piston top (water side)
+    if flow >= 0
+        % thermal discharging / standstill
+        TK_WKO = T_Sys(end,Nz(3)+Nz(8)+Nz(2)+Nz(5)-2);
+    else
+        % thermal charging
+        TK_WKO = T_Sys(end,Nz(3)+Nz(8)+Nz(2)+Nz(5)-1);
+    end
+    % Piston/water contact temperature at piston top (piston side)
+    TK_KWO_f = T_Pf(end-1, :); % radial temperature distribution at piston top
+
+    % Mixed contact temperature at piston top
+    T_Pf(end,:) = (SW(1,4)*TK_WKO + SW(2,4)*TK_KWO_f) / (SW(1,4)+SW(2,4));
+
+
+    % Water/piston contact temperature at piston bottom (water side)
+    if flow <= 0
+        % thermal charging / standstill
+        TK_WKU = T_Sys(end,Nz(3)+Nz(8)+Nz(2)-1);
+    else 
+        % thermal discharging
+        TK_WKU = T_Sys(end,Nz(3)+Nz(8)+Nz(2)-2);
+    end
+    % Piston/water contact temperature at piston bottom (piston side)
+    TK_KWU_f = T_Pf(2, :); % radial temperature distribution at piston bottom
+
+    % Mixed contact temperature at piston bottom
+    T_Pf(1,:)   = (SW(1,4)*TK_WKU + SW(2,4)*TK_KWU_f) / (SW(1,4)+SW(2,4));
+
+    % Update 1D system vector with new piston top and bottom temperatures
+    T_Sys(end,piston_2d_first_idx:piston_2d_top_idx) = T_Pf(:).';
+
 
     %%%------------------------------------------%%%
     % 05: Mapping 1D system state <-> 2D radial soil field
@@ -155,11 +167,8 @@ function [T_Sys,T_REf, fk_code] = HeattransferSzen(t2, IC_Sys, Nz, dz, bypass_in
         % 5.1: Build 2D radial soil temperature field from 1D state
         %----------------------------------------------------------
 
-        for j = 1:Nz(13) % vertical direction (z)
-            for i = 1:Nz(12) % radial direction (r)
-                T_REf(j,i) = T_Sys(tt,sys_top_idx+(i-1)*Nz(13)+j);
-            end
-        end
+        block = T_Sys(tt, sys_top_idx+1 : sys_top_idx + Nz(12)*Nz(13));
+        T_REf = reshape(block, Nz(13), Nz(12));
 
         %----------------------------------------------------------
         % 5.2: Re-apply boundary conditions in the 2D radial soil
@@ -209,11 +218,7 @@ function [T_Sys,T_REf, fk_code] = HeattransferSzen(t2, IC_Sys, Nz, dz, bypass_in
         % 5.4: Map updated 2D temperature field back into system vector
         %----------------------------------------------------------
         
-        for j = 1:Nz(13)
-            for i = 1:Nz(12)
-                T_Sys(tt,sys_top_idx +(i-1)*Nz(13)+j) = T_REf(j,i); 
-            end
-        end
+        T_Sys(tt, sys_top_idx+1 : sys_top_idx + Nz(12)*Nz(13)) = T_REf(:).';
     end
 
 end

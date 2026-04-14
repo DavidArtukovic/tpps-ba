@@ -5,7 +5,7 @@ function [ids_mix, Tin, z_mix_idx, T_w_in_upper, T_w_in_lower, fk_code] = detect
 %   Detects the free-convection mixing region and inlet conditions.
 %
 % DESCRIPTION:
-%   Determines the active FK region, inlet temperature and numerical
+%   Determines the active FK region, inlet temperature and physical
 %   mixing boundary based on flow direction and stratification.
 %
 % INPUT:
@@ -17,7 +17,7 @@ function [ids_mix, Tin, z_mix_idx, T_w_in_upper, T_w_in_lower, fk_code] = detect
 % OUTPUT:
 %   ids_mix        - indices of the FK mixing region
 %   Tin            - inlet temperature driving free convection
-%   z_mix_idx      - index of numerical mixing boundary
+%   z_mix_idx      - index of physical mixing boundary
 %   T_w_in_upper   - inlet-adjacent upper water temperature
 %   T_w_in_lower   - inlet-adjacent lower water temperature
 %   fk_code        - FK regime code identifier
@@ -48,7 +48,7 @@ function [ids_mix, Tin, z_mix_idx, T_w_in_upper, T_w_in_lower, fk_code] = detect
             end
             ids_mix = params.z_inlet_lower_idx:z_mix_idx;
             fklog('Upward mixing in lower volume detected');
-            fk_code = -2;
+            fk_code = -2; % FK code -2: thermal charging with upward mixing in lower volume
         else
             % downward direction in lower volume (decreasing index)
             while (Tin < Tcur(z_mix_idx)) && (z_mix_idx > params.z_w_lower_start_idx)
@@ -89,6 +89,7 @@ function [ids_mix, Tin, z_mix_idx, T_w_in_upper, T_w_in_lower, fk_code] = detect
         end
      
     end
+    % Logging results
     fklog(['z_mix_zone_idx= '  num2str(z_mix_idx)]);
     fklog(['fk_code    = ' num2str(fk_code)]);
     fklog(['Tin        = ' num2str(Tin)]);

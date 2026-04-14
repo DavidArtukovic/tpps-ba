@@ -7,10 +7,11 @@
 % DESCRIPTION:
 %   - Assembles 1D heat conduction in piston, water, air, insulation and
 %     vertical soil.
-%   - Adds 1D axial forced convection in the water column based on the flow flag
-%     "flow".
+%   - Adds 1D axial forced convection (advection) in the water column based on the flow flag
 %   - Assembles 2D heat conduction in the surrounding radial soil and
 %     radial insulation.
+%   - Assembles 2D radial piston temperature field with coupling to water at top and bottom and
+%     ring-gap water at the outer radius.
 %   - Couples the 1D system (piston / water / air / insulation) to the
 %     2D radial soil via mixed (Robin-type) boundary conditions.
 %   - Returns dTdt in a format compatible with ode45 for time integration.
@@ -30,6 +31,7 @@
 %   SW     - material property matrix (density, heat capacity, etc.)
 %   A      - cross-sectional areas of the different regions
 %   z_RE   - geometric information for the radial grid (variable spacing)
+%   z_RP   - geometric information for the radial grid in the piston region
 %
 % OUTPUT:
 %   dTdt   - time derivative of the temperature state vector (K/s)
@@ -42,25 +44,41 @@
 % ---------------------------------------------------------------
 
 
-function dTdt = HeatFluidSolid(t, T, Nz, dz, bypass_indices, flow, T0init, SW, A, z_RE)
-    % Pre-allocate temperature time derivative vector:
-    %  - Nz(10) = number of 1D vertical nodes in piston, soil, water, air,
-    %             and 1D insulation
-    %  - Nz(12)*Nz(13) = number of nodes in the 2D radial soil / insulation
-    dTdt = zeros(Nz(10)+Nz(12)*Nz(13),1); 
+function dTdt = HeatFluidSolid(t, T, Nz, dz, bypass_indices, flow, T0init, SW, A, z_RE, z_RP)
+
+    dTdt = zeros(Nz(10)+Nz(12)*Nz(13)+Nz(14)*Nz(3),1); 
+
+
+    % indices in the 1D system vector for coupling with 2D fields
+    sys_top_idx = Nz(3)+Nz(8)+Nz(2)+Nz(5)+Nz(4)+Nz(9)-4;
+
+    soil_2d_first_idx = sys_top_idx+1;                                  % first index of 2D soil field in system vector
+    soil_2d_top_idx = soil_2d_first_idx + Nz(12)*Nz(13) - 1;            % last index of 2D soil field in system vector
+
+    piston_2d_first_idx = soil_2d_top_idx+1;                      % first index of 2D piston field in system vector
+    piston_2d_top_idx = piston_2d_first_idx + Nz(14)*Nz(3) - 1;   % last index of 2D piston field in system vector
+
+
+    % Mapping: 1D-temperature vector → 2D-temperature field for the radial soil 
+    block_RE = T(soil_2d_first_idx:soil_2d_top_idx);
+    T_REf    = reshape(block_RE, Nz(13), Nz(12));
 
     % Initialize radial soil temperature field (2D) and its time derivative.
     % rows    -> vertical direction
     % columns -> radial direction
-    Tf = zeros(Nz(13),Nz(12)); % temperature field
-    dTdtf = zeros(Nz(13),Nz(12)); % temperature time derivative field
+    dTdt_REf = zeros(Nz(13), Nz(12)); % temperature time derivative field
+
+    % Mapping: 1D-temperature vector → 2D-temperature field for piston 
+    block_P = T(piston_2d_first_idx:piston_2d_top_idx);
+    T_Pf    = reshape(block_P, Nz(3), Nz(14));
+
+    % Initilization of temperature and gradient field in piston (P)
+    dTdt_Pf = zeros(Nz(3), Nz(14)); % rows -> vertical, columns -> radial
+
 
     % Temperature difference vectors used for coupling terms
     DT = zeros(Nz(13),1); % soil - water temperature difference (radial)
     DTd = zeros(Nz(9),3); % insulation temperatures (1D / 2D coupling)
-
-    % top of the 1D system (air node)
-    sys_top_idx = Nz(3)+Nz(8)+Nz(2)+Nz(5)+Nz(4)+Nz(9)-4;
 
     %%%------------------------------------------%%%
     % 01 Vertical Insulation and Air (1D)
@@ -116,8 +134,11 @@ function dTdt = HeatFluidSolid(t, T, Nz, dz, bypass_indices, flow, T0init, SW, A
     end
 
     %%%------------------------------------------%%%
-    % 03 Piston (1D) including coupling to water
+    % 03 Piston (2D) including coupling to water
     %%%------------------------------------------%%%
+
+    % set legacy 1D piston temperature time derivatives to zero
+    dTdt(1:Nz(3)) = 0;
 
     %--------------------------------------------------------------
     % 3.1 Piston top contact (to upper water region)
@@ -132,10 +153,10 @@ function dTdt = HeatFluidSolid(t, T, Nz, dz, bypass_indices, flow, T0init, SW, A
         TK_WKO = T(Nz(3)+Nz(8)+Nz(2)+Nz(5)-1);
     end
     % Piston/water contact temperature at piston top (piston side)
-    TK_KWO = T(Nz(3)-1);
+    TK_KWO_f = T_Pf(end-1, :); % radial temperature distribution at piston top
 
     % Mixed contact temperature at piston top
-    T(Nz(3)) = (SW(1,4)*TK_WKO+SW(2,4)*TK_KWO)/((SW(1,4)+SW(2,4)));
+    T_Pf(end,:) = (SW(1,4)*TK_WKO + SW(2,4)*TK_KWO_f) / (SW(1,4)+SW(2,4));
 
     %--------------------------------------------------------------
     % 3.2 Piston bottom contact (to lower water region) 
@@ -150,41 +171,90 @@ function dTdt = HeatFluidSolid(t, T, Nz, dz, bypass_indices, flow, T0init, SW, A
         TK_WKU = T(Nz(3)+Nz(8)+Nz(2)-2);
     end
     % Piston/water contact temperature at piston bottom (piston side)
-    TK_KWU = T(2);
+    TK_KWU_f = T_Pf(2, :); % radial temperature distribution at piston bottom
 
     % Mixed contact temperature at piston bottom
-    T(1) = (SW(1,4)*TK_WKU+SW(2,4)*TK_KWU)/((SW(1,4)+SW(2,4)));
-
-    % Water–piston mantle coupling (ring gap)
-    delta_eff = 0.15;                     % [m] effective thermal boundary layer thickness (tunable)
-    h_wp      = SW(1,1) / delta_eff;      % [W/m2K] conduction-based heat transfer coefficient
-
-    r_int = sqrt(A(2)/pi);          % inner radius for ring-gap coupling (for geometric scaling of h)
-    A_int = 2*pi*r_int*dz;          % [m^2] mantle area per axial cell
-
-    % piston-side coupling coefficient [1/s]
-    k_wp_p = h_wp * A_int / (SW(2,2)*SW(2,3)*A(2)*dz);
+    T_Pf(1,:)   = (SW(1,4)*TK_WKU + SW(2,4)*TK_KWU_f) / (SW(1,4)+SW(2,4));
 
 
+    %--------------------------------------------------------------
+    % 3.3 Piston radial contact (to ring-gap water) 
+    %--------------------------------------------------------------
 
-    % 1D heat conduction inside the piston
-    for i = 2:Nz(3)-1
-        dTdt(i) =  SW(2,5)*(T(i+1)-2*T(i)+T(i-1))/(dz^2); 
+        N_piston = Nz(3);
+        N_ring = Nz(5);
 
-        % coupling to ring-gap water
+        for e = 1:Nz(3)
 
-        % relative vertical position in piston
-        rel = (i-1) / (Nz(3)-1);
+            % relative position in soil column (0 ... 1)
+            rel = (e - 1) / (N_piston-1);
 
-        % corresponding ring-gap index (1 ... Nz(5))
-        j = floor(rel * (Nz(5)-1)) + 1;
+            % corresponding ring-gap index (1 ... Nz(5))
+            j = floor(rel * (N_ring-1)) + 1;
 
-        % ring-gap water temperature
-        T_w_ring = T(Nz(3)+Nz(8)+Nz(2)-1 + j);
+            T_Pf(e,end) = ...
+                (SW(1,4) * T(Nz(3)+Nz(8)+Nz(2)-1 + j) ...
+                + SW(2,4) * T_Pf(e,end-1)) ...
+                / (SW(1,4) + SW(2,4));
+        end
 
-        % add symmetric heat exchange term
-        dTdt(i) = dTdt(i) + k_wp_p * (T_w_ring - T(i));
-    end
+
+    %--------------------------------------------------------------
+    % 3.4 Map 2D piston temperature field back to 1D system vector
+    %--------------------------------------------------------------
+
+    T(piston_2d_first_idx:piston_2d_top_idx) = T_Pf(:);
+
+    %--------------------------------------------------------------
+    % 3.5 Temperature gradients in the piston (2D) with coupling to water at top and bottom
+    %--------------------------------------------------------------
+
+    jIdx = 2:Nz(3)-1;      % interior z
+    iIdx = 2:Nz(14)-1;     % interior r
+
+    % vertical second derivative
+    d2T_dz2 = (T_Pf(jIdx+1,iIdx) - 2*T_Pf(jIdx,iIdx) + T_Pf(jIdx-1,iIdx)) / dz^2;
+
+    % radial geometry terms
+    drsum = z_RP(3,iIdx);
+    dr_f  = z_RP(4,iIdx);
+    dr_b  = z_RP(5,iIdx);
+    ri    = z_RP(1,iIdx);
+
+    % radial second derivative (non-uniform cylindrical)
+    d2T_dr2 = (2 ./ drsum) .* ( ...
+                (T_Pf(jIdx,iIdx+1) - T_Pf(jIdx,iIdx)) ./ dr_f ...
+              - (T_Pf(jIdx,iIdx)   - T_Pf(jIdx,iIdx-1)) ./ dr_b );
+
+    % 1/r * dT/dr term
+    dT_dr = (T_Pf(jIdx,iIdx+1) - T_Pf(jIdx,iIdx-1)) ./ drsum;
+    one_over_r_dTdr = (1 ./ ri) .* dT_dr;
+
+    % assemble derivative in piston
+    dTdt_Pf(jIdx,iIdx) = SW(2,5) * (d2T_dz2 + d2T_dr2 + one_over_r_dTdr);
+    
+    %--------------------------------------------------------------
+    % 3.6 Axis treatment (r = 0 symmetry): vectorized over z
+    %--------------------------------------------------------------
+
+    dr0 = z_RP(5,2);
+
+    d2T_dz2_axis = (T_Pf(jIdx+1,1) - 2*T_Pf(jIdx,1) + T_Pf(jIdx-1,1)) / dz^2;
+    radial_axis = 4 * (T_Pf(jIdx,2) - T_Pf(jIdx,1)) / dr0^2;
+
+    dTdt_Pf(jIdx,1) = SW(2,5) * (d2T_dz2_axis + radial_axis);
+
+    DT_p = T_Pf(:,end-1) - T_Pf(:,end); % gradient at piston outer radius (ring gap)
+
+    %--------------------------------------------------------------
+    % 3.7 set all boundary gradients to zero (for now)
+    %--------------------------------------------------------------
+    dTdt_Pf(:,end) = 0; % piston - ring-gap water
+    dTdt_Pf(1,:) = 0;   % piston - lower water volume
+    dTdt_Pf(end,:) = 0; % piston - upper water volume
+ 
+    % Bring back in 1D system vector
+    dTdt(piston_2d_first_idx: piston_2d_top_idx) = dTdt_Pf(:);
 
     %%%------------------------------------------%%%
     % 04 Map 1D temperature vector to 2D radial soil field
@@ -193,7 +263,7 @@ function dTdt = HeatFluidSolid(t, T, Nz, dz, bypass_indices, flow, T0init, SW, A
     % Temperaturvektor in Temperaturfeld umwandeln
     for j = 1:Nz(13)
         for i = 1:Nz(12)
-            Tf(j,i) = T(Nz(3)+Nz(8)+Nz(2)+Nz(5)+Nz(4)+Nz(9)-4+(i-1)*Nz(13)+j); 
+            T_REf(j,i) = T(Nz(3)+Nz(8)+Nz(2)+Nz(5)+Nz(4)+Nz(9)-4+(i-1)*Nz(13)+j); 
         end
     end
 
@@ -202,11 +272,11 @@ function dTdt = HeatFluidSolid(t, T, Nz, dz, bypass_indices, flow, T0init, SW, A
     %%%------------------------------------------%%%
 
     % Vertical boundaries of the radial soil
-    Tf(1,:) = T0init(5); % bottom soil (same as vertical soil bottom)
-    Tf(end,:) = T0init(4); % top soil equals air temperature
+    T_REf(1,:) = T0init(5); % bottom soil (same as vertical soil bottom)
+    T_REf(end,:) = T0init(4); % top soil equals air temperature
 
     % Outer radial boundary of the soil
-    Tf(:,end) = T0init(5);
+    T_REf(:,end) = T0init(5);
 
     %--------------------------------------------------------------
     % 5.1 Coupling 1D insulation with 2D radial insulation
@@ -221,18 +291,18 @@ function dTdt = HeatFluidSolid(t, T, Nz, dz, bypass_indices, flow, T0init, SW, A
     radial_soil_top_no_ins_idx = Nz(2)+Nz(3)+Nz(4)-2;
 
     % Vertical temperature profile in the second radial column (just inside insulation)
-    DTd(:,2) = Tf(radial_soil_top_no_ins_idx:radial_soil_top_idx,2); 
+    DTd(:,2) = T_REf(radial_soil_top_no_ins_idx:radial_soil_top_idx,2); 
 
     % Average contact temperature between 1D insulation and 2D radial insulation
     DTd(:,3) = (DTd(:,1)+DTd(:,2))/2;
 
     % Update contact temperatures in the first radial column of the soil / insulation
-    Tf(Nz(2)+Nz(3)+Nz(4)-2:Nz(2)+Nz(3)+Nz(4)+Nz(9)-3,1) = DTd(:,3); 
+    T_REf(Nz(2)+Nz(3)+Nz(4)-2:Nz(2)+Nz(3)+Nz(4)+Nz(9)-3,1) = DTd(:,3); 
 
 
     % Mixed contact between vertical soil and radial insulation at the very top
-    Tf(end-Nz(9)+1,:) = ...
-        (SW(2,4)*Tf(end-Nz(9),:) + SW(3,4)*Tf(end-Nz(9)+2,:)) / (SW(2,4)+SW(3,4));
+    T_REf(end-Nz(9)+1,:) = ...
+        (SW(2,4)*T_REf(end-Nz(9),:) + SW(3,4)*T_REf(end-Nz(9)+2,:)) / (SW(2,4)+SW(3,4));
 
     %--------------------------------------------------------------
     % 5.2 Coupling 1D water with 2D radial soil at the inner radius
@@ -240,14 +310,14 @@ function dTdt = HeatFluidSolid(t, T, Nz, dz, bypass_indices, flow, T0init, SW, A
 
     % Coupling 1D water (lower part) with 2D radial soil at inner radius
     for e = 1:Nz(2)
-        Tf(e,1) = ...
-            (SW(1,4)*T(Nz(3)+Nz(8)+e-1) + SW(2,4)*Tf(e,2)) / (SW(1,4)+SW(2,4));
+        T_REf(e,1) = ...
+            (SW(1,4)*T(Nz(3)+Nz(8)+e-1) + SW(2,4)*T_REf(e,2)) / (SW(1,4)+SW(2,4));
     end
 
     % Coupling 1D water (upper part) with 2D radial soil at inner radius
     for e = Nz(2)+Nz(3)-1 : Nz(2)+Nz(3)+Nz(4)-2
-        Tf(e,1) = ...
-            (SW(1,4)*T(Nz(8)+Nz(5)+e-1) + SW(2,4)*Tf(e,2)) / (SW(1,4)+SW(2,4));
+        T_REf(e,1) = ...
+            (SW(1,4)*T(Nz(8)+Nz(5)+e-1) + SW(2,4)*T_REf(e,2)) / (SW(1,4)+SW(2,4));
     end
 
     % Coupling 1D water (ring-gap) with 2D radial soil
@@ -265,9 +335,9 @@ function dTdt = HeatFluidSolid(t, T, Nz, dz, bypass_indices, flow, T0init, SW, A
         % corresponding ring-gap index (1 ... Nz(5))
         j = floor(rel * (N_ring-1)) + 1;
 
-        Tf(e,1) = ...
+        T_REf(e,1) = ...
             (SW(1,4) * T(Nz(3)+Nz(8)+Nz(2)-1 + j) ...
-            + SW(2,4) * Tf(e,2)) ...
+            + SW(2,4) * T_REf(e,2)) ...
             / (SW(1,4) + SW(2,4));
     end
 
@@ -279,29 +349,29 @@ function dTdt = HeatFluidSolid(t, T, Nz, dz, bypass_indices, flow, T0init, SW, A
     % 6.1 Soil region until radial insulation
     for j = 2 : Nz(13)-Nz(9)          % vertical index
         for i = 2 : Nz(12)-1          % radial index
-            dTdtf(j,i) = SW(2,5) * ( ...
-                (Tf(j+1,i) - 2*Tf(j,i) + Tf(j-1,i)) / dz^2 + ...
-                (Tf(j,i+1) - Tf(j,i-1)) ./ (z_RE(1,i) .* z_RE(3,i)) + ...
-                ( (Tf(j,i+1) - Tf(j,i)) ./ z_RE(4,i) + ...
-                (Tf(j,i-1) - Tf(j,i)) ./ z_RE(5,i) ) .* 2 ./ z_RE(3,i) );
+            dTdt_REf(j,i) = SW(2,5) * ( ...
+                (T_REf(j+1,i) - 2*T_REf(j,i) + T_REf(j-1,i)) / dz^2 + ...
+                (T_REf(j,i+1) - T_REf(j,i-1)) ./ (z_RE(1,i) .* z_RE(3,i)) + ...
+                ( (T_REf(j,i+1) - T_REf(j,i)) ./ z_RE(4,i) + ...
+                (T_REf(j,i-1) - T_REf(j,i)) ./ z_RE(5,i) ) .* 2 ./ z_RE(3,i) );
         end
     end
 
     % 6.2 Radial insulation region
     for j = Nz(13)-Nz(9)-2 : Nz(13)-1 % vertical index
         for i = 2 : Nz(12)-1          % radial index
-            dTdtf(j,i) = SW(3,5) * ( ...
-                (Tf(j+1,i) - 2*Tf(j,i) + Tf(j-1,i)) / dz^2 + ...
-                (Tf(j,i+1) - Tf(j,i-1)) ./ (z_RE(1,i) .* z_RE(3,i)) + ...
-                ( (Tf(j,i+1) - Tf(j,i)) ./ z_RE(4,i) + ...
-                (Tf(j,i-1) - Tf(j,i)) ./ z_RE(5,i) ) .* 2 ./ z_RE(3,i) );
+            dTdt_REf(j,i) = SW(3,5) * ( ...
+                (T_REf(j+1,i) - 2*T_REf(j,i) + T_REf(j-1,i)) / dz^2 + ...
+                (T_REf(j,i+1) - T_REf(j,i-1)) ./ (z_RE(1,i) .* z_RE(3,i)) + ...
+                ( (T_REf(j,i+1) - T_REf(j,i)) ./ z_RE(4,i) + ...
+                (T_REf(j,i-1) - T_REf(j,i)) ./ z_RE(5,i) ) .* 2 ./ z_RE(3,i) );
         end
     end
 
     % Map 2D radial temperature gradients back into the global dTdt vector
     for j = 1 : Nz(13)
         for i = 1 : Nz(12)
-            dTdt(sys_top_idx + (i-1)*Nz(13) + j,1) = dTdtf(j,i);
+            dTdt(sys_top_idx + (i-1)*Nz(13) + j,1) = dTdt_REf(j,i);
         end
     end
 
@@ -310,7 +380,7 @@ function dTdt = HeatFluidSolid(t, T, Nz, dz, bypass_indices, flow, T0init, SW, A
     %%%------------------------------------------%%%
 
     % radial temperature difference between first and second radial nodes
-    DT(:,1) = Tf(:,2) - Tf(:,1);
+    DT(:,1) = T_REf(:,2) - T_REf(:,1);
 
     % Temperature gradient in the 1D system insulation including radial loss
     for i = sys_top_no_ins_idx+1 : sys_top_idx-1
@@ -324,7 +394,7 @@ function dTdt = HeatFluidSolid(t, T, Nz, dz, bypass_indices, flow, T0init, SW, A
     %%%------------------------------------------%%%
 
     idx_w_top    = sys_top_no_ins_idx - 1;      % topmost interior water node
-    idx_w_bottom = Nz(3) + Nz(8) + 1;             % bottommost interior water node
+    idx_w_bottom = Nz(3) + Nz(8);             % bottommost interior water node
 
     % Bypass indices for the current time step
     idx_bypass_lower = bypass_indices(1);
@@ -332,14 +402,15 @@ function dTdt = HeatFluidSolid(t, T, Nz, dz, bypass_indices, flow, T0init, SW, A
     idx_membrane = bypass_indices(3);
 
     % begin of piston for radial soil
-    e_start = Nz(2);
-    e_end   = Nz(2)+Nz(3)-1;
+    e_start_soil = Nz(2);
+    e_end_soil   = Nz(2)+Nz(3)-1;
 
-    % water-side coupling coefficient [1/s]
-    k_wp_w = h_wp * A_int / (SW(1,2)*SW(1,3)*A(3)*dz);  
+    % begin of piston for radial soil
+    e_start_piston = 1;
+    e_end_piston   = Nz(3);
 
-    for i = Nz(3)+Nz(8)+1 : idx_w_top
-
+    for i = idx_w_bottom : idx_w_top
+        % upwind scheme for axial convection in the water column
         is_adv_segment = (i >= idx_bypass_upper && i <= idx_w_top) || ...
                         (i >= idx_w_bottom    && i <= idx_bypass_lower);
 
@@ -369,9 +440,8 @@ function dTdt = HeatFluidSolid(t, T, Nz, dz, bypass_indices, flow, T0init, SW, A
             % Now we are in the ring gap / piston region
             % Check wether we are at the membrane position
             if i == idx_membrane
-                % Membrane node: do not exchange axially and radially with neighbors (adiabatic)
-                dTdt(i) = 0; 
-                continue
+                % Membrane node: do not exchange axially with neighbors (adiabatic)
+                diffusion = 0;
             elseif i == idx_membrane - 1
                 % work with ghost cells to remove coupling to i+1 (which would be membrane)
                 diffusion = 2*(T(i-1) - T(i)) / dz^2;
@@ -387,72 +457,100 @@ function dTdt = HeatFluidSolid(t, T, Nz, dz, bypass_indices, flow, T0init, SW, A
             s_geom      = A(3) / A(1);              % = H(5)/H(3) because A1*H5 = A3*H3
             alpha_ring  = SW(1,5) * s_geom^2;       % preserve diffusion time scale tau ~ L^2/alpha
 
-            % Ring-gap radial loss: same soil gradient, but normalized by ring-gap water volume
-            k_rad_ring = SW(4,3) * (A(1)/A(3));          % [1/s] faster cooling due to smaller water volume
+            % ----------------------------------------------------------
+            % Extra axial mixing below/above outlet (increased diffusion as turbulent mixing proxy)
+            % ----------------------------------------------------------
+            alpha_max = 3e-5;   % [m^2/s] tune
+            L_mix = max(abs(idx_bypass_upper - idx_membrane) * dz, dz); % [m]
+
+            % Define mixing zone: between membrane and upper bypass
+            in_mix_zone = (i >= idx_membrane) && (i <= idx_bypass_upper);
+
+            if in_mix_zone
+                d  = abs(i - idx_bypass_upper) * dz;      % [m], 0 at stub
+                alpha_turb = alpha_max * (1 - d/(2*L_mix))*s_geom^2; % strong near inlet
+            else
+                alpha_turb = 0;
+            end
+
+            alpha_ring_eff = alpha_ring + alpha_turb;
 
             % Compute mean radial gradient based on current node position in the ring gap
             % ring-gap local index (1 ... Nz(5))
             j = i - (Nz(3)+Nz(8)+Nz(2)-1);
 
             % determine corresponding soil index interval
-            e_low  = e_start + floor((j-1)/Nz(5) * Nz(3));
-            e_high = e_start + floor(j/Nz(5)     * Nz(3)) - 1;
+            e_low_soil  = e_start_soil + floor((j-1)/Nz(5) * Nz(3));
+            e_high_soil = e_start_soil + floor(j/Nz(5)     * Nz(3)) - 1;
 
-            % safety clamp
-            e_low  = max(e_low,  e_start);
-            e_high = min(e_high, e_end);
+            % determine corresponding piston index interval
+            e_low_piston  = 1 + floor((j-1)/Nz(5) * Nz(3));
+            e_high_piston = 1 + floor(j/Nz(5)     * Nz(3)) - 1;
 
-            % mean radial gradient
-            mean_DT = mean( DT(e_low:e_high,1) );
+            % indices in soil relevant for water node in ring-gap
+            e_low_soil  = max(e_low_soil,  e_start_soil);
+            e_high_soil = min(e_high_soil, e_end_soil);
 
+            % mean radial gradient to soil
+            mean_DT = mean( DT(e_low_soil:e_high_soil,1) );
 
-            % coupling to piston (block-averaged)
-            
-            ip_low  = 1 + floor((j-1)/Nz(5) * Nz(3));
-            ip_high = 1 + floor(j/Nz(5)     * Nz(3)) - 1;
+            % indices in soil relevant for water node in ring-gap
+            e_low_piston  = max(e_low_piston,  e_start_piston);
+            e_high_piston = min(e_high_piston, e_end_piston);
 
-            ip_low  = max(ip_low,  1);
-            ip_high = min(ip_high, Nz(3));
-
-            T_p_mean = mean( T(ip_low:ip_high));
+            % mean radial gradient to piston (for nodes adjacent to piston)
+            mean_DT_p = mean( DT_p(e_low_piston:e_high_piston) );
 
             % Water segment inside the piston region (no direct radial coupling)
             % update with advection + scaled diffusion and  radial loss to outer soil
             % at mebrane node dTdt = 0 (adiabatic)
-            dTdt(i) = alpha_ring * diffusion ...
+            dTdt(i) = alpha_ring_eff * diffusion ...
                     + adv ...
-                    + k_rad_ring * mean_DT ...          % soil coupling
-                    + k_wp_w     * (T_p_mean - T(i));  % piston coupling
+                    + SW(4,4) * mean_DT ...          % soil coupling
+                    + SW(4,5) * mean_DT_p;           % piston coupling
         end
     end
 
     %%%------------------------------------------%%%
     % 09 Additional piston loss terms into the water nodes (distributed)
+    % For numerical smoothening
     %%%------------------------------------------%%%
 
     alpha_pw = (SW(2,1) * A(2)) / (A(1) * SW(1,2) * SW(1,3) * dz^2);
 
     % Water nodes energy is distributed to
     Nspread = 20;                  % tune
-    ell     = 4*dz;               % [m] decay length scale (controls smoothness)
+    ell     = 4*dz;                % [m] decay length scale (controls smoothness)
 
     % Exponential weights, normalized to sum=1
     k  = (0:Nspread-1).';
     wk = exp(-(k*dz)/ell);
-    wk = wk / sum(wk);
+    wk = wk / sum(wk);  % normalize weights to sum to 1
+
+    % normalize by sum of ZR_P(1,:) to get proper weights
+    gradient_weights = z_RP(2,:) / sum(z_RP(2,:));
+
+    % weighted mean temperature gradient at piston top
+    % positive gradient means piston is warmer than water, so we add energy to water nodes
+    dT_WKO_mean = sum((T_Pf(end-1,:)-T_Pf(end,:)).* gradient_weights);
+    
+    % weighted mean temperature gradient at piston bottom
+    % positive gradient means piston is colder than water, so we remove energy from water nodes
+    dT_WKU_mean = sum((T_Pf(1,:)-T_Pf(2,:)).* gradient_weights);
+    
 
     % Upper water nodes adjacent to piston
     idx_water_top_piston = Nz(3)+Nz(8)+Nz(2)+Nz(5)-2;
     for j = 0:Nspread-1
         idx = idx_water_top_piston + j;            
-        dTdt(idx) = dTdt(idx) - wk(j+1) * alpha_pw * (T(Nz(3)) - T(Nz(3)-1));
+        dTdt(idx) = dTdt(idx) + wk(j+1) * alpha_pw * dT_WKO_mean;
     end
 
     % Lower water nodes adjacent to piston
     idx_water_bottom_piston = Nz(3)+Nz(8)+Nz(2)-1;
     for j = 0:Nspread-1
         idx = idx_water_bottom_piston - j;    
-        dTdt(idx) = dTdt(idx) - wk(j+1) * alpha_pw * (T(1) - T(2));
+        dTdt(idx) = dTdt(idx) - wk(j+1) * alpha_pw * dT_WKU_mean;
     end
 
 end

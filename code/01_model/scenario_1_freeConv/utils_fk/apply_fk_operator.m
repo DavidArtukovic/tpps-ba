@@ -62,6 +62,7 @@ function Tcur = apply_fk_operator(Tcur, ids_mix, z_mix_idx, Tin, T_w_in_upper, T
             % T_new = Tin + geom_factor * ( I_mix - Qdot*dt_mix/(rho*c*A) )
             %--------------------------------------------------------------
             Tcur(ids_mix) = Tin + geom .* bracket;
+            % logging results
             fklog('---------------------------------------------------');
             fklog('case: internal_zmix');
             fklog(['bracket            = ' num2str(bracket)]);
