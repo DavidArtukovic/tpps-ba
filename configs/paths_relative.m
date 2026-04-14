@@ -11,5 +11,5 @@ CODE_BASE    = fullfile(PROJECT_BASE, 'code');
 
 % Add model paths
 addpath(CODE_BASE);
-addpath(fullfile(CODE_BASE, '01_model', 'scenario_1_freeConv'));
-addpath(fullfile(CODE_BASE, '01_model', 'scenario_1_freeConv', 'utils_fk'));
+addpath(fullfile(CODE_BASE, '01_model', 'scenario_1_freeConv_extended'));
+addpath(fullfile(CODE_BASE, '01_model', 'scenario_1_freeConv_extended', 'utils_fk'));

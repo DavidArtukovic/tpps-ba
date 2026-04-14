@@ -21,11 +21,11 @@ close all
 run(fullfile('..','..','..', 'configs', 'paths_local.m'));
 
 RESULTS_VIS_BASE  = fullfile(RESULTS_BASE, "02_visualizations");
-RESULTS_TIMELAPSE = fullfile(RESULTS_VIS_BASE, "timelapse");
+RESULTS_TIMELAPSE = fullfile(RESULTS_VIS_BASE, "04_timelapse");
 
 DATA_SCEN1_BASE = fullfile(DATA_BASE, 'Modellvergleich1D');
 DATA_SCEN1_NOFK  = fullfile(DATA_BASE, 'scenario1');
-DATA_SCEN1_FK  = fullfile(DATA_BASE, 'scenario1_freeConv');
+DATA_SCEN1_FK  = fullfile(DATA_BASE, 'scenario1_freeConv_extended');
 DATA_INIT = fullfile(DATA_BASE, 'init');
 
 % Load init results and scenario files
@@ -39,7 +39,7 @@ load(fullfile(DATA_BASE, 'scenario1/SzenarioComsol.mat'));
 % MATLAB and COMSOL results (same as plot_matlab_profiles.m)
 data_1 = load(fullfile(DATA_SCEN1_NOFK, 'd18_h18_Res_Matlab_d18_18.mat')); % Matlab 1D no FK
 data_2 = load(fullfile(DATA_SCEN1_BASE, 'T1_1818_900.mat')); % COMSOL
-data_3 = load(fullfile(DATA_SCEN1_FK, '260330_d18_h18_Res_Matlab_FK_2d_v10.mat')); % Matlab 2D piston with FK
+data_3 = load(fullfile(DATA_SCEN1_FK, '260414_d18_h18_Res_Matlab_FK_extended_2d_v2.mat')); % Matlab 2D piston with FK
 
 
 %%%------------------------------------------%%%
@@ -226,7 +226,7 @@ z_ring_norm = linspace(0,1,blockLen)';   % normalized vertical coordinate
 % 08. Video writer
 %%%------------------------------------------%%%
 dateTag = datestr(now,'yyyymmdd');
-version = 'v2';
+version = 'v1';
 videoname = fullfile(RESULTS_TIMELAPSE, ...
     [dateTag '_' version '_timelapse_1D+2D_temperature_profiles_15min_matlab_comsol.mp4']);
 
@@ -415,8 +415,8 @@ h_mem_r    = plot(ax2, x_mark_r, [NaN NaN], 'k-', 'LineWidth',2);
 %%%------------------------------------------%%%
 % 12. Animation loop
 %%%------------------------------------------%%%
-
-for i = 1:(n_steps)
+n_steps_loop = 1100;
+for i = 1:(n_steps_loop)
 
     SoC = t_900(2,i);
 
