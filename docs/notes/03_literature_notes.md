@@ -409,7 +409,7 @@ Particularly in the dicussion this paper can give a hint towards the groundwater
 ## VDI-Fachbereich Energie- und Umwelttechnik (2019) - *Verband Deutcher Ingineure*
 
 **Relevance**
-Recomendatio for groundwater use up until 25°C.
+Recomendation for groundwater use up until 25°C.
 
 ## Nield (2017) - *Mechanics of Fluid Flow Through a Porous Medium*
 
@@ -571,3 +571,11 @@ This enables the use of gradient-based optimization methods (e.g. automatic diff
 Furthermore, the distinction between slow and fast buoyancy effects provides a more physically consistent representation of mixing processes, especially under charging and discharging conditions.  
 
 For the present work, the paper is relevant as it highlights both the limitations of classical 1D approaches in representing multidimensional transport phenomena (e.g. convection) and a possible modeling strategy to partially compensate for these limitations without increasing spatial dimensionality.
+
+
+## Benato,  Stoppato (2018) - *Pumped Thermal Electricity Storage: A technology overview*
+
+**Key Findings**
+
+
+**Relevance**
