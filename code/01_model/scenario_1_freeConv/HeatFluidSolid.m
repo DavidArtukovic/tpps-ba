@@ -409,6 +409,14 @@ function dTdt = HeatFluidSolid(t, T, Nz, dz, bypass_indices, flow, T0init, SW, A
     e_start_piston = 1;
     e_end_piston   = Nz(3);
 
+    % gap between mebrane and bypasses
+    gap_lower = idx_membrane - idx_bypass_lower;
+    gap_upper = idx_bypass_upper - idx_membrane;
+
+    % Degenerate hydraulic shortcut cases
+    is_charge_shortcut    = (flow < 0) && (gap_lower <= 2);
+    is_discharge_shortcut = (flow > 0) && (gap_upper <= 2);
+
     for i = idx_w_bottom : idx_w_top
         % upwind scheme for axial convection in the water column
         is_adv_segment = (i >= idx_bypass_upper && i <= idx_w_top) || ...
@@ -417,9 +425,27 @@ function dTdt = HeatFluidSolid(t, T, Nz, dz, bypass_indices, flow, T0init, SW, A
         if ~is_adv_segment || flow == 0
             adv = 0;
         elseif flow > 0
-            adv = - flow * (T(i) - T(i-1)) / dz;
+            % Default upwind from below
+            T_up = T(i-1);
+
+            % Degenerate discharging case:
+            % cell above membrane receives inflow temperature from lower bypass
+            if is_discharge_shortcut && (i == idx_membrane + 1)
+                T_up = T(idx_bypass_lower);
+            end
+
+            adv = -flow * (T(i) - T_up) / dz;
+
         else % flow < 0
-            adv = - flow * (T(i+1) - T(i)) / dz;
+            % Default upwind from above
+            T_up = T(i+1);
+            % Degenerate charging case:
+            % cell below membrane receives inflow temperature from upper bypass
+            if is_charge_shortcut && (i == idx_membrane - 1)
+                T_up = T(idx_bypass_upper);
+            end
+            adv = - flow * (T_up - T(i)) / dz;
+            
         end
         
         if i <= Nz(3)+Nz(8)+Nz(2)-1

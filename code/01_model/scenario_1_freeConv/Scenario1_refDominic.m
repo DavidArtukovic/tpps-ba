@@ -84,10 +84,7 @@ r_pist = r_ST - r_gap;   % Piston radius in m
 A(1) = d_ST^2 * pi/4;    % Area of the cylindrical storage
 A(2) = r_pist^2 * pi;    % Area of the piston
 A(3) = A(1) - A(2);      % Area of the annulus (ring gap)
-% Initialize positions indices of bypass inlets and mebrane
-[idx_bypass_lower_vec, idx_bypass_upper_vec, idx_membrane_vec] = ...
-compute_bypass_indices(t_900(2,:), H(3), H(11), Nz, dz);
-bypass_indices = [idx_bypass_lower_vec; idx_bypass_upper_vec; idx_membrane_vec];
+
 % index of top node in system vector (air node above insulation)
 sys_top_idx = Nz(3)+Nz(8)...
              +Nz(2)+Nz(5)...
@@ -99,6 +96,19 @@ soil_top_idx = sys_top_idx + Nz(12)*Nz(13);
 % 03. Preprocess Scenario: piston position and flow rates
 %%%------------------------------------------%%%
 [Res_900, LC, DC, Lflow, Dflow] = prepare_scenario_flow(Res_900, t_900, Nz, H, d);
+
+%%%------------------------------------------
+% 3.1 Compute bypass indices
+%%%------------------------------------------
+
+Nz2_vec = Res_900(7,2:end);   % lower pressure zone
+
+% Initialize positions indices of bypass inlets and mebrane
+[idx_bypass_lower_vec, idx_bypass_upper_vec, idx_membrane_vec] = ...
+compute_bypass_indices(t_900(2,:), H(3), H(11), Nz, Nz2_vec, dz);
+
+bypass_indices = [idx_bypass_lower_vec; idx_bypass_upper_vec; idx_membrane_vec];
+
 %%
 %%%------------------------------------------%%%
 % 04. Set Initial Temperature Fields
@@ -154,7 +164,7 @@ T0init(7) = 11;                 % Initial insulation temperature
 % 06. Time Loop over Scenario (t_900/2 for 10 days)
 %%%------------------------------------------%%%
 % Initialize logging
-version = '2d_big_v3';
+version = '2d_big_v4';
 dateTag = datestr(now, "yymmdd");
 FK_LOG_BASE = fullfile(DATA_SCEN1_FK, '01_logs');
 NOFK_LOG_BASE = fullfile(DATA_SCEN1, '01_logs');
@@ -165,7 +175,8 @@ fklog = @(s) fprintf(fid_fk,'%s\n',string(s));
 fklog(sprintf([ ...
     '=== Scenario 1 Free Convection Simulation ===\n' ...
     'Description:\n' ...
-    'with FK, no modification\n'...
+    'with FK\n'...
+    'modified advection, modified bypass computation\n'...
     % 'Short testing of new flux derivative in piston\n'...
     % 'Switched sign in front of piston-top and water interface\n'...
     % 'FK with shifting membrane adapted convection diffusion  \n'...
@@ -181,7 +192,7 @@ fklog(sprintf('Version: %s', version));
 n_steps = length(t_900);
 % create fk code history vector
 fk_code_hist = zeros(1, n_steps);
-for i = 1:350
+for i = 1:1300
     tic
     fklog('|||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||');
     fklog(sprintf('t = %.2f h', i * 15 / 60));
@@ -414,7 +425,8 @@ function [Heat_insu, Heat_Wasser, Heat_piston, Heat_Vsoil, ...
     WEX = Spz * dz * ...
         (sum(wEX(1,2:end-1)) + 0.5 * (wEX(1,1) + wEX(1,end)));
 end
-function [idx_bypass_lower_vec, idx_bypass_upper_vec, idx_membrane_vec] = compute_bypass_indices(soc_vec, h_pist, h_lift, Nz, dz)
+
+function [idx_bypass_lower_vec, idx_bypass_upper_vec, idx_membrane_vec] = compute_bypass_indices(soc_vec, h_pist, h_lift, Nz, Nz2_vec, dz)
     % COMPUTE_BYPASS_INDICES
     % --------------------------------------------------------------
     % Computes lower and upper bypass inlet indices and mebrane index
@@ -440,16 +452,18 @@ function [idx_bypass_lower_vec, idx_bypass_upper_vec, idx_membrane_vec] = comput
     %   - No dead-zone correction applied (by design).
     % Number of cells in replacement volume of ringgap
     Nrep = Nz(5);
-    idx_rep_begin = Nz(3) + Nz(8) + Nz(2) - 1; % Start of replacement volume
-    idx_upper_begin = Nz(3) + Nz(8) + Nz(2) + Nz(5) -2 ; % Start of upper water volume
+    idx_rep_begin = Nz(3) + Nz(8) + Nz2_vec - 1; % Start of replacement volume
+    idx_upper_begin = Nz(3) + Nz(8) + Nz2_vec + Nz(5) -2 ; % Start of upper water volume
     % ----------------------------------------------------------
     % Lower bypass: always inside replacement volume
     % ----------------------------------------------------------
-    idx_bypass_lower_vec = idx_rep_begin + round((1 - soc_vec) .* Nrep .* h_lift ./ h_pist);
+    idx_bypass_lower_vec = idx_rep_begin + round((1 - soc_vec) .* Nrep .* h_lift ./ h_pist) - 1; % note minus one to guarantee that the bypass is always below the membrane
+
     % ----------------------------------------------------------
     % Upper bypass: piecewise definition
     % ----------------------------------------------------------
-    
+    idx_bypass_upper_vec = zeros(size(soc_vec));
+
     % Threshold for leaving replacement volume
     % upper bypass is 8m (h_lift/2) below upper dead zone. Thus as soon as the piston drives
     % down more than 8m (h_lift/2), the bypass enters the upper water volume
@@ -464,10 +478,10 @@ function [idx_bypass_lower_vec, idx_bypass_upper_vec, idx_membrane_vec] = comput
     
     h_pist_off = (h_pist-h_lift)+h_lift/2;
     
-    idx_bypass_upper_vec(mask_rep) = idx_bypass_lower_vec(mask_rep) + round(Nrep *(h_pist_off)/h_pist);
+    idx_bypass_upper_vec(mask_rep) = idx_bypass_lower_vec(mask_rep) + round(Nrep *(h_pist_off)/h_pist) + 2; % note plus two to guarantee that the upper bypass is always above the membrane
     % Case 2: upper bypass in upper water volume
     delta_s = s_crit - soc_vec(mask_up);
-    idx_bypass_upper_vec(mask_up) = idx_upper_begin + round(delta_s .* h_lift ./ dz);
+    idx_bypass_upper_vec(mask_up) = idx_upper_begin(mask_up) + round(delta_s .* h_lift ./ dz);
     % ----------------------------------------------------------
     % Membrane index
     % ----------------------------------------------------------

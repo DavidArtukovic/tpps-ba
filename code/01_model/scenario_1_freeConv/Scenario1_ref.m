@@ -42,6 +42,7 @@ DATA_INIT = fullfile(DATA_BASE, 'init');
 % load(fullfile(DATA_SCEN1, 'Init_d18_h18_time8.mat'));   % Geometry, material values and initial values
 load(fullfile(DATA_INIT, '20260330_d18_hp18.0_gap0.5_2D_chunk009.mat'));       % Actual init with modified flux
 load(fullfile(DATA_SCEN1, 'SzenarioComsol.mat'));       % Scenario control flags
+load(fullfile(DATA_SCEN1_FK, '260331_d18_h18_Res_Matlab_FK_2d_v12.mat'));       % Scenario control flags
 %%
 %%%------------------------------------------%%%
 % 02. Initialize Arrays and Geometry

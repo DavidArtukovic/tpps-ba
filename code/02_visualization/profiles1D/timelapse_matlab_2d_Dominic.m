@@ -41,7 +41,7 @@ load(fullfile(DATA_BASE, 'scenario1/SzenarioComsol.mat'));
 % MATLAB results (same as plot_matlab_profiles.m)
 % data_3 = load(fullfile(DATA_SCEN1_FK, '260420_d56_h112_Res_Matlab_FK_2d_big_v3.mat'));
 
-data_3 = load(fullfile(DATA_SCEN1_FK, '260419_d56_h112_Res_Matlab_FK_2d_v13.mat'));
+data_3 = load(fullfile(DATA_SCEN1_FK, '260420_d56_h112_Res_Matlab_FK_2d_big_v4.mat'));
 %%
 %%%------------------------------------------%%%
 % 02. Spatial grid
@@ -90,7 +90,7 @@ else
     T_3_p = repmat(single(T_dummy_val), Nz_p*Nr_p, size(T_3,2));
 end
 
-n_steps = 1920;
+n_steps = 1300;
 %%
 %-----------------------------------------
 % 2.1 Extract Ring-Gap Info
@@ -98,7 +98,7 @@ n_steps = 1920;
 
 % Part for Ringgap
 blockLen = 1573;
-startIdx = 201 * ones(1, n_steps);   % [1 x Nt]
+startIdx = data_3.ResOut.res.series_900(8,2:n_steps+1)-1;   % [1 x Nt]
 
 % --- build row index matrix ---
 rowOffsets = (0:blockLen-1)';                   % [389 x 1]
@@ -148,7 +148,7 @@ z_ring_norm = linspace(0,1,blockLen)';   % normalized vertical coordinate
 % 07. Video writer
 %%%------------------------------------------%%%
 dateTag = datestr(now,'yyyymmdd');
-version = 'v2';
+version = 'v3';
 videoname = fullfile(RESULTS_TIMELAPSE, ...
     [dateTag '_timelapse_1D+2D_temperature_profiles_15min_matlab_only_' version '.mp4']);
 
