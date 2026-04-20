@@ -45,7 +45,7 @@ function [T_Sys, fk_code] = apply_free_convection(T_Sys, dt_mix, flow, Nz, dz, S
     %----------------------------------------------------------
     [ids_mix, Tin, z_mix_idx, T_w_in_upper, T_w_in_lower, fk_code] = detect_fk_region(Tcur, flow, params, fklog);
 
-    if isempty(ids_mix)
+    if numel(ids_mix) < 3
         return  ; % no mixing region detected
     end
 

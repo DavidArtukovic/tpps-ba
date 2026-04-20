@@ -76,7 +76,7 @@ function [T_Sys, T_REf, fk_code] = HeattransferSzen(t2, IC_Sys, Nz, dz, bypass_i
     dt_mix = 900; % time step size for mixing operator [s]
 
     [T_Sys, fk_code] = apply_free_convection(T_Sys, dt_mix, flow, Nz, dz, SW, A, bypass_indices, fklog);
-    
+    % fk_code =0; % for now, we skip the free convection operator and set fk_code to 0 (no FK region detected)    
     %%%------------------------------------------%%%
     % 03: Define frequently used indices
     %%%------------------------------------------%%%

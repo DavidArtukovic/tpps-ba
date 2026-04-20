@@ -31,7 +31,7 @@ DATA_SCEN1_FK  = fullfile(DATA_BASE, 'scenario1_freeConv');
 DATA_INIT = fullfile(DATA_BASE, 'init');
 
 % Load init and scenario files
-load(fullfile(DATA_INIT, '20260324_d18_hp16.0_gap0.5_2D_chunk009_v1.mat'));       % Synthetic data for initial temperature fields
+load(fullfile(DATA_INIT, 'Init_56x226_pist.mat'));       % Synthetic data for initial temperature fields
 % Scenario/time information
 load(fullfile(DATA_SCEN1_BASE, 'd18_h18.mat'));
 
@@ -39,8 +39,9 @@ load(fullfile(DATA_SCEN1_BASE, 'd18_h18.mat'));
 load(fullfile(DATA_BASE, 'scenario1/SzenarioComsol.mat'));
 
 % MATLAB results (same as plot_matlab_profiles.m)
-data_3 = load(fullfile(DATA_SCEN1_FK, '260419_d56_h112_Res_Matlab_FK_2d_v11.mat'));
+% data_3 = load(fullfile(DATA_SCEN1_FK, '260420_d56_h112_Res_Matlab_FK_2d_big_v3.mat'));
 
+data_3 = load(fullfile(DATA_SCEN1_FK, '260419_d56_h112_Res_Matlab_FK_2d_v13.mat'));
 %%
 %%%------------------------------------------%%%
 % 02. Spatial grid
@@ -67,9 +68,29 @@ z_ps_low_geom = -1 - 112;
 %%%------------------------------------------%%%
 
 T_3 = data_3.ResOut.temperature.system(401:end,:);
-T_3_p = data_3.ResOut.temperature.piston; % 2d piston
+% ----------------------------------------------------------
+% Piston toggle / fallback
+% ----------------------------------------------------------
+USE_PISTON = isfield(data_3.ResOut.temperature, 'piston') && ...
+             ~isempty(data_3.ResOut.temperature.piston);
 
-n_steps = 60;
+if USE_PISTON
+    T_3_p = data_3.ResOut.temperature.piston;
+else
+    warning('No piston field found. Using dummy piston temperatures.');
+
+    % --- define visualization size for dummy piston ---
+    Nz_p = 22401;
+    Nr_p = 13;
+
+    % --- constant dummy temperature, e.g. from initial system mean ---
+    T_dummy_val = mean(T_3(:,1), 'omitnan');
+
+    % [Nz_p*Nr_p x Nt]
+    T_3_p = repmat(single(T_dummy_val), Nz_p*Nr_p, size(T_3,2));
+end
+
+n_steps = 1920;
 %%
 %-----------------------------------------
 % 2.1 Extract Ring-Gap Info
@@ -77,7 +98,7 @@ n_steps = 60;
 
 % Part for Ringgap
 blockLen = 1573;
-startIdx = 22601 * ones(1, n_steps);   % [1 x Nt]
+startIdx = 201 * ones(1, n_steps);   % [1 x Nt]
 
 % --- build row index matrix ---
 rowOffsets = (0:blockLen-1)';                   % [389 x 1]
@@ -127,12 +148,13 @@ z_ring_norm = linspace(0,1,blockLen)';   % normalized vertical coordinate
 % 07. Video writer
 %%%------------------------------------------%%%
 dateTag = datestr(now,'yyyymmdd');
+version = 'v2';
 videoname = fullfile(RESULTS_TIMELAPSE, ...
-    [dateTag '_timelapse_1D+2D_temperature_profiles_15min_matlab_only.mp4']);
+    [dateTag '_timelapse_1D+2D_temperature_profiles_15min_matlab_only_' version '.mp4']);
 
 v = VideoWriter(videoname,'MPEG-4');
 % Keep it readable; increase if you want a faster video
-v.FrameRate = 10;
+v.FrameRate = 5;
 open(v);
 %%%------------------------------------------%%%
 % 08. Figure initialization
@@ -226,22 +248,11 @@ set(h_txt_low,'Position', [x_txt z_M(idx_bypass_lower) 0]);
 % ==========================================================
 
 ax2 = nexttile;
-%%
+
 Nz_p = 22401;
-Nr_p = 12;
+Nr_p = 13;
 
-R = 56/2;          % radius [m]
-Nr = 12;           % number of radial cells
-
-a = R / sum((1:Nr).^2);
-dr = a * (1:Nr).^2;     % cell widths from outside to inside
-
-sum(dr)                  % should be 28
-
-r_edge = [0, cumsum(flip(dr))];
-
-
-r_vec = InitOut.grid.z_RP(1,:);        % radial node positions
+r_vec = InitOut.z_RP(1,:);        % radial node positions
 z_vis = linspace(0, h_piston, Nz_p);   % piston height coordinate
 %%
 % ----------------------------------------------------------

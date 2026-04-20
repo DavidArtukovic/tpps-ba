@@ -25,9 +25,9 @@ clear
 % 01. Load Scenario and Initialization Simulation
 %%%------------------------------------------%%%
 % Load local paths (per-machine config)
-run(fullfile('..','..', 'configs', 'paths_local.m'));
+run(fullfile('..','..','..', 'configs', 'paths_local.m'));
 % relative paths, needed for fk modules
-run(fullfile('..','..', 'configs','paths_relative.m'));
+run(fullfile('..','..','..', 'configs','paths_relative.m'));
 % Build data subfolder for this configuration
 DATA_SCEN1 = fullfile(DATA_BASE, 'scenario1');
 DATA_SCEN1_FK = fullfile(DATA_BASE, 'scenario1_freeConv');
@@ -40,6 +40,11 @@ load(fullfile(DATA_SCEN1, 'SzenarioComsol.mat'));        % Scenario control flag
 %%%------------------------------------------%%%
 % 02. Initialize Arrays and Geometry
 %%%------------------------------------------%%%
+
+% manual modification
+idx = find(InitOut.IC_Sys ~= 11);
+InitOut.IC_Sys(idx) = 11;
+
 % --- Extract grid / geometry ---
 Nz    = InitOut.Nz;
 dz    = InitOut.dz;
@@ -61,7 +66,7 @@ Res_hour = zeros(10, length(t_hour) + 1);   % Values for full hours
 T_SSys = zeros(Nz(13), 1);
 T_V_900 = zeros(Nz(13), length(t_900));             % Temperature array: system grid x time
 T_W_900 = zeros(Nz(6),  length(t_900));             % Temperature array: water grid x time
-%T_P_900 = zeros(Nz(3)*Nz(14),  length(t_900));      % Temperature array: piston grid x time
+T_P_900 = zeros(Nz(3)*Nz(14),  length(t_900));      % Temperature array: piston grid x time
 %T_S_900 = zeros(Nz(12)*Nz(13),  length(t_900));     % Temperature array: piston grid x time
 % Time discretization
 dt  = 900;        % Time in seconds for every procedure step
@@ -149,7 +154,7 @@ T0init(7) = 11;                 % Initial insulation temperature
 % 06. Time Loop over Scenario (t_900/2 for 10 days)
 %%%------------------------------------------%%%
 % Initialize logging
-version = '2d_v12';
+version = '2d_big_v3';
 dateTag = datestr(now, "yymmdd");
 FK_LOG_BASE = fullfile(DATA_SCEN1_FK, '01_logs');
 NOFK_LOG_BASE = fullfile(DATA_SCEN1, '01_logs');
@@ -160,14 +165,15 @@ fklog = @(s) fprintf(fid_fk,'%s\n',string(s));
 fklog(sprintf([ ...
     '=== Scenario 1 Free Convection Simulation ===\n' ...
     'Description:\n' ...
-    'Short testing of new flux derivative in piston\n'...
-    'Switched sign in front of piston-top and water interface\n'...
-    'FK with shifting membrane adapted convection diffusion  \n'...
-    'Added upwind scheme in water \n'...
-    'Modified diffusion coefficient in ring gap \n' ...
-    'Added radial coupling of ring-gap water to soil  \n' ...
-    'Added distributed coupling lower/upper water to piston (20 nodes) \n' ...
-    'Added 2D piston temperature field with radial conduction \n' ...
+    'with FK, no modification\n'...
+    % 'Short testing of new flux derivative in piston\n'...
+    % 'Switched sign in front of piston-top and water interface\n'...
+    % 'FK with shifting membrane adapted convection diffusion  \n'...
+    % 'Added upwind scheme in water \n'...
+    % 'Modified diffusion coefficient in ring gap \n' ...
+    % 'Added radial coupling of ring-gap water to soil  \n' ...
+    % 'Added distributed coupling lower/upper water to piston (20 nodes) \n' ...
+    % 'Added 2D piston temperature field with radial conduction \n' ...
  
 ]));
 fklog(sprintf('Date and Time: %s', dateTag));
@@ -175,7 +181,7 @@ fklog(sprintf('Version: %s', version));
 n_steps = length(t_900);
 % create fk code history vector
 fk_code_hist = zeros(1, n_steps);
-for i = 1:60
+for i = 1:350
     tic
     fklog('|||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||');
     fklog(sprintf('t = %.2f h', i * 15 / 60));
@@ -229,7 +235,7 @@ for i = 1:60
         T_V(Nz(3)+Nz(8)+Nz(2)+Nz(5)+Nz(4)-3:end);                               % Vertical insulation
     T_V_900(:, i) = flip(T_SSys);
     
-    %T_P_900(:, i) = flip(T_P);
+    T_P_900(:, i) = flip(T_P);
     % Store hourly aggregated values every 4th 15-min step
     if mod(i, 4) == 0
         idx_hr = 1 + i/4;
@@ -277,9 +283,10 @@ else
     modeTag   = 'noFK';
     dataPath  = DATA_SCEN1;
 end
+%%
 filenameSIM = sprintf('%s_d%d_h%d_Res_Matlab_%s_%s.mat', dateTag, d_ST, H(3), modeTag, version);
 fullpathSIM = fullfile(dataPath, filenameSIM);
-save(fullpathSIM, "ResOut");
+save(fullpathSIM, "ResOut","-v7.3");
 %%
 %%% ============================================================ %%%
 %                           LOCAL FUNCTIONS                       

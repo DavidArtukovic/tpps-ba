@@ -41,9 +41,10 @@ function [ids_mix, Tin, z_mix_idx, T_w_in_upper, T_w_in_lower, fk_code] = detect
         z_mix_idx = params.z_inlet_lower_idx; % set end of mix-zone to lower inlet
         fklog(['z_inlet_lower_idx = ' num2str(params.z_inlet_lower_idx)]);
 
-        if Tin > T_w_in_lower
+        if Tin >= T_w_in_lower
             % upward direction in lower volume (increasing index)
-            while (Tin > Tcur(z_mix_idx)) && (z_mix_idx < params.z_membrane_idx)
+            z_max_lower = params.z_membrane_idx - 1;
+            while (Tin >= Tcur(z_mix_idx)) && (z_mix_idx < z_max_lower)
                 z_mix_idx = z_mix_idx + 1;
             end
             ids_mix = params.z_inlet_lower_idx:z_mix_idx;
@@ -70,7 +71,7 @@ function [ids_mix, Tin, z_mix_idx, T_w_in_upper, T_w_in_lower, fk_code] = detect
         Tin = T_w_in_lower;
         z_mix_idx = params.z_inlet_upper_idx;
         fklog(['z_inlet_upper_idx = ' num2str(params.z_inlet_upper_idx)]);
-        if Tin > T_w_in_upper
+        if Tin >= T_w_in_upper
             % upward direction in upper volume (increasing index)
             while (Tin > Tcur(z_mix_idx)) && (z_mix_idx < params.z_w_upper_end_idx)
                 z_mix_idx = z_mix_idx + 1;
@@ -80,7 +81,8 @@ function [ids_mix, Tin, z_mix_idx, T_w_in_upper, T_w_in_lower, fk_code] = detect
             fk_code = +2;
         else
             % downward direction in upper volume (decreasing index)
-            while (Tin < Tcur(z_mix_idx)) && (z_mix_idx > params.z_membrane_idx)
+            z_min_upper = params.z_membrane_idx + 1;
+            while (Tin < Tcur(z_mix_idx)) && (z_mix_idx > z_min_upper)
                 z_mix_idx = z_mix_idx - 1;
             end
             ids_mix = params.z_inlet_upper_idx:-1:z_mix_idx;

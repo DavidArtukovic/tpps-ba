@@ -457,22 +457,22 @@ function dTdt = HeatFluidSolid(t, T, Nz, dz, bypass_indices, flow, T0init, SW, A
             s_geom      = A(3) / A(1);              % = H(5)/H(3) because A1*H5 = A3*H3
             alpha_ring  = SW(1,5) * s_geom^2;       % preserve diffusion time scale tau ~ L^2/alpha
 
-            % ----------------------------------------------------------
-            % Extra axial mixing below/above outlet (increased diffusion as turbulent mixing proxy)
-            % ----------------------------------------------------------
-            alpha_max = 3e-5;   % [m^2/s] tune
-            L_mix = max(abs(idx_bypass_upper - idx_membrane) * dz, dz); % [m]
+            % % ----------------------------------------------------------
+            % % Extra axial mixing below/above outlet (increased diffusion as turbulent mixing proxy)
+            % % ----------------------------------------------------------
+            % alpha_max = 3e-5;   % [m^2/s] tune
+            % L_mix = max(abs(idx_bypass_upper - idx_membrane) * dz, dz); % [m]
 
-            % Define mixing zone: between membrane and upper bypass
-            in_mix_zone = (i >= idx_membrane) && (i <= idx_bypass_upper);
+            % % Define mixing zone: between membrane and upper bypass
+            % in_mix_zone = (i >= idx_membrane) && (i <= idx_bypass_upper);
 
-            if in_mix_zone
-                d  = abs(i - idx_bypass_upper) * dz;      % [m], 0 at stub
-                alpha_turb = alpha_max * (1 - d/(2*L_mix))*s_geom^2; % strong near inlet
-            else
-                alpha_turb = 0;
-            end
-
+            % if in_mix_zone
+            %     d  = abs(i - idx_bypass_upper) * dz;      % [m], 0 at stub
+            %     alpha_turb = alpha_max * (1 - d/(2*L_mix))*s_geom^2; % strong near inlet
+            % else
+            %     alpha_turb = 0;
+            % end
+            alpha_turb = 0; % for now, we skip the extra turbulent mixing
             alpha_ring_eff = alpha_ring + alpha_turb;
 
             % Compute mean radial gradient based on current node position in the ring gap
