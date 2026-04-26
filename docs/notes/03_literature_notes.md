@@ -555,7 +555,7 @@ Use as citation in introduction for relevance to takle temporal disparities in e
 Very handsome introduction. You can oreintate here.
 
 **Key Idea**
-The work by Soares et al. builds directly on the smooth 1D model introduced by Lago et al., which was the first to incorporate buoyancy and mixing effects using continuous formulations. :contentReference[oaicite:2]{index=2}  
+The work by Soares et al. builds directly on the smooth 1D model introduced by Lago et al., which was the first to incorporate buoyancy and mixing effects using continuous formulations.  
 
 While Lago et al. focused on the development of the model itself and its validation for large seasonal storage systems, Soares et al. extend this approach by generalizing it to different tank topologies, integrating the model into a unified formulation, and embedding it into a state estimation framework.  
 
