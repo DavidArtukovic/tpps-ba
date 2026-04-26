@@ -99,10 +99,6 @@ A(1) = d_ST^2 * pi/4;    % Area of the cylindrical storage
 A(2) = r_pist^2 * pi;    % Area of the piston
 A(3) = A(1) - A(2);      % Area of the annulus (ring gap)
 
-% Initialize positions indices of bypass inlets and mebrane
-[idx_bypass_lower_vec, idx_bypass_upper_vec, idx_membrane_vec] = ...
-compute_bypass_indices(t_900(2,:), H(3), H(11), Nz, dz);
-
 bypass_indices = [idx_bypass_lower_vec; idx_bypass_upper_vec; idx_membrane_vec];
 
 % index of top node in system vector (air node above insulation)
@@ -118,6 +114,19 @@ soil_top_idx = sys_top_idx + Nz(12)*Nz(13);
 %%%------------------------------------------%%%
 
 [Res_900, LC, DC, Lflow, Dflow] = prepare_scenario_flow(Res_900, t_900, Nz, H, d);
+
+
+%%%------------------------------------------
+% 3.1 Compute bypass indices
+%%%------------------------------------------
+
+Nz2_vec = Res_900(7,2:end);   % lower pressure zone
+
+% Initialize positions indices of bypass inlets and mebrane
+[idx_bypass_lower_vec, idx_bypass_upper_vec, idx_membrane_vec] = ...
+compute_bypass_indices(t_900(2,:), H(3), H(11), Nz, Nz2_vec, dz);
+
+bypass_indices = [idx_bypass_lower_vec; idx_bypass_upper_vec; idx_membrane_vec];
 %%
 %%%------------------------------------------%%%
 % 04. Set Initial Temperature Fields
@@ -502,7 +511,7 @@ function [Heat_insu, Heat_Wasser, Heat_piston, Heat_Vsoil, ...
         (sum(wEX(1,2:end-1)) + 0.5 * (wEX(1,1) + wEX(1,end)));
 end
 
-function [idx_bypass_lower_vec, idx_bypass_upper_vec, idx_membrane_vec] = compute_bypass_indices(soc_vec, h_pist, h_lift, Nz, dz)
+function [idx_bypass_lower_vec, idx_bypass_upper_vec, idx_membrane_vec] = compute_bypass_indices(soc_vec, h_pist, h_lift, Nz,Nz2_vec, dz)
     % COMPUTE_BYPASS_INDICES
     % --------------------------------------------------------------
     % Computes lower and upper bypass inlet indices and mebrane index
@@ -530,13 +539,13 @@ function [idx_bypass_lower_vec, idx_bypass_upper_vec, idx_membrane_vec] = comput
 
     % Number of cells in replacement volume of ringgap
     Nrep = Nz(5);
-    idx_rep_begin = Nz(3) + Nz(8) + Nz(2) - 1; % Start of replacement volume
-    idx_upper_begin = Nz(3) + Nz(8) + Nz(2) + Nz(5) -2 ; % Start of upper water volume
+    idx_rep_begin = Nz(3) + Nz(8) + Nz2_vec - 1; % Start of replacement volume
+    idx_upper_begin = Nz(3) + Nz(8) + Nz2_vec + Nz(5) -2 ; % Start of upper water volume
 
     % ----------------------------------------------------------
     % Lower bypass: always inside replacement volume
     % ----------------------------------------------------------
-    idx_bypass_lower_vec = idx_rep_begin + round((1 - soc_vec) .* Nrep .* h_lift ./ h_pist);
+    idx_bypass_lower_vec = idx_rep_begin + round((1 - soc_vec) .* Nrep .* h_lift ./ h_pist)-1;
 
     % ----------------------------------------------------------
     % Upper bypass: piecewise definition
@@ -557,7 +566,7 @@ function [idx_bypass_lower_vec, idx_bypass_upper_vec, idx_membrane_vec] = comput
 
     % Case 2: upper bypass in upper water volume
     delta_s = s_crit - soc_vec(mask_up);
-    idx_bypass_upper_vec(mask_up) = idx_upper_begin + round(delta_s .* h_lift ./ dz);
+    idx_bypass_upper_vec(mask_up) = idx_upper_begin + round(delta_s .* h_lift ./ dz)+1; % note plus one to guarantee that the upper bypass is always above the membrane
 
     % ----------------------------------------------------------
     % Membrane index
