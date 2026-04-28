@@ -21,7 +21,7 @@ close all
 run(fullfile('..','..','..', 'configs', 'paths_local.m'));
 
 RESULTS_VIS_BASE  = fullfile(RESULTS_BASE, "02_visualizations");
-RESULTS_TIMELAPSE = fullfile(RESULTS_VIS_BASE, "timelapse");
+RESULTS_TIMELAPSE = fullfile(RESULTS_VIS_BASE, "04_timelapse");
 
 DATA_SCEN1_BASE = fullfile(DATA_BASE, 'Modellvergleich1D');
 DATA_SCEN1_NOFK  = fullfile(DATA_BASE, 'scenario1');
@@ -39,7 +39,7 @@ load(fullfile(DATA_BASE, 'scenario1/SzenarioComsol.mat'));
 % MATLAB and COMSOL results (same as plot_matlab_profiles.m)
 data_1 = load(fullfile(DATA_SCEN1_NOFK, 'd18_h18_Res_Matlab_d18_18.mat')); % Matlab 1D no FK
 data_2 = load(fullfile(DATA_SCEN1_BASE, 'T1_1818_900.mat')); % COMSOL
-data_3 = load(fullfile(DATA_SCEN1_FK, '260415_d18_h18_Res_Matlab_FK_extended_2d_v4.mat')); % Matlab 2D piston with FK
+data_3 = load(fullfile(DATA_SCEN1_FK, '260427_d18_h18_Res_Matlab_FK_2d_v15.mat')); % Matlab 2D piston with FK
 
 
 %%%------------------------------------------%%%

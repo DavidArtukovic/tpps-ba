@@ -68,7 +68,7 @@ load(fullfile(DATA_BASE, 'scenario1/SzenarioComsol.mat'));
 
 data_1 = load(fullfile(DATA_SCEN1_NOFK, 'd18_h18_Res_Matlab_d18_18.mat'));
 data_2 = load(fullfile(DATA_SCEN1_BASE, 'T1_1818_900.mat'));
-data_3 = load(fullfile(DATA_SCEN1_FK, '260330_d18_h18_Res_Matlab_FK_2d_v10.mat'));
+data_3 = load(fullfile(DATA_SCEN1_FK, '260331_d18_h18_Res_Matlab_FK_2d_v12.mat'));
 
 %%%------------------------------------------%%%
 % 03. Spatial grids and geometry
@@ -586,7 +586,7 @@ lgd.FontSize = fs_axis;
 %%%------------------------------------------%%%
 % 15. Export
 %%%------------------------------------------%%%
-version = 'v3';
+version = 'v6';
 dateTag = datestr(now, 'yyyymmdd');
 baseName = sprintf('%s_snapshots_matlab_comsol_2d_piston_%s', dateTag, version);
 
@@ -602,8 +602,9 @@ disp(['Saved PDF: ' out_pdf]);
 
 function time_str = format_snapshot_time(t_h)
 % Format snapshot time for panel titles
-
-if t_h < 24
+if t_h <1
+    time_str = sprintf('t = %.2f h', 0);
+elseif t_h < 24
     time_str = sprintf('t = %.2f h', t_h);
 else
     n_days = floor(t_h / 24);

@@ -69,7 +69,7 @@ data_2 = load(fullfile(DATA_SCEN1_BASE, ...
 
 % --- MATLAB 2D piston extended
 data_3 = load(fullfile(DATA_SCEN1_FK, ...
-    '260331_d18_h18_Res_Matlab_FK_2d_v12.mat'));
+    '260426_d18_h18_Res_Matlab_FK_2d_v14.mat'));
 
 %%
 %%%------------------------------------------%%%
@@ -220,7 +220,7 @@ yyaxis right
 ax.YColor = 'k';   % right y-axis black
 ax.XColor = 'k';   % x-axis black
 
-hP1 = plot(t_days, dE_P_1, '-', ...
+hP1 = plot(t_days, dE_P_1, '--', ...
     'LineWidth', 0.7, 'Color', c_base);
 hold on
 
@@ -252,7 +252,7 @@ lgd.FontSize = 8;
 % 08. Export
 %%%------------------------------------------%%%
 
-version = 'v1';
+version = 'v2';
 dateTag = datestr(now, 'yyyymmdd');
 baseName = sprintf('%s_water_piston_energy_%s', dateTag, version);
 
