@@ -44,7 +44,7 @@ function [ids_mix, Tin, z_mix_idx, T_w_in_upper, T_w_in_lower, fk_code] = detect
         if Tin >= T_w_in_lower
             % upward direction in lower volume (increasing index)
             z_max_lower = params.z_membrane_idx - 1;
-            while (Tin >= Tcur(z_mix_idx)) && (z_mix_idx < params.z_max_lower)
+            while (Tin >= Tcur(z_mix_idx)) && (z_mix_idx < z_max_lower)
                 z_mix_idx = z_mix_idx + 1;
             end
             ids_mix = params.z_inlet_lower_idx:z_mix_idx;
