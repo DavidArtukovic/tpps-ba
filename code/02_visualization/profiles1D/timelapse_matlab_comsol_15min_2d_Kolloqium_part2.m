@@ -39,7 +39,7 @@ load(fullfile(DATA_BASE, 'scenario1/SzenarioComsol.mat'));
 % MATLAB and COMSOL results (same as plot_matlab_profiles.m)
 data_1 = load(fullfile(DATA_SCEN1_NOFK, 'd18_h18_Res_Matlab_d18_18.mat')); % Matlab 1D no FK
 data_2 = load(fullfile(DATA_SCEN1_BASE, 'T1_1818_900.mat')); % COMSOL
-data_3 = load(fullfile(DATA_SCEN1_FK, '260427_d18_h18_Res_Matlab_FK_2d_v15.mat')); % Matlab 2D piston with FK
+data_3 = load(fullfile(DATA_SCEN1_FK, '260330_d18_h18_Res_Matlab_FK_2d_v10.mat')); % Matlab 2D piston with FK
 
 
 %%%------------------------------------------%%%
@@ -74,14 +74,8 @@ T_3_p = data_3.ResOut.temperature.piston; % 2d piston
 W_C_raw = data_2.W(:,2:end);
 P_C_raw = data_2.P(:,2:end);
 
-% need to ensure all variables have the same number of time steps for the animation loop
-n_steps = min([ ...
-    size(T_1,2), ...
-    size(T_3,2), ...
-    size(T_3_p,2), ...
-    size(W_C_raw,2), ...
-    size(P_C_raw,2), ...
-    size(t_900,2)]);
+
+n_steps = 1920;
 
 % truncate to n_steps
 T_1     = T_1(:,1:n_steps);
@@ -121,6 +115,171 @@ clear A linInd startIdx rowOffsets rows
 
 dt_min  = 15;
 t_hours = (1:n_steps) * dt_min / 60;
+
+%%%------------------------------------------%%%
+% 04.1 Annotation events for presentation video
+%%%------------------------------------------%%%
+
+event_step = [];
+event_text = {};
+event_xTipB = [];
+event_yTipB = [];
+event_xTipE = [];
+event_yTipE = [];
+event_xTxt = [];
+event_yTxt = [];
+
+% Thermal discharging
+steps = 1290:1330;
+event_step = [event_step, steps];
+event_text = [event_text, repmat({'thermal discharging'}, 1, numel(steps))];
+event_xTipB = [event_xTipB, 78 * ones(1,numel(steps))];
+event_yTipB = [event_yTipB, 0.3 * ones(1,numel(steps))];
+event_xTipE = [event_xTipE, 75.5 * ones(1,numel(steps))];
+event_yTipE = [event_yTipE, -3.3 * ones(1,numel(steps))];
+event_xTxt = [event_xTxt, 72.5 * ones(1,numel(steps))];
+event_yTxt = [event_yTxt, -3.7 * ones(1,numel(steps))];
+
+% faster mixing in Comsol: n_step 46 ... 60
+steps = 1680:1739;
+xTip = [66.5*ones(1, 30) 65*ones(1, 30)];
+event_step = [event_step, steps];
+event_text = [event_text, repmat({'cold water reaches piston bottom'}, 1, numel(steps))];
+event_xTipB = [event_xTipB, xTip];
+event_yTipB = [event_yTipB, -19 * ones(1,numel(steps))];
+event_xTipE = [event_xTipE, xTip + 2];
+event_yTipE = [event_yTipE, -21 * ones(1,numel(steps))];
+event_xTxt = [event_xTxt, xTip + 2];
+event_yTxt = [event_yTxt, -21.3 * ones(1,numel(steps))];
+
+% downward FC Update
+steps = 1760:1831;
+xTip = [63.5:-0.12:59.3 59.2:-0.2:52];
+yTip = -9.5*ones(1, 67);
+event_step = [event_step, steps];
+event_text = [event_text, repmat({'downward FC-update'}, 1, numel(steps))];
+event_xTipB = [event_xTipB, xTip];
+event_yTipB = [event_yTipB, yTip];
+event_xTipE = [event_xTipE, xTip + 3];
+event_yTipE = [event_yTipE, yTip];
+event_xTxt = [event_xTxt, xTip+ 3.4];
+event_yTxt = [event_yTxt, yTip];
+
+
+% warm water reaches lower ring-gap via bypass: n_step 128 ... 144
+% steps = 128:144;
+% 
+% xTip = [50 50.3 50.6 50.9 51.2 51.5 51.8 52.1 52.4 52.7 53 53.3 53.6 53.9 54.2 54.5 54.8];
+% yTip = -17 * ones(1,numel(steps));
+% 
+% event_step = [event_step, steps];
+% event_text = [event_text, repmat({'warm water reaches lower ring-gap via bypass'}, 1, numel(steps))];
+% event_xTipB = [event_xTipB, xTip];
+% event_yTipB = [event_yTipB, yTip];
+% event_xTipE = [event_xTipE, xTip + 3];
+% event_yTipE = [event_yTipE, yTip];
+% event_xTxt = [event_xTxt, xTip + 3.5];
+% event_yTxt = [event_yTxt, yTip];
+
+
+% extended discrete FK update in Matlab: n_step 217 ... 252 & 312 ... 339
+
+% steps = [217:252, 312:339];
+% 
+% xTip = [ ...
+%     62 62.3 62.6 62.9 63.2 63.5 63.8 64.1 64.4 64.7 ...
+%     65 65.3 65.6 65.9 66.2 66.5 66.8 67.1 67.4 67.7 ...
+%     68 68.15 68.25 68.35 68.45 68.55 68.65 68.75 68.90 69.05 ...
+%     69.20 69.35 69.50 69.65 69.80 70 ...
+%     69 69.15 69.25 69.35 69.45 69.55 69.65 69.75 69.85 69.95 ...
+%     70.05 70.15 70.25 70.35 70.45 70.55 70.65 70.75 70.85 70.95 ...
+%     71.15 71.35 71.55 71.75 71.95 72.15 72.35 72.55];
+% 
+% event_step = [event_step, steps];
+% event_text = [event_text, repmat({'discrete FK update\newline in Matlab'}, 1, numel(steps))];
+% 
+% event_xTipB = [event_xTipB, xTip];
+% event_yTipB = [event_yTipB, -15 * ones(1,numel(steps))];
+% 
+% event_xTipE = [event_xTipE, xTip + 2];
+% event_yTipE = [event_yTipE, -15 * ones(1,numel(steps))];
+% 
+% event_xTxt = [event_xTxt, xTip + 2.5];
+% event_yTxt = [event_yTxt, -15 * ones(1,numel(steps))];
+
+
+% inverse thermocline at piston bottom: n_step 272 ... 300
+% steps = 272:300;
+% 
+% event_step = [event_step, steps];
+% event_text = [event_text, repmat({'inverse thermocline\newline at piston bottom'}, 1, numel(steps))];
+% event_xTipB = [event_xTipB, 70.5 * ones(1,numel(steps))];
+% event_yTipB = [event_yTipB, -18.9 * ones(1,numel(steps))];
+% event_xTipE = [event_xTipE, 73 * ones(1,numel(steps))];
+% event_yTipE = [event_yTipE, -17.6 * ones(1,numel(steps))];
+% event_xTxt = [event_xTxt, 73.5 * ones(1,numel(steps))];
+% event_yTxt = [event_yTxt, -16.5 * ones(1,numel(steps))];
+
+
+
+% piston top surface heats up: n_step 80 ... 100
+steps = 1000:1060;
+
+event_step_2d = [];
+event_text_2d = {};
+event_xTipB_2d = [];
+event_yTipB_2d = [];
+event_xTipE_2d = [];
+event_yTipE_2d = [];
+event_xTxt_2d = [];
+event_yTxt_2d = [];
+
+event_step_2d = [event_step_2d, steps];
+event_text_2d = [event_text_2d, repmat({'piston surface is heated'}, 1, numel(steps))];
+event_xTipB_2d = [event_xTipB_2d, 7.7  * ones(1,numel(steps))];
+event_yTipB_2d = [event_yTipB_2d, 5 * ones(1,numel(steps))];
+event_xTipE_2d = [event_xTipE_2d, 7  * ones(1,numel(steps))];
+event_yTipE_2d = [event_yTipE_2d, 5 * ones(1,numel(steps))];
+event_xTxt_2d = [event_xTxt_2d, 5.3  * ones(1,numel(steps))];
+event_yTxt_2d = [event_yTxt_2d, 5.3 * ones(1,numel(steps))];
+% 
+% 
+% 
+% piston bottom 65°C vs water 70°C: n_step 272 ... 300
+steps = 1800:1850;
+
+event_step_2d = [event_step_2d, steps];
+event_text_2d = [event_text_2d, repmat({'piston bottom cooled down'}, 1, numel(steps))];
+event_xTipB_2d = [event_xTipB_2d, 4.0 * ones(1,numel(steps))];
+event_yTipB_2d = [event_yTipB_2d, 0.3 * ones(1,numel(steps))];
+event_xTipE_2d = [event_xTipE_2d, 4.0 * ones(1,numel(steps))];
+event_yTipE_2d = [event_yTipE_2d, 1.0 * ones(1,numel(steps))];
+event_xTxt_2d = [event_xTxt_2d, 3.2 * ones(1,numel(steps))];
+event_yTxt_2d = [event_yTxt_2d, 1.5 * ones(1,numel(steps))];
+
+% piston bottom 65°C vs water 70°C: n_step 272 ... 300
+steps = 1851:1900;
+
+event_step_2d = [event_step_2d, steps];
+event_text_2d = [event_text_2d, repmat({'piston interface to lower ring-gap still warm'}, 1, numel(steps))];
+event_xTipB_2d = [event_xTipB_2d, 8.0 * ones(1,numel(steps))];
+event_yTipB_2d = [event_yTipB_2d, 4.3 * ones(1,numel(steps))];
+event_xTipE_2d = [event_xTipE_2d, 7.5 * ones(1,numel(steps))];
+event_yTipE_2d = [event_yTipE_2d, 4.3 * ones(1,numel(steps))];
+event_xTxt_2d = [event_xTxt_2d, 4.0 * ones(1,numel(steps))];
+event_yTxt_2d = [event_yTxt_2d, 4.5 * ones(1,numel(steps))];
+
+% Uper piston cooled due to enthalpy flow
+steps = 1851:1900;
+
+event_step_2d = [event_step_2d, steps];
+event_text_2d = [event_text_2d, repmat({'piston interface to upper ring-gap\newline cooled due to cold enthalpy flow'}, 1, numel(steps))];
+event_xTipB_2d = [event_xTipB_2d, 8.0 * ones(1,numel(steps))];
+event_yTipB_2d = [event_yTipB_2d, 11.3 * ones(1,numel(steps))];
+event_xTipE_2d = [event_xTipE_2d, 7.5 * ones(1,numel(steps))];
+event_yTipE_2d = [event_yTipE_2d, 11.3 * ones(1,numel(steps))];
+event_xTxt_2d = [event_xTxt_2d, 5.4 * ones(1,numel(steps))];
+event_yTxt_2d = [event_yTxt_2d, 11.9 * ones(1,numel(steps))];
 
 
 %%%------------------------------------------%%%
@@ -198,7 +357,7 @@ end
 % 07. Model container
 %%%------------------------------------------%%%
 
-models(1).name   = 'no FK 1D';
+models(1).name   = 'MATLAB baseline';
 models(1).T_sys  = T_1;
 models(1).T_ring = T_ring_1;
 models(1).z      = z_M;
@@ -212,7 +371,7 @@ models(2).z      = z_M;
 models(2).style  = '-';
 models(2).color  = [0.0 0.7 0.0];    % green
 
-models(3).name   = 'FK 2D piston';
+models(3).name   = 'MATLAB extended';
 models(3).T_sys  = T_3;
 models(3).T_ring = T_ring_3;
 models(3).T_piston = flip(T_3_p);
@@ -227,12 +386,13 @@ z_ring_norm = linspace(0,1,blockLen)';   % normalized vertical coordinate
 %%%------------------------------------------%%%
 dateTag = datestr(now,'yyyymmdd');
 version = 'v1';
+part = 'part1';
 videoname = fullfile(RESULTS_TIMELAPSE, ...
-    [dateTag '_' version '_timelapse_1D+2D_temperature_profiles_15min_matlab_comsol.mp4']);
+    [dateTag '_' version '_timelapse_1D+2D_temperature_profiles_15min_matlab_comsol_part2.mp4']);
 
 v = VideoWriter(videoname,'MPEG-4');
-% Keep it readable; increase for faster video
-v.FrameRate = 5;
+% Keep it readable; increase if you want a faster video
+v.FrameRate = 8;
 open(v);
 
 %%%------------------------------------------%%%
@@ -305,7 +465,7 @@ for mm = 1:numel(models)
 end
 
 legend(ax1, legend_handles, legend_labels, ...
-    'Interpreter','none', 'Location','southwest')
+    'Interpreter','none', 'Location','southeast','HandleVisibility','off')
 
 % set limits
 xlim(ax1,[40 81])
@@ -322,17 +482,10 @@ h_piston_bottom = plot(ax1, [40 81], [z_piston, z_piston], ...
     ':', 'Color', [0 0 1], 'LineWidth', 1.5);
 
 
-legend(ax1, [legend_handles h_piston_top], [legend_labels {'upper/lower piston end'}], ...
-    'Interpreter','none', 'Location','southwest')
-
-% FK highlight rectangle (whole volume)
-h_fk_rect = rectangle(ax1, ...
-    'Position',[40 0 40 0], ...
-    'EdgeColor','none', ...
-    'LineWidth',3, ...
-    'FaceColor','none');
-
-uistack(h_fk_rect,'bottom');
+lgd = legend(ax1, [legend_handles h_piston_top], [legend_labels {'upper/lower piston end'}], ...
+    'Interpreter','none', 'Location','southeast', 'HandleVisibility','off');
+lgd.Units = 'normalized';
+lgd.Position = [0.08 0.33 0.2 0.15];
 
 % Title handle
 h_title = title(ax1,'','Interpreter','Latex');
@@ -341,6 +494,29 @@ set(h_ps_up ,  'YData', [z_M(idx_bypass_upper) z_M(idx_bypass_upper)]);
 set(h_ps_low,  'YData', [z_M(idx_bypass_lower) z_M(idx_bypass_lower)]);
 set(h_txt_up , 'Position', [x_txt z_M(idx_bypass_upper) 0]);
 set(h_txt_low, 'Position', [x_txt z_M(idx_bypass_lower) 0]);
+
+% Event annotation handles
+max_events_per_frame = 2;
+
+h_event_arrow = gobjects(max_events_per_frame,1);
+h_event_text  = gobjects(max_events_per_frame,1);
+
+for kk = 1:max_events_per_frame
+
+    h_event_arrow(kk) = quiver(ax1, NaN, NaN, NaN, NaN, 0, ...
+        'Color', [0.1 0.1 0.1], ...
+        'LineWidth', 1.5, ...
+        'MaxHeadSize', 0.8,'HandleVisibility','off');
+
+    h_event_text(kk) = text(ax1, NaN, NaN, '', ...
+        'FontSize', 10, ...
+        'FontWeight', 'bold', ...
+        'Color', [0.1 0.1 0.1], ...
+        'BackgroundColor', 'None', ...
+        'Margin', 3, ...
+        'VerticalAlignment', 'middle');
+end
+
 
 %%%------------------------------------------%%%
 % 11. RIGHT: 2D radial piston temperature field for Matlab model
@@ -397,7 +573,7 @@ set(ax2,'YDir','normal')
 
 xlabel(ax2,'Radius [m]')
 ylabel(ax2,'Piston height [m]')
-title(ax2,'2D piston temperature')
+title(ax2,'2D piston temperature - MATLAB extended')
 
 colormap(ax2,'turbo')
 colorbar(ax2)
@@ -412,11 +588,33 @@ x_mark_r = [8.0 8.5];
 hold(ax2,'on')
 h_mem_r    = plot(ax2, x_mark_r, [NaN NaN], 'k-', 'LineWidth',2);
 
+
+% Event annotation handles for 2D
+max_events_per_frame_2d = 2;
+
+h_event_arrow_2d = gobjects(max_events_per_frame_2d,1);
+h_event_text_2d  = gobjects(max_events_per_frame_2d,1);
+
+for kk = 1:max_events_per_frame_2d
+
+    h_event_arrow_2d(kk) = quiver(ax2, NaN, NaN, NaN, NaN, 0, ...
+        'Color',[0.1 0.1 0.1], ...
+        'LineWidth',1.5, ...
+        'MaxHeadSize',0.8,'HandleVisibility','off');
+
+    h_event_text_2d(kk) = text(ax2, NaN, NaN, '', ...
+        'FontSize',10, ...
+        'FontWeight','bold', ...
+        'BackgroundColor','none', ...
+        'HorizontalAlignment','center', ...
+        'VerticalAlignment','top');
+end
+
 %%%------------------------------------------%%%
 % 12. Animation loop
 %%%------------------------------------------%%%
 
-for i = 1:(n_steps)
+for i = 960:n_steps
 
     SoC = t_900(2,i);
 
@@ -434,33 +632,6 @@ for i = 1:(n_steps)
 
     % set membrane positions for variable piston position
     y_mem_loc = z_M(idx_membrane)     - z_piston;
-
-
-    % FK visualization
-    fk_code = data_3.ResOut.fk.logging_code(i);
-
-    if fk_code == 0
-        set(h_fk_rect,'EdgeColor','none');
-    else
-
-        if abs(fk_code) == 2
-            fk_color = [0.85 0.1 0.1];
-        else
-            fk_color = [0.1 0.3 0.85];
-        end
-
-        if fk_code > 0
-            y0 = z_M(idx_bypass_upper);
-            height_fk = abs(z_M(idx_bypass_upper) - max(z_M));
-        else
-            y0 = min(z_M);
-            height_fk = z_piston - min(z_M);
-        end
-
-        set(h_fk_rect, ...
-            'Position',[40 y0 40 height_fk], ...
-            'EdgeColor',fk_color);
-    end
 
     % Update 1D system profiles
     for mm = 1:numel(models)
@@ -497,8 +668,79 @@ for i = 1:(n_steps)
     % set membrane dynamically based on current piston position
     set(h_mem_r   , 'YData', [y_mem_loc y_mem_loc], 'Color', [1 0.85 0]);
 
+    % ----------------------------------------------------------
+    % Update event annotations
+    % ----------------------------------------------------------
+    idx_events = find(event_step == i);
+
+    % hide all annotations first
+    for kk = 1:max_events_per_frame
+        set(h_event_arrow(kk), ...
+            'XData', NaN, 'YData', NaN, ...
+            'UData', NaN, 'VData', NaN);
+
+        set(h_event_text(kk), ...
+            'Position', [NaN NaN 0], ...
+            'String', '');
+    end
+
+    % show active annotations
+    for kk = 1:min(numel(idx_events), max_events_per_frame)
+
+        jj = idx_events(kk);
+
+        % arrow from defined begin point to defined end point
+        set(h_event_arrow(kk), ...
+            'XData', event_xTipE(jj), ...
+            'YData', event_yTipE(jj), ...
+            'UData', event_xTipB(jj) - event_xTipE(jj), ...
+            'VData', event_yTipB(jj) - event_yTipE(jj));
+
+        set(h_event_text(kk), ...
+            'Position', [event_xTxt(jj), event_yTxt(jj), 0], ...
+            'String', event_text{jj});
+    end
+
+
     drawnow
     writeVideo(v, getframe(gcf));
+
+
+    % ----------------------------------------------------------
+    % Update 2D event annotations
+    % ----------------------------------------------------------
+    idx_events_2d = find(event_step_2d == i);
+    
+    % hide
+    for kk = 1:max_events_per_frame_2d
+        set(h_event_arrow_2d(kk), ...
+            'XData',NaN,'YData',NaN,'UData',NaN,'VData',NaN);
+    
+        set(h_event_text_2d(kk), ...
+            'Position',[NaN NaN 0], ...
+            'String','');
+    end
+    
+    % show
+    for kk = 1:min(numel(idx_events_2d), max_events_per_frame_2d)
+    
+        jj = idx_events_2d(kk);
+    
+        set(h_event_arrow_2d(kk), ...
+        'XData', event_xTipE_2d(jj), ...
+        'YData', event_yTipE_2d(jj), ...
+        'UData', event_xTipB_2d(jj) - event_xTipE_2d(jj), ...
+        'VData', event_yTipB_2d(jj) - event_yTipE_2d(jj));
+    
+        set(h_event_text_2d(kk), ...
+            'Position',[event_xTxt_2d(jj), event_yTxt_2d(jj), 0], ...
+            'String', event_text_2d{jj});
+    end
+
+    % Move legend after 370 h
+    if t_hours(i) >= 370
+        lgd.Location = 'southeast';
+    end
 end
 
 close(v);

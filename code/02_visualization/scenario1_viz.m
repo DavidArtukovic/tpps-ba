@@ -21,8 +21,8 @@ load(fullfile(DATA_INIT, '20260330_d18_hp18.0_gap0.5_2D_chunk009.mat'));       %
 Lflow = 4.9236e-05; % m/s
 Dflow = 3.7395e-05; % m/s
 
-L_mflow = Lflow*2*pi*9^2*1000;
-D_mflow = Dflow*2*pi*9^2*1000;
+L_mflow = Lflow*pi*9^2*1000;
+D_mflow = Dflow*pi*9^2*1000;
 %%
 %%%------------------------------------------%%%
 % Scenario plot
@@ -74,7 +74,7 @@ ax1.TickDir = 'out';
 ax1.XTickLabel = [];
 ax1.GridAlpha = 0.15;
 ylabel(ax1, '$\dot{m}$ [kg\,s$^{-1}$]','Interpreter','latex')
-ylim(ax1,[-25 30]);
+ylim(ax1,[-13 17]);
 
 
 %%%------------------------------------------%%%
@@ -97,7 +97,7 @@ ylim(ax2,[-17 1])
 %%%------------------------------------------%%%
 % 04 Export
 %%%------------------------------------------%%%
-version = 'v3';
+version = 'v4';
 dateTag = datestr(now, 'yyyymmdd');
 export_png_dpi = 900;
 baseName = sprintf('%s_scenario1_operating_schema_%s', dateTag, version);

@@ -195,7 +195,7 @@ legend( ...
 %%%------------------------------------------%%%
 % 07. Export
 %%%------------------------------------------%%%
-version = 'v1';
+version = 'v2';
 dateTag = datestr(now, 'yyyymmdd');
 baseName = sprintf('%s_energy_balance_%s', dateTag, version);
 
@@ -274,7 +274,7 @@ legend( ...
 %%%------------------------------------------%%%
 % 09. Export Residual
 %%%------------------------------------------%%%
-version = 'v1';
+version = 'v2';
 dateTag = datestr(now, 'yyyymmdd');
 baseName = sprintf('%s_energy_balance_residual_%s', dateTag, version);
 
@@ -390,11 +390,11 @@ function [E_sys, E_flow_true, E_flow_simple] = ...
 
     % --- Change of total internal system energy ---
     E_abs = sum(Res_900(1:6,:), 1);
-    E_sys = (E_abs - E_abs(1))*10e-9;
+    E_sys = (E_abs - E_abs(1))*1e-9;
 
     % --- Signed flow velocity in storage ---
     v = Res_900(9,2:end) + Res_900(10,2:end);
-
+    
     % --- Stored water temperatures ---
     T_top    = T_W_900(1,   :);
     T_bottom = T_W_900(end, :);
@@ -422,7 +422,6 @@ function [E_sys, E_flow_true, E_flow_simple] = ...
         end
 
         m_dot = rho * abs(v_k) * A;   % [kg/s]
-
         if v_k < 0
             % Charging:
             % hot water enters at top, water leaves at bottom
@@ -437,6 +436,6 @@ function [E_sys, E_flow_true, E_flow_simple] = ...
         end
     end
 
-    E_flow_true   = [0, cumsum(dE_true)]*10e-9;
-    E_flow_simple = [0, cumsum(dE_simple)]*10e-9;
+    E_flow_true   = [0, cumsum(dE_true)]*1e-9;
+    E_flow_simple = [0, cumsum(dE_simple)]*1e-9;
 end
